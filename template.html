@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset=" UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estação Meteorologica Com Arduíno</title>
+    <style>
+        * {
+            margin: 0px;
+            padding: 0px;
+        }
+
+        h1 {
+            text-align: center;
+            color: darkred;
+        }
+
+        h2 {
+            color: rgb(238, 209, 209);
+        }
+
+        strong {
+            color: black;
+        }
+
+        html {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 24px;
+        }
+
+        ul {
+            color: rgb(238, 209, 209);
+        }
+
+        .container {
+            background-color: crimson;
+            margin: 20px;
+            padding: 50px;
+            border-radius: 30px;
+        }
+
+        .rCopy {
+            text-align: center;
+            color: red;
+        }
+
+        .containerExterior {
+            background-color: black;
+        }
+
+        .cabecalho {
+            padding: 20px 0 0 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="containerExterior">
+        <div class="cabecalho">
+            <h1>Estação Metereologica <br> Fat83dotcom&trade;</h1>
+        </div>
+        <div class="container">
+            <ul>
+                <li>Data: <strong>$dat</strong></li>
+                <li>Período: <strong>$ini</strong> até <strong>$fim</strong></li>
+            </ul>
+
+            <h2>
+                <li>Médias:</li>
+            </h2>
+            <ul>
+                <li>Umidade: <strong>$umi</strong> %</li>
+                <li>pressão: <strong>$press</strong> hPa</li>
+                <li>Temperatura Interna: <strong>$t1</strong> C°</li>
+                <li>Temperatura Externa: <strong>$t2</strong> C°</li>
+            </ul>
+            <h2>
+                <li>Máximas:</li>
+            </h2>
+            <ul>
+                <li>Umidade: <strong>$umimax</strong> %</li>
+                <li>Pressão: <strong>$pressmax</strong> hPa</li>
+                <li>Temperatura Interna: <strong>$t1max</strong> C°</li>
+                <li>Temperatura Externa: <strong>$t2max</strong> C°</li>
+            </ul>
+            <h2>
+                <li>Mínimas:</li>
+            </h2>
+            <ul>
+                <li>Umidade: <strong>$umimini</strong> %</li>
+                <li>Pressão: <strong>$pressmini</strong> hPa</li>
+                <li>Temperatura Interna: <strong>$t1min</strong> C°</li>
+                <li>Temperatura Externa: <strong>$t2min</strong> C°</li>
+            </ul>
+
+        </div>
+        <footer class="rCopy">© Desenvolvido por: Fernando Mendes</footer>
+    </div>
+</body>
+
+</html>
