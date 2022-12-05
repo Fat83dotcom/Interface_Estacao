@@ -26,7 +26,7 @@
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_4">
         <item>
-         <widget class="QFrame" name="frame_3">
+         <widget class="QFrame" name="home">
           <property name="frameShape">
            <enum>QFrame::StyledPanel</enum>
           </property>
@@ -62,7 +62,7 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="estacao">
+      <widget class="QWidget" name="inicioEstacao">
        <attribute name="title">
         <string>Iniciar Estação</string>
        </attribute>
@@ -113,14 +113,14 @@
             <widget class="QTimeEdit" name="tempoGraficos"/>
            </item>
            <item>
-            <widget class="QPushButton" name="inciarEstacao">
+            <widget class="QPushButton" name="btnInciarEstacao">
              <property name="text">
               <string>Iniciar Estação</string>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QPushButton" name="pararEstacao">
+            <widget class="QPushButton" name="btnPararEstacao">
              <property name="text">
               <string>Parar Estação</string>
              </property>
@@ -146,7 +146,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QListView" name="listView">
+            <widget class="QListView" name="saidaDetalhes">
              <property name="alternatingRowColors">
               <bool>true</bool>
              </property>
