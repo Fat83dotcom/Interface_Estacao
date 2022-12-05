@@ -1,3 +1,4 @@
+
 import os
 from serial import Serial
 import serial
@@ -17,28 +18,7 @@ from string import Template
 from itertools import count
 from math import nan
 
-
-if os.path.isfile('EMAIL_USER_DATA.txt'):
-    print('Arquivo "EMAIL_USER_DATA.txt" já existe.')
-else:
-    define_arquivo()
-    print('Arquivo "EMAIL_USER_DATA.txt" foi criado, por favor, configure antes de continuar. Tecle enter para continuar...')
-    input()
-
-set_porta = '/dev/ttyUSB0'
-
 caminhoDiretorio = os.path.dirname(os.path.realpath(__file__))
-
-while set_porta:
-    try:
-        arduino = Serial(set_porta, 9600, timeout=1, bytesize=serial.EIGHTBITS)
-        arduino.reset_input_buffer()
-        break
-    except Exception as erro:
-        print(erro)
-        set_porta = input('Digite a porta serial em que o Arduino está conectado: ')
-print(f'O Arduino está na porta: {set_porta}')
-
 
 class EmailThread(Thread):
     def __init__(self, inicio, umi, press, t1, t2, t1max,
@@ -280,7 +260,7 @@ def definicaDeTempo():
         return None
 
 
-def main():
+def main(arduino):
     c3 = count()
     contador3 = next(c3)
     while 1:
