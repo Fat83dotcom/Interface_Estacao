@@ -14,18 +14,19 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         super().setupUi(self)
+        self.btnInciarEstacao.clicked.connect(self.execucaoMainEstacao)
         
     def inicializacaoArduino(self):
-        set_porta = '/dev/ttyUSB0'
+        set_porta = self.portaArduino.text()
 
-        while set_porta:
-            try:
-                arduino = Serial(set_porta, 9600, timeout=1, bytesize=serial.EIGHTBITS)
-                arduino.reset_input_buffer()
-                return arduino
-            except Exception as erro:
-                print(erro)
-                set_porta = self.portaArduino.text()
+        try:
+            arduino = Serial(set_porta, 9600, timeout=1, bytesize=serial.EIGHTBITS)
+            # print(arduino)
+            arduino.reset_input_buffer()
+            return arduino
+        except Exception as erro:
+            print(erro)
+            set_porta = self.portaArduino.text()
     
     def execucaoMainEstacao(self):
         if os.path.isfile('EMAIL_USER_DATA.txt'):
