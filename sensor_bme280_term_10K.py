@@ -18,7 +18,6 @@ from string import Template
 from itertools import count
 from math import nan
 
-caminhoDiretorio = os.path.dirname(os.path.realpath(__file__))
 
 class EmailThread(Thread):
     def __init__(self, inicio, umi, press, t1, t2, t1max,
@@ -261,11 +260,12 @@ def definicaDeTempo():
 
 
 def main(arduino):
+    caminhoDiretorio = os.path.dirname(os.path.realpath(__file__))
     c3 = count()
     contador3 = next(c3)
     while 1:
         if contador3 == 0:
-            tempo_graf = int(interfaceInicial())
+            tempo_graf = 60
             print(f'Inicio: --> {data()} <--')
             arduino.reset_input_buffer()
         else:
