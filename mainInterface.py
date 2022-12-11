@@ -25,6 +25,123 @@ from math import nan
 porta = '/dev/ttyUSB0'
 
 
+class Worker(QObject):
+    finalizar = pyqtSignal()
+    barraProgresso = pyqtSignal(int)
+    saidaInfo = pyqtSignal(str)
+
+    def porcentagem(self, totalVoltas, voltaAtual) -> int:
+        porcentagem = voltaAtual * 100 / totalVoltas
+        return porcentagem
+
+    def run(self):
+        arduino = Serial(porta, 9600, timeout=1, bytesize=serial.EIGHTBITS)
+        arduino.reset_input_buffer()
+
+        if os.path.isfile('EMAIL_USER_DATA.txt'):
+            print('Arquivo "EMAIL_USER_DATA.txt" já existe.')
+        else:
+            define_arquivo()
+            print('Arquivo "EMAIL_USER_DATA.txt" foi criado, por favor, configure antes de continuar. Tecle enter para continuar...')
+
+        caminhoDiretorio = os.path.dirname(os.path.realpath(__file__))
+        c3 = count()
+        contador3 = next(c3)
+        while 1:
+            if contador3 == 0:
+                tempo_graf = 20
+                print(f'Inicio: --> {data()} <--')
+                self.saidaInfo.emit(f'Inicio: --> {data()} <--')
+                arduino.reset_input_buffer()
+            else:
+                print(f'Parcial {contador3} --> {data()} <--')
+                self.saidaInfo.emit(f'Parcial {contador3} --> {data()} <--')
+
+            inicio = data()
+
+            yDadosUmidade = []
+            yDadosPressao = []
+            yDadosTemperaturaInterna = []
+            yDadosTemperaturaExterna = []
+
+            dadosRecebidosArduino = {
+                'u': '',
+                'p': '',
+                '1': '',
+                '2': ''
+            }
+            c2 = count()
+            contador2 = next(c2)
+            print(contador2)
+            while contador2 < tempo_graf:
+                tempoInicial = time.time()
+                c1 = count()
+                contador1 = next(c1)
+                print(contador1)
+                while contador1 < 4:
+                    try:
+                        dado = str(arduino.readline())
+                        dado = dado[2:-5]
+                        print(dado)
+                        if float(dado[1:].strip()) == nan:
+                            continue
+                        else:
+                            if dado[0] == 'u':
+                                dadosRecebidosArduino['u'] = float(dado[1:].strip())
+                            if dado[0] == 'p':
+                                dadosRecebidosArduino['p'] = float(dado[1:].strip())
+                            if dado[0] == '1':
+                                dadosRecebidosArduino['1'] = float(dado[1:].strip())
+                            if dado[0] == '2':
+                                dadosRecebidosArduino['2'] = float(dado[1:].strip())
+                    except (ValueError, IndexError):
+                        continue
+                    contador1 = next(c1)
+                with open(dataDoArquivo(), 'a+', newline='', encoding='utf-8') as log:
+                    try:
+                        w = csv.writer(log)
+                        w.writerow([data(), dadosRecebidosArduino['u'], dadosRecebidosArduino['p'],
+                                    dadosRecebidosArduino['1'], dadosRecebidosArduino['2']])
+                        yDadosUmidade.append(float(dadosRecebidosArduino['u']))
+                        yDadosPressao.append(float(dadosRecebidosArduino['p']))
+                        yDadosTemperaturaInterna.append(float(dadosRecebidosArduino['1']))
+                        yDadosTemperaturaExterna.append(float(dadosRecebidosArduino['2']))
+                        contador2 = next(c2)
+                    except ValueError:
+                        print('error')
+                        continue
+                tempoFinal = time.time()
+                while tempoFinal - tempoInicial < 1:
+                    tempoFinal = time.time()
+                percent: int = self.porcentagem(tempo_graf, contador2)
+                self.barraProgresso.emit(percent)
+
+            plot_umidade(yDadosUmidade, inicio, caminhoDiretorio)
+            plot_pressao(yDadosPressao, inicio, caminhoDiretorio)
+            plot_temp1(yDadosTemperaturaInterna, inicio, caminhoDiretorio)
+            plot_temp2(yDadosTemperaturaExterna, inicio, caminhoDiretorio)
+            contador3 = next(c3)
+            emaail = EmailThread(
+                                 inicio=inicio,
+                                 umi=round(mean(yDadosUmidade), 2),
+                                 press=round(mean(yDadosPressao), 2),
+                                 t1=round(mean(yDadosTemperaturaInterna), 2),
+                                 t2=round(mean(yDadosTemperaturaExterna), 2),
+                                 t1max=maximos(yDadosTemperaturaInterna),
+                                 t1min=minimos(yDadosTemperaturaInterna),
+                                 t2max=maximos(yDadosTemperaturaExterna),
+                                 t2min=minimos(yDadosTemperaturaExterna),
+                                 umimax=maximos(yDadosUmidade),
+                                 umimini=minimos(yDadosUmidade),
+                                 pressmax=maximos(yDadosPressao),
+                                 pressmini=minimos(yDadosPressao),
+                                 ini=inicio,
+                                 fim=data(),
+                                 path=caminhoDiretorio)
+            emaail.start()
+            self.saidaInfo.emit('Email Enviado')
+
+
 class EmailThread(Thread):
     def __init__(self, inicio, umi, press, t1, t2, t1max,
                  t1min, t2max, t2min, umimax, umimini,
@@ -210,123 +327,25 @@ def plot_temp2(t2y, inicio, path):
     plt.clf()
 
 
-class Worker(QObject):
-    finalizar = pyqtSignal()
-    progresso = pyqtSignal()
-
-    def run(self):
-        arduino = Serial(porta, 9600, timeout=1, bytesize=serial.EIGHTBITS)
-        arduino.reset_input_buffer()
-
-        if os.path.isfile('EMAIL_USER_DATA.txt'):
-            print('Arquivo "EMAIL_USER_DATA.txt" já existe.')
-        else:
-            define_arquivo()
-            print('Arquivo "EMAIL_USER_DATA.txt" foi criado, por favor, configure antes de continuar. Tecle enter para continuar...')
-
-        caminhoDiretorio = os.path.dirname(os.path.realpath(__file__))
-        c3 = count()
-        contador3 = next(c3)
-        while 1:
-            if contador3 == 0:
-                tempo_graf = 20
-                print(f'Inicio: --> {data()} <--')
-                arduino.reset_input_buffer()
-            else:
-                print(f'Parcial {contador3} --> {data()} <--')
-
-            inicio = data()
-
-            yDadosUmidade = []
-            yDadosPressao = []
-            yDadosTemperaturaInterna = []
-            yDadosTemperaturaExterna = []
-
-            dadosRecebidosArduino = {
-                'u': '',
-                'p': '',
-                '1': '',
-                '2': ''
-            }
-            c2 = count()
-            contador2 = next(c2)
-            print(contador2)
-            while contador2 < tempo_graf:
-                tempoInicial = time.time()
-                c1 = count()
-                contador1 = next(c1)
-                print(contador1)
-                while contador1 < 4:
-                    try:
-                        dado = str(arduino.readline())
-                        dado = dado[2:-5]
-                        print(dado)
-                        if float(dado[1:].strip()) == nan:
-                            continue
-                        else:
-                            if dado[0] == 'u':
-                                dadosRecebidosArduino['u'] = float(dado[1:].strip())
-                            if dado[0] == 'p':
-                                dadosRecebidosArduino['p'] = float(dado[1:].strip())
-                            if dado[0] == '1':
-                                dadosRecebidosArduino['1'] = float(dado[1:].strip())
-                            if dado[0] == '2':
-                                dadosRecebidosArduino['2'] = float(dado[1:].strip())
-                    except (ValueError, IndexError):
-                        continue
-                    contador1 = next(c1)
-                with open(dataDoArquivo(), 'a+', newline='', encoding='utf-8') as log:
-                    try:
-                        w = csv.writer(log)
-                        w.writerow([data(), dadosRecebidosArduino['u'], dadosRecebidosArduino['p'],
-                                    dadosRecebidosArduino['1'], dadosRecebidosArduino['2']])
-                        yDadosUmidade.append(float(dadosRecebidosArduino['u']))
-                        yDadosPressao.append(float(dadosRecebidosArduino['p']))
-                        yDadosTemperaturaInterna.append(float(dadosRecebidosArduino['1']))
-                        yDadosTemperaturaExterna.append(float(dadosRecebidosArduino['2']))
-                        contador2 = next(c2)
-                    except ValueError:
-                        print('error')
-                        continue
-                tempoFinal = time.time()
-                while tempoFinal - tempoInicial < 1:
-                    tempoFinal = time.time()
-
-            plot_umidade(yDadosUmidade, inicio, caminhoDiretorio)
-            plot_pressao(yDadosPressao, inicio, caminhoDiretorio)
-            plot_temp1(yDadosTemperaturaInterna, inicio, caminhoDiretorio)
-            plot_temp2(yDadosTemperaturaExterna, inicio, caminhoDiretorio)
-            contador3 = next(c3)
-            emaail = EmailThread(
-                                 inicio=inicio,
-                                 umi=round(mean(yDadosUmidade), 2),
-                                 press=round(mean(yDadosPressao), 2),
-                                 t1=round(mean(yDadosTemperaturaInterna), 2),
-                                 t2=round(mean(yDadosTemperaturaExterna), 2),
-                                 t1max=maximos(yDadosTemperaturaInterna),
-                                 t1min=minimos(yDadosTemperaturaInterna),
-                                 t2max=maximos(yDadosTemperaturaExterna),
-                                 t2min=minimos(yDadosTemperaturaExterna),
-                                 umimax=maximos(yDadosUmidade),
-                                 umimini=minimos(yDadosUmidade),
-                                 pressmax=maximos(yDadosPressao),
-                                 pressmini=minimos(yDadosPressao),
-                                 ini=inicio,
-                                 fim=data(),
-                                 path=caminhoDiretorio)
-            emaail.start()
-
-
 class InterfaceEstacao(QMainWindow, Ui_MainWindow):
+    porta
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         super().setupUi(self)
         self.btnInciarEstacao.clicked.connect(self.execucaoMainEstacao)
+        self.modelo = QStandardItemModel()
+        self.saidaDetalhes.setModel(self.modelo)
+
+    def mostradorDisplayInfo(self, info):
+        self.modelo.appendRow(QStandardItem(info))
+
+    def mostrarDisplayBarraProgresso(self, percent):
+        self.barraProgresso.setValue(percent)
 
     def execucaoMainEstacao(self):
-        porta = self.portaArduino.text()
-        porta = porta
+        self.porta = self.portaArduino.text()
+        # porta = self.porta
         self.thread = QThread()
         self.worker = Worker()
         self.worker.moveToThread(self.thread)
@@ -334,6 +353,8 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         self.worker.finalizar.connect(self.thread.quit)
         self.worker.finalizar.connect(self.worker.deleteLater)
         self.worker.finalizar.connect(self.thread.deleteLater)
+        self.worker.saidaInfo.connect(self.mostradorDisplayInfo)
+        self.worker.barraProgresso.connect(self.mostrarDisplayBarraProgresso)
         self.thread.start()
         self.btnInciarEstacao.setEnabled(False)
 
