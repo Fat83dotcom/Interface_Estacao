@@ -1,18 +1,15 @@
 
 import os
-from serial import Serial
-import serial
 import time
 import csv
 import matplotlib.pyplot as plt
 import matplotlib.backends.backend_pdf
 import smtplib
-from tqdm import tqdm
 from threading import Thread
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
-from confidentials import meu_email, minha_senha, my_recipients, define_arquivo
+from confidentials import meu_email, minha_senha, my_recipients
 from statistics import mean
 from string import Template
 from itertools import count
@@ -130,8 +127,8 @@ def leia_me():
 
 
 def renderizadorHtml(umidade, pressao, temp1, temp2, temp1max, temp1min,
-                 temp2max, temp2min, umima, umimi, pressma, pressmi,
-                 inicio, fim, data):
+                     temp2max, temp2min, umima, umimi, pressma, pressmi,
+                     inicio, fim, data):
     with open('template.html', 'r') as doc:
         template = Template(doc.read())
         corpo_msg = template.safe_substitute(umi=umidade, press=pressao, t1=temp1, t2=temp2,
@@ -211,7 +208,6 @@ def interfaceInicial():
     while opcao == '' and contador < tentativa:
         print(f'{contador  + 1}ª tentativa... {tentativa - (contador + 1)} restantes.')
         print('Tempo padrão: 1 Hora.')
-        
         opcao = input('Deseja definir a frequencia dos gráficos ?[S/N]: ').upper()
         if opcao == '':
             opcao = 'N'
@@ -286,67 +282,63 @@ def main(arduino):
         }
         c2 = count()
         contador2 = next(c2)
-        
-        with tqdm(total=tempo_graf) as barra:
-            while contador2 < tempo_graf:
-                tempoInicial = time.time()
-                c1 = count()
+        while contador2 < tempo_graf:
+            tempoInicial = time.time()
+            c1 = count()
+            contador1 = next(c1)
+            while contador1 < 4:
+                try:
+                    dado = str(arduino.readline())
+                    dado = dado[2:-5]
+                    if float(dado[1:].strip()) == nan:
+                        continue
+                    else:
+                        if dado[0] == 'u':
+                            dadosRecebidosArduino['u'] = float(dado[1:].strip())
+                        if dado[0] == 'p':
+                            dadosRecebidosArduino['p'] = float(dado[1:].strip())
+                        if dado[0] == '1':
+                            dadosRecebidosArduino['1'] = float(dado[1:].strip())
+                        if dado[0] == '2':
+                            dadosRecebidosArduino['2'] = float(dado[1:].strip())
+                except (ValueError, IndexError):
+                    continue
                 contador1 = next(c1)
-                while contador1 < 4:
-                    try:
-                        dado = str(arduino.readline())
-                        dado = dado[2:-5]
-                        if float(dado[1:].strip()) == nan:
-                            continue
-                        else:
-                            if dado[0] == 'u':
-                                dadosRecebidosArduino['u'] = float(dado[1:].strip())
-                            if dado[0] == 'p':
-                                dadosRecebidosArduino['p'] = float(dado[1:].strip())
-                            if dado[0] == '1':
-                                dadosRecebidosArduino['1'] = float(dado[1:].strip())
-                            if dado[0] == '2':
-                                dadosRecebidosArduino['2'] = float(dado[1:].strip())
-                    except (ValueError, IndexError):
-                        continue
-                    contador1 = next(c1)
-                with open(dataDoArquivo(), 'a+', newline='', encoding='utf-8') as log:
-                    try:
-                        w = csv.writer(log)
-                        w.writerow([data(), dadosRecebidosArduino['u'], dadosRecebidosArduino['p'],
-                                    dadosRecebidosArduino['1'], dadosRecebidosArduino['2']])
-                        yDadosUmidade.append(float(dadosRecebidosArduino['u']))
-                        yDadosPressao.append(float(dadosRecebidosArduino['p']))
-                        yDadosTemperaturaInterna.append(float(dadosRecebidosArduino['1']))
-                        yDadosTemperaturaExterna.append(float(dadosRecebidosArduino['2']))
-                        contador2 = next(c2)
-                        barra.update(1)
-                    except ValueError:
-                        print('error')
-                        continue
+            with open(dataDoArquivo(), 'a+', newline='', encoding='utf-8') as log:
+                try:
+                    w = csv.writer(log)
+                    w.writerow([data(), dadosRecebidosArduino['u'], dadosRecebidosArduino['p'],
+                                dadosRecebidosArduino['1'], dadosRecebidosArduino['2']])
+                    yDadosUmidade.append(float(dadosRecebidosArduino['u']))
+                    yDadosPressao.append(float(dadosRecebidosArduino['p']))
+                    yDadosTemperaturaInterna.append(float(dadosRecebidosArduino['1']))
+                    yDadosTemperaturaExterna.append(float(dadosRecebidosArduino['2']))
+                    contador2 = next(c2)
+                except ValueError:
+                    print('error')
+                    continue
+            tempoFinal = time.time()
+            while tempoFinal - tempoInicial < 1:
                 tempoFinal = time.time()
-                while tempoFinal - tempoInicial < 1:
-                    tempoFinal = time.time()
-        
+
         plot_umidade(yDadosUmidade, inicio, caminhoDiretorio)
         plot_pressao(yDadosPressao, inicio, caminhoDiretorio)
         plot_temp1(yDadosTemperaturaInterna, inicio, caminhoDiretorio)
         plot_temp2(yDadosTemperaturaExterna, inicio, caminhoDiretorio)
         contador3 = next(c3)
         emaail = EmailThread(inicio,
-                            round(mean(yDadosUmidade),2),
-                            round(mean(yDadosPressao), 2),
-                            round(mean(yDadosTemperaturaInterna),2),
-                            round(mean(yDadosTemperaturaExterna), 2),
-                            maximos(yDadosTemperaturaInterna),
-                            minimos(yDadosTemperaturaInterna),
-                            maximos(yDadosTemperaturaExterna),
-                            minimos(yDadosTemperaturaExterna),
-                            maximos(yDadosUmidade),
-                            minimos(yDadosUmidade),
-                            maximos(yDadosPressao),
-                            minimos(yDadosPressao),
-                            inicio,
-                            data(),
-                            caminhoDiretorio)
+                             round(mean(yDadosUmidade), 2),
+                             round(mean(yDadosPressao), 2),
+                             round(mean(yDadosTemperaturaInterna), 2),
+                             round(mean(yDadosTemperaturaExterna), 2),
+                             maximos(yDadosTemperaturaInterna),
+                             minimos(yDadosTemperaturaInterna),
+                             maximos(yDadosTemperaturaExterna),
+                             maximos(yDadosUmidade),
+                             minimos(yDadosUmidade),
+                             maximos(yDadosPressao),
+                             minimos(yDadosPressao),
+                             inicio,
+                             data(),
+                             caminhoDiretorio)
         emaail.start()
