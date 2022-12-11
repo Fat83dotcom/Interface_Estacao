@@ -32,7 +32,7 @@ class Worker(QObject):
 
     def porcentagem(self, totalVoltas, voltaAtual) -> int:
         porcentagem = voltaAtual * 100 / totalVoltas
-        return porcentagem
+        return int(porcentagem)
 
     def run(self):
         arduino = Serial(porta, 9600, timeout=1, bytesize=serial.EIGHTBITS)
@@ -107,14 +107,15 @@ class Worker(QObject):
                         yDadosTemperaturaInterna.append(float(dadosRecebidosArduino['1']))
                         yDadosTemperaturaExterna.append(float(dadosRecebidosArduino['2']))
                         contador2 = next(c2)
+                        percent: int = self.porcentagem(tempo_graf, contador2)
+                        print(percent)
+                        self.barraProgresso.emit(percent)
                     except ValueError:
                         print('error')
                         continue
                 tempoFinal = time.time()
                 while tempoFinal - tempoInicial < 1:
                     tempoFinal = time.time()
-                percent: int = self.porcentagem(tempo_graf, contador2)
-                self.barraProgresso.emit(percent)
 
             plot_umidade(yDadosUmidade, inicio, caminhoDiretorio)
             plot_pressao(yDadosPressao, inicio, caminhoDiretorio)
@@ -340,7 +341,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
     def mostradorDisplayInfo(self, info):
         self.modelo.appendRow(QStandardItem(info))
 
-    def mostrarDisplayBarraProgresso(self, percent):
+    def mostrardorDisplayBarraProgresso(self, percent):
         self.barraProgresso.setValue(percent)
 
     def execucaoMainEstacao(self):
@@ -354,7 +355,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         self.worker.finalizar.connect(self.worker.deleteLater)
         self.worker.finalizar.connect(self.thread.deleteLater)
         self.worker.saidaInfo.connect(self.mostradorDisplayInfo)
-        self.worker.barraProgresso.connect(self.mostrarDisplayBarraProgresso)
+        self.worker.barraProgresso.connect(self.mostrardorDisplayBarraProgresso)
         self.thread.start()
         self.btnInciarEstacao.setEnabled(False)
 
