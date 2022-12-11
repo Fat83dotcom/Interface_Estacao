@@ -129,4 +129,5 @@ dmypy.json
 .pyre/
 EMAIL_USER_DATA.txt
 confidentials.py
+*.csv
 
