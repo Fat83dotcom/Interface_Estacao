@@ -22,125 +22,127 @@ from string import Template
 from itertools import count
 from math import nan
 
-porta = '/dev/ttyUSB0'
-
 
 class Worker(QObject):
     finalizar = pyqtSignal()
     barraProgresso = pyqtSignal(int)
     saidaInfo = pyqtSignal(str)
 
+    def __init__(self, portaArduino, tempoGrafico, parent=None) -> None:
+        super().__init__(parent)
+        self.porta = portaArduino
+        self.tempoGraf = tempoGrafico
+
     def porcentagem(self, totalVoltas, voltaAtual) -> int:
         porcentagem = voltaAtual * 100 / totalVoltas
         return int(porcentagem)
 
     def run(self):
-        arduino = Serial(porta, 9600, timeout=1, bytesize=serial.EIGHTBITS)
-        arduino.reset_input_buffer()
-
-        if os.path.isfile('EMAIL_USER_DATA.txt'):
-            print('Arquivo "EMAIL_USER_DATA.txt" já existe.')
-        else:
-            define_arquivo()
-            print('Arquivo "EMAIL_USER_DATA.txt" foi criado, por favor, configure antes de continuar. Tecle enter para continuar...')
-
         caminhoDiretorio = os.path.dirname(os.path.realpath(__file__))
-        c3 = count()
-        contador3 = next(c3)
-        while 1:
-            if contador3 == 0:
-                tempo_graf = 20
-                print(f'Inicio: --> {data()} <--')
-                self.saidaInfo.emit(f'Inicio: --> {data()} <--')
-                arduino.reset_input_buffer()
+        try:
+            self.saidaInfo.emit(self.porta)
+            arduino = Serial(self.porta, 9600, timeout=1, bytesize=serial.EIGHTBITS)
+            arduino.reset_input_buffer()
+        except Exception as e:
+            self.saidaInfo.emit(f'{e.__class__.__name__}: {e} - parouaqui')
+        else:
+            if os.path.isfile('EMAIL_USER_DATA.txt'):
+                self.saidaInfo.emit('Arquivo "EMAIL_USER_DATA.txt" já existe.')
             else:
-                print(f'Parcial {contador3} --> {data()} <--')
-                self.saidaInfo.emit(f'Parcial {contador3} --> {data()} <--')
-
-            inicio = data()
-
-            yDadosUmidade = []
-            yDadosPressao = []
-            yDadosTemperaturaInterna = []
-            yDadosTemperaturaExterna = []
-
-            dadosRecebidosArduino = {
-                'u': '',
-                'p': '',
-                '1': '',
-                '2': ''
-            }
-            c2 = count()
-            contador2 = next(c2)
-            print(contador2)
-            while contador2 < tempo_graf:
-                tempoInicial = time.time()
-                c1 = count()
-                contador1 = next(c1)
-                print(contador1)
-                while contador1 < 4:
-                    try:
-                        dado = str(arduino.readline())
-                        dado = dado[2:-5]
-                        print(dado)
-                        if float(dado[1:].strip()) == nan:
-                            continue
-                        else:
-                            if dado[0] == 'u':
-                                dadosRecebidosArduino['u'] = float(dado[1:].strip())
-                            if dado[0] == 'p':
-                                dadosRecebidosArduino['p'] = float(dado[1:].strip())
-                            if dado[0] == '1':
-                                dadosRecebidosArduino['1'] = float(dado[1:].strip())
-                            if dado[0] == '2':
-                                dadosRecebidosArduino['2'] = float(dado[1:].strip())
-                    except (ValueError, IndexError):
-                        continue
-                    contador1 = next(c1)
-                with open(dataDoArquivo(), 'a+', newline='', encoding='utf-8') as log:
-                    try:
-                        w = csv.writer(log)
-                        w.writerow([data(), dadosRecebidosArduino['u'], dadosRecebidosArduino['p'],
-                                    dadosRecebidosArduino['1'], dadosRecebidosArduino['2']])
-                        yDadosUmidade.append(float(dadosRecebidosArduino['u']))
-                        yDadosPressao.append(float(dadosRecebidosArduino['p']))
-                        yDadosTemperaturaInterna.append(float(dadosRecebidosArduino['1']))
-                        yDadosTemperaturaExterna.append(float(dadosRecebidosArduino['2']))
-                        contador2 = next(c2)
-                        percent: int = self.porcentagem(tempo_graf, contador2)
-                        print(percent)
-                        self.barraProgresso.emit(percent)
-                    except ValueError:
-                        print('error')
-                        continue
-                tempoFinal = time.time()
-                while tempoFinal - tempoInicial < 1:
-                    tempoFinal = time.time()
-
-            plot_umidade(yDadosUmidade, inicio, caminhoDiretorio)
-            plot_pressao(yDadosPressao, inicio, caminhoDiretorio)
-            plot_temp1(yDadosTemperaturaInterna, inicio, caminhoDiretorio)
-            plot_temp2(yDadosTemperaturaExterna, inicio, caminhoDiretorio)
+                define_arquivo()
+                self.saidaInfo.emit('Arquivo "EMAIL_USER_DATA.txt" foi criado, por favor, configure antes de continuar.')
+            c3 = count()
             contador3 = next(c3)
-            emaail = EmailThread(
-                                 inicio=inicio,
-                                 umi=round(mean(yDadosUmidade), 2),
-                                 press=round(mean(yDadosPressao), 2),
-                                 t1=round(mean(yDadosTemperaturaInterna), 2),
-                                 t2=round(mean(yDadosTemperaturaExterna), 2),
-                                 t1max=maximos(yDadosTemperaturaInterna),
-                                 t1min=minimos(yDadosTemperaturaInterna),
-                                 t2max=maximos(yDadosTemperaturaExterna),
-                                 t2min=minimos(yDadosTemperaturaExterna),
-                                 umimax=maximos(yDadosUmidade),
-                                 umimini=minimos(yDadosUmidade),
-                                 pressmax=maximos(yDadosPressao),
-                                 pressmini=minimos(yDadosPressao),
-                                 ini=inicio,
-                                 fim=data(),
-                                 path=caminhoDiretorio)
-            emaail.start()
-            self.saidaInfo.emit('Email Enviado')
+            while 1:
+                if contador3 == 0:
+                    print(self.tempoGraf)
+                    tempo_graf = self.tempoGraf
+                    arduino.reset_input_buffer()
+                    self.saidaInfo.emit(f'Inicio: --> {data()} <--')
+                else:
+                    self.saidaInfo.emit(f'Parcial {contador3} --> {data()} <--')
+
+                inicio = data()
+
+                yDadosUmidade = []
+                yDadosPressao = []
+                yDadosTemperaturaInterna = []
+                yDadosTemperaturaExterna = []
+
+                dadosRecebidosArduino = {
+                    'u': '',
+                    'p': '',
+                    '1': '',
+                    '2': ''
+                }
+                c2 = count()
+                contador2 = next(c2)
+                while contador2 < tempo_graf:
+                    tempoInicial = time.time()
+                    c1 = count()
+                    contador1 = next(c1)
+                    while contador1 < 4:
+                        try:
+                            dado = str(arduino.readline())
+                            dado = dado[2:-5]
+                            if float(dado[1:].strip()) == nan:
+                                continue
+                            else:
+                                if dado[0] == 'u':
+                                    dadosRecebidosArduino['u'] = float(dado[1:].strip())
+                                if dado[0] == 'p':
+                                    dadosRecebidosArduino['p'] = float(dado[1:].strip())
+                                if dado[0] == '1':
+                                    dadosRecebidosArduino['1'] = float(dado[1:].strip())
+                                if dado[0] == '2':
+                                    dadosRecebidosArduino['2'] = float(dado[1:].strip())
+                        except (ValueError, IndexError, Exception) as e:
+                            self.saidaInfo.emit(f'{e.__class__.__name__}: {e} - Ignore.')
+                        contador1 = next(c1)
+
+                    with open(dataDoArquivo(), 'a+', newline='', encoding='utf-8') as log:
+                        try:
+                            w = csv.writer(log)
+                            w.writerow([data(), dadosRecebidosArduino['u'], dadosRecebidosArduino['p'],
+                                        dadosRecebidosArduino['1'], dadosRecebidosArduino['2']])
+                            yDadosUmidade.append(float(dadosRecebidosArduino['u']))
+                            yDadosPressao.append(float(dadosRecebidosArduino['p']))
+                            yDadosTemperaturaInterna.append(float(dadosRecebidosArduino['1']))
+                            yDadosTemperaturaExterna.append(float(dadosRecebidosArduino['2']))
+                            contador2 = next(c2)
+                            percent: int = self.porcentagem(tempo_graf, contador2)
+                            self.barraProgresso.emit(percent)
+                        except ValueError as e:
+                            self.saidaInfo.emit(f'{e.__class__.__name__}: {e}')
+
+                    tempoFinal = time.time()
+                    while tempoFinal - tempoInicial < 1:
+                        tempoFinal = time.time()
+
+                plot_umidade(yDadosUmidade, inicio, caminhoDiretorio)
+                plot_pressao(yDadosPressao, inicio, caminhoDiretorio)
+                plot_temp1(yDadosTemperaturaInterna, inicio, caminhoDiretorio)
+                plot_temp2(yDadosTemperaturaExterna, inicio, caminhoDiretorio)
+                contador3 = next(c3)
+                emaail = EmailThread(
+                                    inicio=inicio,
+                                    umi=round(mean(yDadosUmidade), 2),
+                                    press=round(mean(yDadosPressao), 2),
+                                    t1=round(mean(yDadosTemperaturaInterna), 2),
+                                    t2=round(mean(yDadosTemperaturaExterna), 2),
+                                    t1max=maximos(yDadosTemperaturaInterna),
+                                    t1min=minimos(yDadosTemperaturaInterna),
+                                    t2max=maximos(yDadosTemperaturaExterna),
+                                    t2min=minimos(yDadosTemperaturaExterna),
+                                    umimax=maximos(yDadosUmidade),
+                                    umimini=minimos(yDadosUmidade),
+                                    pressmax=maximos(yDadosPressao),
+                                    pressmini=minimos(yDadosPressao),
+                                    ini=inicio,
+                                    fim=data(),
+                                    path=caminhoDiretorio)
+                emaail.start()
+                self.saidaInfo.emit('Email Enviado')
 
 
 class EmailThread(Thread):
@@ -208,28 +210,15 @@ class EmailThread(Thread):
         os.remove(f'{self.path}/Temperatura_Externa{self.inicio}.pdf')
 
 
-class ConvertTempo:
-    def __init__(self, hora=None, minuto=None, segundo=None):
-        self.hora = hora
-        self.minuto = minuto
-        self.segundo = segundo
+class TransSegundos:
+    def __init__(self, horas) -> None:
+        self.horas = horas
 
-    def convert_hr_segundo(self):
-        conv_hr_sec = self.hora * 3600
-        return conv_hr_sec
-
-    def convert_min_segundo(self):
-        conv_min_sec = self.minuto * 60
-        return conv_min_sec
-
-    def soma_tempo(self):
-        h = self.hora
-        m = self.minuto
-        s = self.segundo
-        soma = ConvertTempo(hora=h, minuto=m, segundo=s)
-        soma = soma.convert_hr_segundo() + soma.convert_min_segundo()
-        soma += self.segundo
-        return soma
+    def conversorHorasSegundo(self) -> int:
+        horas = self.horas[:2]
+        minutos = self.horas[3:]
+        segundos = int(int(horas) * 3600 + int(minutos) * 60)
+        return segundos
 
 
 def leia_me():
@@ -329,8 +318,6 @@ def plot_temp2(t2y, inicio, path):
 
 
 class InterfaceEstacao(QMainWindow, Ui_MainWindow):
-    porta
-
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         super().setupUi(self)
@@ -346,9 +333,9 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
 
     def execucaoMainEstacao(self):
         self.porta = self.portaArduino.text()
-        # porta = self.porta
+        self.tempoGrafico = self.tempoGraficos.text()
         self.thread = QThread()
-        self.worker = Worker()
+        self.worker = Worker(portaArduino=self.porta, tempoGrafico=self.tempoGrafico)
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
         self.worker.finalizar.connect(self.thread.quit)
