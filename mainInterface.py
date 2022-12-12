@@ -32,6 +32,11 @@ class Worker(QObject):
         super().__init__(parent)
         self.porta = portaArduino
         self.tempoGraf = tempoGrafico
+        self.tempoConvertido = TransSegundos(self.tempoGraf)
+        self.paradaPrograma = False
+
+    def setParadaPrograma(self):
+        self.paradaPrograma = True
 
     def porcentagem(self, totalVoltas, voltaAtual) -> int:
         porcentagem = voltaAtual * 100 / totalVoltas
@@ -44,7 +49,9 @@ class Worker(QObject):
             arduino = Serial(self.porta, 9600, timeout=1, bytesize=serial.EIGHTBITS)
             arduino.reset_input_buffer()
         except Exception as e:
-            self.saidaInfo.emit(f'{e.__class__.__name__}: {e} - parouaqui')
+            self.saidaInfo.emit(f'{e.__class__.__name__}: {e}')
+            self.saidaInfo.emit('Entre com uma porta USB ou verifique a entrada USB.')
+            self.finalizar.emit()
         else:
             if os.path.isfile('EMAIL_USER_DATA.txt'):
                 self.saidaInfo.emit('Arquivo "EMAIL_USER_DATA.txt" já existe.')
@@ -55,8 +62,10 @@ class Worker(QObject):
             contador3 = next(c3)
             while 1:
                 if contador3 == 0:
-                    print(self.tempoGraf)
-                    tempo_graf = self.tempoGraf
+                    tempo_graf = self.tempoConvertido.conversorHorasSegundo()
+                    if tempo_graf == 0:
+                        self.saidaInfo.emit('Entre com um tempo maior que zero !!!')
+                        self.finalizar.emit()
                     arduino.reset_input_buffer()
                     self.saidaInfo.emit(f'Inicio: --> {data()} <--')
                 else:
@@ -77,7 +86,7 @@ class Worker(QObject):
                 }
                 c2 = count()
                 contador2 = next(c2)
-                while contador2 < tempo_graf:
+                while (contador2 < tempo_graf):
                     tempoInicial = time.time()
                     c1 = count()
                     contador1 = next(c1)
@@ -322,6 +331,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         super().__init__(parent)
         super().setupUi(self)
         self.btnInciarEstacao.clicked.connect(self.execucaoMainEstacao)
+        # self.btnPararEstacao.clicked.connect()
         self.modelo = QStandardItemModel()
         self.saidaDetalhes.setModel(self.modelo)
 
@@ -330,6 +340,9 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
 
     def mostrardorDisplayBarraProgresso(self, percent):
         self.barraProgresso.setValue(percent)
+
+    def paraEstacao(self):
+        pass
 
     def execucaoMainEstacao(self):
         self.porta = self.portaArduino.text()
@@ -345,6 +358,9 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         self.worker.barraProgresso.connect(self.mostrardorDisplayBarraProgresso)
         self.thread.start()
         self.btnInciarEstacao.setEnabled(False)
+        self.thread.finished.connect(
+            lambda: self.btnInciarEstacao.setEnabled(True)
+        )
 
 
 if __name__ == '__main__':
