@@ -130,4 +130,5 @@ dmypy.json
 EMAIL_USER_DATA.txt
 confidentials.py
 *.csv
+*.pdf
 teste.py
