@@ -101,9 +101,6 @@
           <layout class="QVBoxLayout" name="verticalLayout_3">
            <item>
             <widget class="QLineEdit" name="portaArduino">
-             <property name="text">
-              <string/>
-             </property>
              <property name="placeholderText">
               <string>Porta Arduíno</string>
              </property>

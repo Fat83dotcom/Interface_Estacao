@@ -284,9 +284,9 @@ class Worker(QObject):
                                 dadosRecebidosArduino['1'] = float(dado[1:].strip())
                             if dado[0] == '2':
                                 dadosRecebidosArduino['2'] = float(dado[1:].strip())
-                    except Exception as e:
+                    except Exception:
                         ...
-                        
+
                     contador1 = next(c1)
 
                 with open(dataDoArquivo(), 'a+', newline='', encoding='utf-8') as log:
@@ -342,9 +342,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         super().setupUi(self)
         self.btnInciarEstacao.clicked.connect(self.execucaoMainEstacao)
         self.btnPararEstacao.clicked.connect(self.pararWorker)
-        self.porta = self.portaArduino.text()
         self.btnPararEstacao.setEnabled(False)
-        self.tempoGrafico = self.tempoGraficos.text()
         self.modelo = QStandardItemModel()
         self.saidaDetalhes.setModel(self.modelo)
 
@@ -357,6 +355,8 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
     def execucaoMainEstacao(self):
         self.btnInciarEstacao.setEnabled(False)
         self.btnPararEstacao.setEnabled(True)
+        self.porta = self.portaArduino.text()
+        self.tempoGrafico = self.tempoGraficos.text()
         self.thread = QThread(parent=self)
         self.worker = Worker(portaArduino=self.porta, tempoGrafico=self.tempoGrafico)
         self.worker.moveToThread(self.thread)

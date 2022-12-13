@@ -64,7 +64,6 @@ class Ui_MainWindow(object):
         self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.frame)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.portaArduino = QtWidgets.QLineEdit(self.frame)
-        self.portaArduino.setText("")
         self.portaArduino.setObjectName("portaArduino")
         self.verticalLayout_3.addWidget(self.portaArduino)
         self.tempoGraficos = QtWidgets.QTimeEdit(self.frame)
