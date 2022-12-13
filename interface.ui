@@ -102,7 +102,7 @@
            <item>
             <widget class="QLineEdit" name="portaArduino">
              <property name="text">
-              <string>/dev/ttyUSB0</string>
+              <string/>
              </property>
              <property name="placeholderText">
               <string>Porta Arduíno</string>

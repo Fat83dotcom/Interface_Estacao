@@ -203,10 +203,11 @@ class Worker(QObject):
     def __init__(self, portaArduino, tempoGrafico, parent=None) -> None:
         super().__init__(parent)
         self.mutex = QMutex()
-        self.tempoConvertido = TransSegundos(self.tempoGraf)
         self.porta = portaArduino
         self.tempoGraf = tempoGrafico
         self.paradaPrograma = False
+        self.tempoConvertido = TransSegundos(self.tempoGraf)
+        self.arduino = ''
 
     def porcentagem(self, totalVoltas, voltaAtual) -> int:
         porcentagem = voltaAtual * 100 / totalVoltas
@@ -222,13 +223,15 @@ class Worker(QObject):
     def run(self):
         caminhoDiretorio = os.path.dirname(os.path.realpath(__file__))
         try:
-            arduino = Serial(self.porta, 9600, timeout=1, bytesize=serial.EIGHTBITS)
-            arduino.reset_input_buffer()
+            self.mutex.lock()
+            self.arduino = Serial(self.porta, 9600, timeout=1, bytesize=serial.EIGHTBITS)
+            self.arduino.reset_input_buffer()
+            self.mutex.unlock()
             self.saidaInfo.emit(f'O Arduíno foi conectado na porta: {self.porta}')
         except Exception as e:
             self.saidaInfo.emit(f'{e.__class__.__name__}: {e}')
             self.saidaInfo.emit('Entre com uma porta USB ou verifique a entrada USB.')
-            self.finalizar.emit()
+            self.parar()
 
         if os.path.isfile('EMAIL_USER_DATA.txt'):
             self.saidaInfo.emit('Arquivo "EMAIL_USER_DATA.txt" já existe.')
@@ -243,7 +246,6 @@ class Worker(QObject):
                 if tempo_graf == 0:
                     self.saidaInfo.emit('Entre com um tempo maior que zero !!!')
                     self.finalizar.emit()
-                arduino.reset_input_buffer()
                 self.saidaInfo.emit(f'Inicio: --> {data()} <--')
             else:
                 self.saidaInfo.emit(f'Parcial {contador3} --> {data()} <--')
@@ -269,7 +271,7 @@ class Worker(QObject):
                 contador1 = next(c1)
                 while contador1 < 4:
                     try:
-                        dado = str(arduino.readline())
+                        dado = str(self.arduino.readline())
                         dado = dado[2:-5]
                         if float(dado[1:].strip()) == nan:
                             continue
@@ -282,8 +284,9 @@ class Worker(QObject):
                                 dadosRecebidosArduino['1'] = float(dado[1:].strip())
                             if dado[0] == '2':
                                 dadosRecebidosArduino['2'] = float(dado[1:].strip())
-                    except (ValueError, IndexError, Exception):
+                    except Exception as e:
                         ...
+                        
                     contador1 = next(c1)
 
                 with open(dataDoArquivo(), 'a+', newline='', encoding='utf-8') as log:
@@ -339,7 +342,9 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         super().setupUi(self)
         self.btnInciarEstacao.clicked.connect(self.execucaoMainEstacao)
         self.btnPararEstacao.clicked.connect(self.pararWorker)
+        self.porta = self.portaArduino.text()
         self.btnPararEstacao.setEnabled(False)
+        self.tempoGrafico = self.tempoGraficos.text()
         self.modelo = QStandardItemModel()
         self.saidaDetalhes.setModel(self.modelo)
 
@@ -352,8 +357,6 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
     def execucaoMainEstacao(self):
         self.btnInciarEstacao.setEnabled(False)
         self.btnPararEstacao.setEnabled(True)
-        self.porta = self.portaArduino.text()
-        self.tempoGrafico = self.tempoGraficos.text()
         self.thread = QThread(parent=self)
         self.worker = Worker(portaArduino=self.porta, tempoGrafico=self.tempoGrafico)
         self.worker.moveToThread(self.thread)
