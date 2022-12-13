@@ -102,7 +102,7 @@
            <item>
             <widget class="QLineEdit" name="portaArduino">
              <property name="text">
-              <string/>
+              <string>/dev/ttyUSB0</string>
              </property>
              <property name="placeholderText">
               <string>Porta Arduíno</string>
@@ -110,7 +110,11 @@
             </widget>
            </item>
            <item>
-            <widget class="QTimeEdit" name="tempoGraficos"/>
+            <widget class="QTimeEdit" name="tempoGraficos">
+             <property name="specialValueText">
+              <string>00:01</string>
+             </property>
+            </widget>
            </item>
            <item>
             <widget class="QPushButton" name="btnInciarEstacao">
