@@ -3,7 +3,7 @@ import serial
 import os
 from PyQt5.QtWidgets import QMainWindow, QApplication
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
-from PyQt5.QtCore import QThread, QObject, pyqtSignal
+from PyQt5.QtCore import QThread, QObject, pyqtSignal, QMutex, pyqtSlot
 from interface import Ui_MainWindow
 from serial import Serial
 from confidentials import define_arquivo
@@ -30,15 +30,23 @@ class Worker(QObject):
 
     def __init__(self, portaArduino, tempoGrafico, parent=None) -> None:
         super().__init__(parent)
+        self.mutex = QMutex()
+        self.tempoConvertido = TransSegundos(self.tempoGraf)
         self.porta = portaArduino
         self.tempoGraf = tempoGrafico
-        self.tempoConvertido = TransSegundos(self.tempoGraf)
         self.paradaPrograma = False
 
     def porcentagem(self, totalVoltas, voltaAtual) -> int:
         porcentagem = voltaAtual * 100 / totalVoltas
         return int(porcentagem)
 
+    @pyqtSlot()
+    def parar(self):
+        self.mutex.lock()
+        self.paradaPrograma = True
+        self.mutex.unlock()
+
+    @pyqtSlot()
     def run(self):
         caminhoDiretorio = os.path.dirname(os.path.realpath(__file__))
         try:
@@ -330,6 +338,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         super().__init__(parent)
         super().setupUi(self)
         self.btnInciarEstacao.clicked.connect(self.execucaoMainEstacao)
+        self.btnPararEstacao.clicked.connect(self.pararWorker)
         self.btnPararEstacao.setEnabled(False)
         self.modelo = QStandardItemModel()
         self.saidaDetalhes.setModel(self.modelo)
@@ -341,9 +350,11 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         self.barraProgresso.setValue(percent)
 
     def execucaoMainEstacao(self):
+        self.btnInciarEstacao.setEnabled(False)
+        self.btnPararEstacao.setEnabled(True)
         self.porta = self.portaArduino.text()
         self.tempoGrafico = self.tempoGraficos.text()
-        self.thread = QThread()
+        self.thread = QThread(parent=self)
         self.worker = Worker(portaArduino=self.porta, tempoGrafico=self.tempoGrafico)
         self.worker.moveToThread(self.thread)
         self.worker.finalizar.connect(self.thread.quit)
@@ -353,17 +364,15 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         self.thread.started.connect(self.worker.run)
         self.thread.start()
         self.worker.barraProgresso.connect(self.mostrardorDisplayBarraProgresso)
-        self.btnInciarEstacao.setEnabled(False)
-        self.btnPararEstacao.setEnabled(True)
         self.thread.finished.connect(
             lambda: self.btnInciarEstacao.setEnabled(True)
         )
 
-        def pararThread():
-            self.worker.paradaPrograma = True
-            self.btnPararEstacao.setEnabled(False)
-
-        self.btnPararEstacao.clicked.connect(pararThread)
+    def pararWorker(self):
+        self.worker.parar()
+        self.thread.quit()
+        self.thread.wait()
+        self.btnPararEstacao.setEnabled(False)
 
 
 if __name__ == '__main__':
