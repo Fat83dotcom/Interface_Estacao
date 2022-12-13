@@ -360,10 +360,10 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         self.worker.finalizar.connect(self.thread.quit)
         self.worker.finalizar.connect(self.worker.deleteLater)
         self.worker.finalizar.connect(self.thread.deleteLater)
-        self.worker.saidaInfo.connect(self.mostradorDisplayInfo)
         self.thread.started.connect(self.worker.run)
         self.thread.start()
         self.worker.barraProgresso.connect(self.mostrardorDisplayBarraProgresso)
+        self.worker.saidaInfo.connect(self.mostradorDisplayInfo)
         self.thread.finished.connect(
             lambda: self.btnInciarEstacao.setEnabled(True)
         )
