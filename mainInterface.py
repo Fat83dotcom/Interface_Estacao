@@ -207,7 +207,7 @@ class Worker(QObject):
         self.tempoGraf = tempoGrafico
         self.paradaPrograma = False
         self.tempoConvertido = TransSegundos(self.tempoGraf)
-        self.arduino = ''
+        self.arduino = portaArduino
 
     def porcentagem(self, totalVoltas, voltaAtual) -> int:
         porcentagem = voltaAtual * 100 / totalVoltas
@@ -222,16 +222,6 @@ class Worker(QObject):
     @pyqtSlot()
     def run(self):
         caminhoDiretorio = os.path.dirname(os.path.realpath(__file__))
-        try:
-            self.mutex.lock()
-            self.arduino = Serial(self.porta, 9600, timeout=1, bytesize=serial.EIGHTBITS)
-            self.arduino.reset_input_buffer()
-            self.mutex.unlock()
-            self.saidaInfo.emit(f'O Arduíno foi conectado na porta: {self.porta}')
-        except Exception as e:
-            self.saidaInfo.emit(f'{e.__class__.__name__}: {e}')
-            self.saidaInfo.emit('Entre com uma porta USB ou verifique a entrada USB.')
-            self.parar()
 
         if os.path.isfile('EMAIL_USER_DATA.txt'):
             self.saidaInfo.emit('Arquivo "EMAIL_USER_DATA.txt" já existe.')
@@ -336,6 +326,19 @@ class Worker(QObject):
         self.barraProgresso.emit(0)
 
 
+class ConexaoUSB():
+    def __init__(self, caminhoPorta) -> None:
+        self.caminho = caminhoPorta
+
+    def conectPortaUSB(self):
+        try:
+            conexaoArduino = Serial(self.caminho, 9600, timeout=1, bytesize=serial.EIGHTBITS)
+            conexaoArduino.reset_input_buffer()
+            return conexaoArduino
+        except Exception as e:
+            raise e
+
+
 class InterfaceEstacao(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -362,21 +365,29 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             self.btnInciarEstacao.setEnabled(True)
             self.btnPararEstacao.setEnabled(False)
             return
-        self.thread = QThread(parent=self)
-        self.worker = Worker(portaArduino=self.porta, tempoGrafico=self.tempoGrafico)
-        self.worker.moveToThread(self.thread)
-        self.worker.finalizar.connect(self.thread.quit)
-        self.worker.finalizar.connect(self.worker.deleteLater)
-        self.worker.finalizar.connect(self.thread.deleteLater)
-        self.thread.started.connect(self.worker.run)
-        self.thread.start()
-        self.worker.barraProgresso.connect(self.mostrardorDisplayBarraProgresso)
-        self.worker.saidaInfo.connect(self.mostradorDisplayInfo)
-        self.thread.finished.connect(
-            lambda: self.btnInciarEstacao.setEnabled(True)
-        )
-        self.portaArduino.setEnabled(False)
-        self.tempoGraficos.setEnabled(False)
+        try:
+            portaArduino = ConexaoUSB(self.porta)
+            pA = portaArduino.conectPortaUSB()
+            self.thread = QThread(parent=self)
+            self.worker = Worker(portaArduino=pA, tempoGrafico=self.tempoGrafico)
+            self.worker.moveToThread(self.thread)
+            self.worker.finalizar.connect(self.thread.quit)
+            self.worker.finalizar.connect(self.worker.deleteLater)
+            self.worker.finalizar.connect(self.thread.deleteLater)
+            self.thread.started.connect(self.worker.run)
+            self.thread.start()
+            self.worker.barraProgresso.connect(self.mostrardorDisplayBarraProgresso)
+            self.worker.saidaInfo.connect(self.mostradorDisplayInfo)
+            self.thread.finished.connect(
+                lambda: self.btnInciarEstacao.setEnabled(True)
+            )
+            self.portaArduino.setEnabled(False)
+            self.tempoGraficos.setEnabled(False)
+        except Exception as e:
+            self.mostradorDisplayInfo(f'{e.__class__.__name__}: {e}')
+            self.btnInciarEstacao.setEnabled(True)
+            self.btnPararEstacao.setEnabled(False)
+            return
 
     def pararWorker(self):
         self.worker.parar()
