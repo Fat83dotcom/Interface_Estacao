@@ -370,12 +370,16 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         self.thread.finished.connect(
             lambda: self.btnInciarEstacao.setEnabled(True)
         )
+        self.portaArduino.setEnabled(False)
+        self.tempoGraficos.setEnabled(False)
 
     def pararWorker(self):
         self.worker.parar()
         self.thread.quit()
         self.thread.wait()
         self.btnPararEstacao.setEnabled(False)
+        self.portaArduino.setEnabled(True)
+        self.tempoGraficos.setEnabled(True)
 
 
 if __name__ == '__main__':
