@@ -357,6 +357,11 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         self.btnPararEstacao.setEnabled(True)
         self.porta = self.portaArduino.text()
         self.tempoGrafico = self.tempoGraficos.text()
+        if self.porta == '' or self.tempoGrafico == '00:00':
+            self.mostradorDisplayInfo('Entre com valores válidos.')
+            self.btnInciarEstacao.setEnabled(True)
+            self.btnPararEstacao.setEnabled(False)
+            return
         self.thread = QThread(parent=self)
         self.worker = Worker(portaArduino=self.porta, tempoGrafico=self.tempoGrafico)
         self.worker.moveToThread(self.thread)
