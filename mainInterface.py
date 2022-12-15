@@ -207,7 +207,7 @@ class Worker(QObject):
         self.porta = portaArduino
         self.tempoGraf = tempoGrafico
         self.paradaPrograma = False
-        self.tempoConvertido = TransSegundos(self.tempoGraf)
+        self.tempoConvertido = tempoGrafico
         self.arduino = portaArduino
 
     def porcentagem(self, totalVoltas, voltaAtual) -> int:
@@ -233,7 +233,7 @@ class Worker(QObject):
         contador3 = next(c3)
         while not self.paradaPrograma:
             if contador3 == 0:
-                tempo_graf = self.tempoConvertido.conversorHorasSegundo()
+                tempo_graf = self.tempoConvertido
                 if tempo_graf == 0:
                     self.saidaInfo.emit('Entre com um tempo maior que zero !!!')
                     self.finalizar.emit()
@@ -332,6 +332,10 @@ class Worker(QObject):
         self.barraProgresso.emit(0)
 
 
+class EstacaoError(Exception):
+    ...
+
+
 class ConexaoUSB():
     def __init__(self, caminhoPorta) -> None:
         self.caminho = caminhoPorta
@@ -370,15 +374,27 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
     def limparDadosColetados(self):
         self.modeloDadosTReal.clear()
 
+    def retornandoBotoesInicio(self):
+        self.btnInciarEstacao.setEnabled(True)
+        self.btnPararEstacao.setEnabled(False)
+
     def execucaoMainEstacao(self):
         self.btnInciarEstacao.setEnabled(False)
         self.btnPararEstacao.setEnabled(True)
         self.porta = self.portaArduino.text()
-        self.tempoGrafico = self.tempoGraficos.text()
-        if self.porta == '' or self.tempoGrafico == '00:00':
-            self.mostradorDisplayInfo('Entre com valores válidos.')
-            self.btnInciarEstacao.setEnabled(True)
-            self.btnPararEstacao.setEnabled(False)
+        if self.porta == '':
+            self.mostradorDisplayInfo('Entre com uma porta válida.')
+            self.retornandoBotoesInicio()
+            return
+        try:
+            self.tempoGrafico = self.tempoGraficos.text()
+            t = TransSegundos(self.tempoGrafico)
+            self.tempoGrafico = t.conversorHorasSegundo()
+            if self.tempoGrafico <= 0:
+                self.retornandoBotoesInicio()
+                raise EstacaoError('Tempo não pode ser menor ou igual a Zero.')
+        except Exception as e:
+            self.mostradorDisplayInfo(f'{e.__class__.__name__}: {e}')
             return
         try:
             portaArduino: ConexaoUSB = ConexaoUSB(self.porta)
@@ -401,8 +417,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             self.tempoGraficos.setEnabled(False)
         except Exception as e:
             self.mostradorDisplayInfo(f'{e.__class__.__name__}: {e}')
-            self.btnInciarEstacao.setEnabled(True)
-            self.btnPararEstacao.setEnabled(False)
+            self.retornandoBotoesInicio()
             return
 
     def pararWorker(self):
