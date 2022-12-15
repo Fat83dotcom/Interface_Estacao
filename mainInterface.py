@@ -199,6 +199,7 @@ class Worker(QObject):
     finalizar = pyqtSignal()
     barraProgresso = pyqtSignal(int)
     saidaInfo = pyqtSignal(str)
+    saidaDados = pyqtSignal(str)
 
     def __init__(self, portaArduino, tempoGrafico, parent=None) -> None:
         super().__init__(parent)
@@ -242,6 +243,8 @@ class Worker(QObject):
 
             inicio = data()
 
+            # fildaDados = deque(maxlen=20)
+
             yDadosUmidade = []
             yDadosPressao = []
             yDadosTemperaturaInterna = []
@@ -278,7 +281,10 @@ class Worker(QObject):
                         ...
 
                     contador1 = next(c1)
-
+                self.saidaDados.emit(f'Umidade: --- {dadosRecebidosArduino["u"]} - {data()}')
+                self.saidaDados.emit(f'Pressão: --- {dadosRecebidosArduino["p"]} - {data()}')
+                self.saidaDados.emit(f'T. Interna: - {dadosRecebidosArduino["1"]} - {data()}')
+                self.saidaDados.emit(f'T. Externa: - {dadosRecebidosArduino["2"]} - {data()}')
                 with open(dataDoArquivo(), 'a+', newline='', encoding='utf-8') as log:
                     try:
                         w = csv.writer(log)
@@ -330,7 +336,7 @@ class ConexaoUSB():
     def __init__(self, caminhoPorta) -> None:
         self.caminho = caminhoPorta
 
-    def conectPortaUSB(self):
+    def conectPortaUSB(self) -> Serial | Exception:
         try:
             conexaoArduino = Serial(self.caminho, 9600, timeout=1, bytesize=serial.EIGHTBITS)
             conexaoArduino.reset_input_buffer()
@@ -345,15 +351,24 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         super().setupUi(self)
         self.btnInciarEstacao.clicked.connect(self.execucaoMainEstacao)
         self.btnPararEstacao.clicked.connect(self.pararWorker)
+        self.btnLimparDadosColetados.clicked.connect(self.limparDadosColetados)
         self.btnPararEstacao.setEnabled(False)
-        self.modelo = QStandardItemModel()
-        self.saidaDetalhes.setModel(self.modelo)
+        self.modeloInfo = QStandardItemModel()
+        self.modeloDadosTReal = QStandardItemModel()
+        self.saidaDetalhes.setModel(self.modeloInfo)
+        self.filaDadosColetados.setModel(self.modeloDadosTReal)
+
+    def mostradorDisplayDadosColetados(self, dados):
+        self.modeloDadosTReal.appendRow(QStandardItem(dados))
 
     def mostradorDisplayInfo(self, info):
-        self.modelo.appendRow(QStandardItem(info))
+        self.modeloInfo.appendRow(QStandardItem(info))
 
     def mostrardorDisplayBarraProgresso(self, percent):
         self.barraProgresso.setValue(percent)
+
+    def limparDadosColetados(self):
+        self.modeloDadosTReal.clear()
 
     def execucaoMainEstacao(self):
         self.btnInciarEstacao.setEnabled(False)
@@ -366,8 +381,8 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             self.btnPararEstacao.setEnabled(False)
             return
         try:
-            portaArduino = ConexaoUSB(self.porta)
-            pA = portaArduino.conectPortaUSB()
+            portaArduino: ConexaoUSB = ConexaoUSB(self.porta)
+            pA: Serial = portaArduino.conectPortaUSB()
             self.thread = QThread(parent=self)
             self.worker = Worker(portaArduino=pA, tempoGrafico=self.tempoGrafico)
             self.worker.moveToThread(self.thread)
@@ -378,6 +393,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             self.thread.start()
             self.worker.barraProgresso.connect(self.mostrardorDisplayBarraProgresso)
             self.worker.saidaInfo.connect(self.mostradorDisplayInfo)
+            self.worker.saidaDados.connect(self.mostradorDisplayDadosColetados)
             self.thread.finished.connect(
                 lambda: self.btnInciarEstacao.setEnabled(True)
             )
