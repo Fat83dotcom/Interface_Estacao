@@ -200,6 +200,7 @@ class Worker(QObject):
     barraProgresso = pyqtSignal(int)
     saidaInfo = pyqtSignal(str)
     saidaDados = pyqtSignal(str)
+    apagadorDadosColetados = pyqtSignal()
 
     def __init__(self, portaArduino, tempoGrafico, parent=None) -> None:
         super().__init__(parent)
@@ -264,27 +265,33 @@ class Worker(QObject):
                 contador1 = next(c1)
                 while contador1 < 4:
                     try:
-                        dado = str(self.arduino.readline())
-                        dado = dado[2:-5]
-                        if float(dado[1:].strip()) == nan:
-                            continue
-                        else:
-                            if dado[0] == 'u':
-                                dadosRecebidosArduino['u'] = float(dado[1:].strip())
-                            if dado[0] == 'p':
-                                dadosRecebidosArduino['p'] = float(dado[1:].strip())
-                            if dado[0] == '1':
-                                dadosRecebidosArduino['1'] = float(dado[1:].strip())
-                            if dado[0] == '2':
-                                dadosRecebidosArduino['2'] = float(dado[1:].strip())
+                        flag = True
+                        while flag:
+                            dado = str(self.arduino.readline())
+                            dado = dado[2:-5]
+                            if float(dado[1:].strip()) == nan:
+                                continue
+                            elif float(dado[1:]) <= 0:
+                                continue
+                            else:
+                                if dado[0] == 'u':
+                                    dadosRecebidosArduino['u'] = float(dado[1:].strip())
+                                if dado[0] == 'p':
+                                    dadosRecebidosArduino['p'] = float(dado[1:].strip())
+                                if dado[0] == '1':
+                                    dadosRecebidosArduino['1'] = float(dado[1:].strip())
+                                if dado[0] == '2':
+                                    dadosRecebidosArduino['2'] = float(dado[1:].strip())
+                                flag = False
                     except Exception:
                         ...
 
                     contador1 = next(c1)
-                self.saidaDados.emit(f'Umidade: --- {dadosRecebidosArduino["u"]} - {data()}')
-                self.saidaDados.emit(f'Pressão: --- {dadosRecebidosArduino["p"]} - {data()}')
-                self.saidaDados.emit(f'T. Interna: - {dadosRecebidosArduino["1"]} - {data()}')
-                self.saidaDados.emit(f'T. Externa: - {dadosRecebidosArduino["2"]} - {data()}')
+                self.saidaDados.emit(f'Umidade: {dadosRecebidosArduino["u"]} - {data()}')
+                self.saidaDados.emit(f'Pressão: {dadosRecebidosArduino["p"]} - {data()}')
+                self.saidaDados.emit(f'T. Interna: {dadosRecebidosArduino["1"]} - {data()}')
+                self.saidaDados.emit(f'T. Externa: {dadosRecebidosArduino["2"]} - {data()}')
+                self.saidaDados.emit(50 * '*')
                 with open(dataDoArquivo(), 'a+', newline='', encoding='utf-8') as log:
                     try:
                         w = csv.writer(log)
@@ -308,6 +315,7 @@ class Worker(QObject):
             plot_temp1(yDadosTemperaturaInterna, inicio, caminhoDiretorio)
             plot_temp2(yDadosTemperaturaExterna, inicio, caminhoDiretorio)
             contador3 = next(c3)
+            self.apagadorDadosColetados.emit()
             emaail = EmailThread(
                                 inicio=inicio,
                                 umi=round(mean(yDadosUmidade), 2),
@@ -410,6 +418,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             self.worker.barraProgresso.connect(self.mostrardorDisplayBarraProgresso)
             self.worker.saidaInfo.connect(self.mostradorDisplayInfo)
             self.worker.saidaDados.connect(self.mostradorDisplayDadosColetados)
+            self.worker.apagadorDadosColetados.connect(self.limparDadosColetados)
             self.thread.finished.connect(
                 lambda: self.btnInciarEstacao.setEnabled(True)
             )
