@@ -201,6 +201,7 @@ class Worker(QObject):
     saidaInfo = pyqtSignal(str)
     saidaDados = pyqtSignal(str)
     apagadorDadosColetados = pyqtSignal()
+    mostradorTempoRestante = pyqtSignal(int)
 
     def __init__(self, portaArduino, tempoGrafico, parent=None) -> None:
         super().__init__(parent)
@@ -259,6 +260,7 @@ class Worker(QObject):
             }
             c2 = count()
             contador2 = next(c2)
+            contadorApagaDados = 0
             while (contador2 < tempo_graf) and not self.paradaPrograma:
                 tempoInicial = time.time()
                 c1 = count()
@@ -301,12 +303,18 @@ class Worker(QObject):
                         yDadosPressao.append(float(dadosRecebidosArduino['p']))
                         yDadosTemperaturaInterna.append(float(dadosRecebidosArduino['1']))
                         yDadosTemperaturaExterna.append(float(dadosRecebidosArduino['2']))
-                        contador2 = next(c2)
                         percent: int = self.porcentagem(tempo_graf, contador2)
                         self.barraProgresso.emit(percent)
                     except ValueError:
                         ...
-
+                contador2 = next(c2)
+                tempoApagaDados = 300
+                self.mostradorTempoRestante.emit((tempoApagaDados - contadorApagaDados))
+                if (contador2 % tempoApagaDados) == 0 and (contador2 != 0):
+                    self.apagadorDadosColetados.emit()
+                    contadorApagaDados = 0
+                else:
+                    contadorApagaDados += 1
                 tempoFinal = time.time()
                 while tempoFinal - tempoInicial < 1:
                     tempoFinal = time.time()
@@ -315,7 +323,6 @@ class Worker(QObject):
             plot_temp1(yDadosTemperaturaInterna, inicio, caminhoDiretorio)
             plot_temp2(yDadosTemperaturaExterna, inicio, caminhoDiretorio)
             contador3 = next(c3)
-            self.apagadorDadosColetados.emit()
             emaail = EmailThread(
                                 inicio=inicio,
                                 umi=round(mean(yDadosUmidade), 2),
@@ -379,6 +386,9 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
     def mostrardorDisplayBarraProgresso(self, percent):
         self.barraProgresso.setValue(percent)
 
+    def mostradorDisplayLCD(self, valor):
+        self.visorTempoRestante.display(valor)
+
     def limparDadosColetados(self):
         self.modeloDadosTReal.clear()
 
@@ -419,6 +429,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             self.worker.saidaInfo.connect(self.mostradorDisplayInfo)
             self.worker.saidaDados.connect(self.mostradorDisplayDadosColetados)
             self.worker.apagadorDadosColetados.connect(self.limparDadosColetados)
+            self.worker.mostradorTempoRestante.connect(self.mostradorDisplayLCD)
             self.thread.finished.connect(
                 lambda: self.btnInciarEstacao.setEnabled(True)
             )
