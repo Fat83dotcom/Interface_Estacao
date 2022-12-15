@@ -340,7 +340,7 @@ class ConexaoUSB():
     def __init__(self, caminhoPorta) -> None:
         self.caminho = caminhoPorta
 
-    def conectPortaUSB(self) -> Serial | Exception:
+    def conectPortaUSB(self) -> Serial:
         try:
             conexaoArduino = Serial(self.caminho, 9600, timeout=1, bytesize=serial.EIGHTBITS)
             conexaoArduino.reset_input_buffer()
