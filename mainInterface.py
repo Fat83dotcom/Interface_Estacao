@@ -236,16 +236,11 @@ class Worker(QObject):
         while not self.paradaPrograma:
             if contador3 == 0:
                 tempo_graf = self.tempoConvertido
-                if tempo_graf == 0:
-                    self.saidaInfo.emit('Entre com um tempo maior que zero !!!')
-                    self.finalizar.emit()
                 self.saidaInfo.emit(f'Inicio: --> {data()} <--')
             else:
                 self.saidaInfo.emit(f'Parcial {contador3} --> {data()} <--')
 
             inicio = data()
-
-            # fildaDados = deque(maxlen=20)
 
             yDadosUmidade = []
             yDadosPressao = []
@@ -347,7 +342,7 @@ class Worker(QObject):
         self.barraProgresso.emit(0)
 
 
-class EstacaoError(Exception):
+class EntradaError(Exception):
     ...
 
 
@@ -410,7 +405,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             self.tempoGrafico = t.conversorHorasSegundo()
             if self.tempoGrafico <= 0:
                 self.retornandoBotoesInicio()
-                raise EstacaoError('Tempo não pode ser menor ou igual a Zero.')
+                raise EntradaError('Tempo não pode ser menor ou igual a Zero.')
         except Exception as e:
             self.mostradorDisplayInfo(f'{e.__class__.__name__}: {e}')
             return
