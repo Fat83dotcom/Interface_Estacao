@@ -203,28 +203,27 @@ class Worker(QObject):
     saidaData = pyqtSignal(str)
     mostradorTempoRestante = pyqtSignal(int)
 
-    def __init__(self, portaArduino, tempoGrafico, parent=None) -> None:
+    def __init__(self, portaArduino: Serial, tempoGrafico: int, parent=None) -> None:
         super().__init__(parent)
         self.mutex = QMutex()
-        self.porta = portaArduino
-        self.tempoGraf = tempoGrafico
-        self.paradaPrograma = False
-        self.tempoConvertido = tempoGrafico
+        self.porta: Serial = portaArduino
+        self.paradaPrograma: bool = False
+        self.tempoConvertido: int = tempoGrafico
         self.arduino = portaArduino
 
-    def porcentagem(self, totalVoltas, voltaAtual) -> int:
-        porcentagem = voltaAtual * 100 / totalVoltas
+    def porcentagem(self, totalVoltas: int, voltaAtual: int) -> int:
+        porcentagem: float = voltaAtual * 100 / totalVoltas
         return int(porcentagem)
 
     @pyqtSlot()
     def parar(self):
         self.mutex.lock()
-        self.paradaPrograma = True
+        self.paradaPrograma: bool = True
         self.mutex.unlock()
 
     @pyqtSlot()
     def run(self):
-        caminhoDiretorio = os.path.dirname(os.path.realpath(__file__))
+        caminhoDiretorio: str = os.path.dirname(os.path.realpath(__file__))
 
         if os.path.isfile('EMAIL_USER_DATA.txt'):
             self.saidaInfoInicio.emit('Arquivo "EMAIL_USER_DATA.txt" já existe.')
@@ -232,7 +231,7 @@ class Worker(QObject):
             define_arquivo()
             self.saidaInfoInicio.emit('Arquivo "EMAIL_USER_DATA.txt" foi criado, por favor, configure antes de continuar.')
         c3 = count()
-        contador3 = next(c3)
+        contador3: int = next(c3)
         while not self.paradaPrograma:
             if contador3 == 0:
                 tempo_graf = self.tempoConvertido
@@ -240,29 +239,29 @@ class Worker(QObject):
             else:
                 self.saidaInfoInicio.emit(f'Parcial {contador3} --> {data()} <--')
 
-            inicio = data()
+            inicio: str = data()
 
-            yDadosUmidade = []
-            yDadosPressao = []
-            yDadosTemperaturaInterna = []
-            yDadosTemperaturaExterna = []
+            yDadosUmidade: list = []
+            yDadosPressao: list = []
+            yDadosTemperaturaInterna: list = []
+            yDadosTemperaturaExterna: list = []
 
-            dadosRecebidosArduino = {
+            dadosRecebidosArduino: dict = {
                 'u': '',
                 'p': '',
                 '1': '',
                 '2': ''
             }
             c2 = count()
-            contador2 = next(c2)
-            contadorDadosRestantes = 0
+            contador2: int = next(c2)
+            contadorDadosRestantes: int = 0
             while (contador2 < tempo_graf) and not self.paradaPrograma:
                 tempoInicial = time.time()
                 c1 = count()
-                contador1 = next(c1)
+                contador1: int = next(c1)
                 while contador1 < 4:
                     try:
-                        flag = True
+                        flag: bool = True
                         while flag:
                             dado = str(self.arduino.readline())
                             dado = dado[2:-5]
@@ -308,7 +307,7 @@ class Worker(QObject):
                 tempoRestante = tempo_graf
                 self.mostradorTempoRestante.emit((tempoRestante - contadorDadosRestantes) - 1)
                 contadorDadosRestantes += 1
-                tempoFinal = time.time()
+                tempoFinal: float = time.time()
                 while tempoFinal - tempoInicial < 1:
                     tempoFinal = time.time()
             plot_umidade(yDadosUmidade, inicio, caminhoDiretorio)
@@ -345,12 +344,12 @@ class EntradaError(Exception):
 
 
 class ConexaoUSB():
-    def __init__(self, caminhoPorta) -> None:
-        self.caminho = caminhoPorta
+    def __init__(self, caminhoPorta: str) -> None:
+        self.caminho: str = caminhoPorta
 
     def conectPortaUSB(self) -> Serial:
         try:
-            conexaoArduino = Serial(self.caminho, 9600, timeout=1, bytesize=serial.EIGHTBITS)
+            conexaoArduino: Serial = Serial(self.caminho, 9600, timeout=1, bytesize=serial.EIGHTBITS)
             conexaoArduino.reset_input_buffer()
             return conexaoArduino
         except Exception as e:
