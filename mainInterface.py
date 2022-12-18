@@ -405,6 +405,11 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
 
     def mostradorDisplayLCDTempoRestante(self, valor):
         self.visorTempoRestante.display(valor)
+        self.visorTempoRestante_2.display(valor)
+
+    def mostradorDisplayLCDTempoDefinido(self, valor):
+        self.tempoDefinido.display(valor)
+        self.tempoDefinido_2.display(valor)
 
     def mostradorDisplayLCDDados(self, dados: list):
         self.dadoUmidade.display(dados[0])
@@ -431,6 +436,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             self.tempoGrafico = self.tempoGraficos.text()
             t = TransSegundos(self.tempoGrafico)
             self.tempoGrafico = t.conversorHorasSegundo()
+            self.mostradorDisplayLCDTempoDefinido(self.tempoGrafico)
             if self.tempoGrafico <= 0:
                 self.retornarBotoesInicio()
                 raise EntradaError('Tempo não pode ser menor ou igual a Zero.')
