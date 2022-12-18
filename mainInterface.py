@@ -199,8 +199,8 @@ class Worker(QObject):
     finalizar = pyqtSignal()
     barraProgresso = pyqtSignal(int)
     saidaInfo = pyqtSignal(str)
-    saidaDados = pyqtSignal(str)
-    apagadorDadosColetados = pyqtSignal()
+    saidaDadosLCD = pyqtSignal(list)
+    saidaData = pyqtSignal(str)
     mostradorTempoRestante = pyqtSignal(int)
 
     def __init__(self, portaArduino, tempoGrafico, parent=None) -> None:
@@ -255,7 +255,7 @@ class Worker(QObject):
             }
             c2 = count()
             contador2 = next(c2)
-            contadorApagaDados = 0
+            contadorDadosRestantes = 0
             while (contador2 < tempo_graf) and not self.paradaPrograma:
                 tempoInicial = time.time()
                 c1 = count()
@@ -284,11 +284,13 @@ class Worker(QObject):
                         ...
 
                     contador1 = next(c1)
-                self.saidaDados.emit(f'Umidade: {dadosRecebidosArduino["u"]} - {data()}')
-                self.saidaDados.emit(f'Pressão: {dadosRecebidosArduino["p"]} - {data()}')
-                self.saidaDados.emit(f'T. Interna: {dadosRecebidosArduino["1"]} - {data()}')
-                self.saidaDados.emit(f'T. Externa: {dadosRecebidosArduino["2"]} - {data()}')
-                self.saidaDados.emit(50 * '*')
+                dadosLcd: list = []
+                dadosLcd.append(dadosRecebidosArduino["u"])
+                dadosLcd.append(dadosRecebidosArduino["p"])
+                dadosLcd.append(dadosRecebidosArduino["1"])
+                dadosLcd.append(dadosRecebidosArduino["2"])
+                self.saidaData.emit(data())
+                self.saidaDadosLCD.emit(dadosLcd)
                 with open(dataDoArquivo(), 'a+', newline='', encoding='utf-8') as log:
                     try:
                         w = csv.writer(log)
@@ -298,18 +300,14 @@ class Worker(QObject):
                         yDadosPressao.append(float(dadosRecebidosArduino['p']))
                         yDadosTemperaturaInterna.append(float(dadosRecebidosArduino['1']))
                         yDadosTemperaturaExterna.append(float(dadosRecebidosArduino['2']))
-                        percent: int = self.porcentagem(tempo_graf, contador2)
-                        self.barraProgresso.emit(percent)
                     except ValueError:
                         ...
                 contador2 = next(c2)
-                tempoApagaDados = 300
-                self.mostradorTempoRestante.emit((tempoApagaDados - contadorApagaDados))
-                if (contador2 % tempoApagaDados) == 0 and (contador2 != 0):
-                    self.apagadorDadosColetados.emit()
-                    contadorApagaDados = 0
-                else:
-                    contadorApagaDados += 1
+                percent: int = self.porcentagem(tempo_graf, contador2)
+                self.barraProgresso.emit(percent)
+                tempoRestante = tempo_graf
+                self.mostradorTempoRestante.emit((tempoRestante - contadorDadosRestantes) - 1)
+                contadorDadosRestantes += 1
                 tempoFinal = time.time()
                 while tempoFinal - tempoInicial < 1:
                     tempoFinal = time.time()
@@ -365,12 +363,9 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         super().setupUi(self)
         self.btnInciarEstacao.clicked.connect(self.execucaoMainEstacao)
         self.btnPararEstacao.clicked.connect(self.pararWorker)
-        self.btnLimparDadosColetados.clicked.connect(self.limparDadosColetados)
         self.btnPararEstacao.setEnabled(False)
         self.modeloInfo = QStandardItemModel()
-        self.modeloDadosTReal = QStandardItemModel()
         self.saidaDetalhes.setModel(self.modeloInfo)
-        self.filaDadosColetados.setModel(self.modeloDadosTReal)
 
     def mostradorDisplayDadosColetados(self, dados):
         self.modeloDadosTReal.appendRow(QStandardItem(dados))
@@ -384,12 +379,18 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
     def mostradorDisplayLCD(self, valor):
         self.visorTempoRestante.display(valor)
 
-    def limparDadosColetados(self):
-        self.modeloDadosTReal.clear()
-
     def retornandoBotoesInicio(self):
         self.btnInciarEstacao.setEnabled(True)
         self.btnPararEstacao.setEnabled(False)
+
+    def atualizacaoDisplayLCDDados(self, dados: list):
+        self.dadoUmidade.display(dados[0])
+        self.dadoPressao.display(dados[1])
+        self.dadoTempInterna.display(dados[2])
+        self.dadoTempExterna.display(dados[3])
+
+    def atualizarLabelDataHora(self, dt_hr):
+        self.dadosHoraData.setText(dt_hr)
 
     def execucaoMainEstacao(self):
         self.btnInciarEstacao.setEnabled(False)
@@ -422,8 +423,8 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             self.thread.start()
             self.worker.barraProgresso.connect(self.mostrardorDisplayBarraProgresso)
             self.worker.saidaInfo.connect(self.mostradorDisplayInfo)
-            self.worker.saidaDados.connect(self.mostradorDisplayDadosColetados)
-            self.worker.apagadorDadosColetados.connect(self.limparDadosColetados)
+            self.worker.saidaDadosLCD.connect(self.atualizacaoDisplayLCDDados)
+            self.worker.saidaData.connect(self.atualizarLabelDataHora)
             self.worker.mostradorTempoRestante.connect(self.mostradorDisplayLCD)
             self.thread.finished.connect(
                 lambda: self.btnInciarEstacao.setEnabled(True)
