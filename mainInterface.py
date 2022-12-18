@@ -134,65 +134,89 @@ def renderizadorHtml(umidade, pressao, temp1, temp2, temp1max, temp1min,
 
 
 def data():
-    data = time.strftime('%d %b %Y %H:%M:%S', time.localtime())
-    return data
+    try:
+        data = time.strftime('%d %b %Y %H:%M:%S', time.localtime())
+        return data
+    except (ValueError, Exception) as e:
+        raise e
 
 
 def dataDoArquivo():
-    dataA = time.strftime('%b_%Y_log.csv').lower()
-    return dataA
+    try:
+        dataA = time.strftime('%b_%Y_log.csv').lower()
+        return dataA
+    except (ValueError, Exception) as e:
+        raise e
 
 
 def maximos(dados):
-    return round(max(dados), 2)
+    try:
+        return round(max(dados), 2)
+    except (ValueError, Exception) as e:
+        raise DadosError(f'{e.__class__.__name__} -> função: {maximos.__name__}: Não há dados a serem processados.')
 
 
 def minimos(dados):
-    return round(min(dados), 2)
+    try:
+        return round(min(dados), 2)
+    except (ValueError, Exception) as e:
+        raise DadosError(f'{e.__class__.__name__} -> função: {minimos.__name__}: Não há dados a serem processados.')
 
 
 def plot_umidade(uy, inicio, path):
-    ux = range(len(uy))
-    file = f'{path}/Umidade{inicio}.pdf'
-    plt.title(f'Gráfico Umidade\n-> Inicio: {inicio} <-|-> Termino: {data()} <-\nMáxima: {maximos(uy)} --- Mínima: {minimos(uy)}')
-    plt.xlabel('Tempo em segundos.')
-    plt.ylabel('Umidade Relativa do Ar %')
-    plt.plot(ux, uy)
-    plt.savefig(file)
-    plt.clf()
+    try:
+        ux = range(len(uy))
+        file = f'{path}/Umidade{inicio}.pdf'
+        plt.title(f'Gráfico Umidade\n-> Inicio: {inicio} <-|-> Termino: {data()} <-\nMáxima: {maximos(uy)} --- Mínima: {minimos(uy)}')
+        plt.xlabel('Tempo em segundos.')
+        plt.ylabel('Umidade Relativa do Ar %')
+        plt.plot(ux, uy)
+        plt.savefig(file)
+        plt.clf()
+    except (ValueError, Exception) as e:
+        raise e
 
 
 def plot_pressao(py, inicio, path):
-    px = range(len(py))
-    file = f'{path}/Pressao{inicio}.pdf'
-    plt.title(f'Gráfico Pressão\n-> Inicio: {inicio} <-|-> Termino: {data()} <-\nMáxima: {maximos(py)} --- Mínima: {minimos(py)}')
-    plt.xlabel('Tempo em segundos.')
-    plt.ylabel('Pressão Atmosferica em hPa')
-    plt.plot(px, py)
-    plt.savefig(file)
-    plt.clf()
+    try:
+        px = range(len(py))
+        file = f'{path}/Pressao{inicio}.pdf'
+        plt.title(f'Gráfico Pressão\n-> Inicio: {inicio} <-|-> Termino: {data()} <-\nMáxima: {maximos(py)} --- Mínima: {minimos(py)}')
+        plt.xlabel('Tempo em segundos.')
+        plt.ylabel('Pressão Atmosferica em hPa')
+        plt.plot(px, py)
+        plt.savefig(file)
+        plt.clf()
+    except (ValueError, Exception) as e:
+        raise e
 
 
 def plot_temp1(t1y, inicio, path):
-    t1x = range(len(t1y))
-    file = f'{path}/Temperatura_Interna{inicio}.pdf'
-    plt.title(f'Gráfico Temp Interna\n-> Inicio: {inicio} <-|-> Termino: {data()} <-\nMáxima: {maximos(t1y)} --- Mínima: {minimos(t1y)}')
-    plt.xlabel('Tempo em segundos.')
-    plt.ylabel('Temperatura em °C')
-    plt.plot(t1x, t1y)
-    plt.savefig(file)
-    plt.clf()
+    try:
+        t1x = range(len(t1y))
+        file = f'{path}/Temperatura_Interna{inicio}.pdf'
+        plt.title(f'Gráfico Temp Interna\n-> Inicio: {inicio} <-|-> Termino: {data()} <-\nMáxima: {maximos(t1y)} --- Mínima: {minimos(t1y)}')
+        plt.xlabel('Tempo em segundos.')
+        plt.ylabel('Temperatura em °C')
+        plt.plot(t1x, t1y)
+        plt.savefig(file)
+        plt.clf()
+    except (ValueError, Exception) as e:
+        raise e
 
 
 def plot_temp2(t2y, inicio, path):
-    t2x = range(len(t2y))
-    file = f'{path}/Temperatura_Externa{inicio}.pdf'
-    plt.title(f'Gráfico Temp Externa\n-> Inicio: {inicio} <-|-> Termino: {data()} <-\nMáxima: {maximos(t2y)} --- Mínima: {minimos(t2y)}')
-    plt.xlabel('Tempo em segundos.')
-    plt.ylabel('Temperatura em °C')
-    plt.plot(t2x, t2y)
-    plt.savefig(file)
-    plt.clf()
+    try:
+        t2x = range(len(t2y))
+        file = f'{path}/Temperatura_Externa{inicio}.pdf'
+        plt.title(f'Gráfico Temp Externa\n-> Inicio: {inicio} <-|-> Termino: {data()} <-\nMáxima: {maximos(t2y)} --- Mínima: {minimos(t2y)}')
+        plt.xlabel('Tempo em segundos.')
+        plt.ylabel('Temperatura em °C')
+        plt.plot(t2x, t2y)
+        plt.savefig(file)
+        plt.clf()
+    except (ValueError, Exception) as e:
+        raise e
 
 
 class Worker(QObject):
@@ -223,123 +247,130 @@ class Worker(QObject):
 
     @pyqtSlot()
     def run(self):
-        caminhoDiretorio: str = os.path.dirname(os.path.realpath(__file__))
+        try:
+            caminhoDiretorio: str = os.path.dirname(os.path.realpath(__file__))
 
-        if os.path.isfile('EMAIL_USER_DATA.txt'):
-            self.saidaInfoInicio.emit('Arquivo "EMAIL_USER_DATA.txt" já existe.')
-        else:
-            define_arquivo()
-            self.saidaInfoInicio.emit('Arquivo "EMAIL_USER_DATA.txt" foi criado, por favor, configure antes de continuar.')
-        c3 = count()
-        contador3: int = next(c3)
-        while not self.paradaPrograma:
-            if contador3 == 0:
-                tempo_graf = self.tempoConvertido
-                self.saidaInfoInicio.emit(f'Inicio: --> {data()} <--')
+            if os.path.isfile('EMAIL_USER_DATA.txt'):
+                self.saidaInfoInicio.emit('Arquivo "EMAIL_USER_DATA.txt" já existe.')
             else:
-                self.saidaInfoInicio.emit(f'Parcial {contador3} --> {data()} <--')
+                define_arquivo()
+                self.saidaInfoInicio.emit('Arquivo "EMAIL_USER_DATA.txt" foi criado, por favor, configure antes de continuar.')
+            c3 = count()
+            contador3: int = next(c3)
+            while not self.paradaPrograma:
+                if contador3 == 0:
+                    tempo_graf = self.tempoConvertido
+                    self.saidaInfoInicio.emit(f'Inicio: --> {data()} <--')
+                else:
+                    self.saidaInfoInicio.emit(f'Parcial {contador3} --> {data()} <--')
 
-            inicio: str = data()
+                inicio: str = data()
 
-            yDadosUmidade: list = []
-            yDadosPressao: list = []
-            yDadosTemperaturaInterna: list = []
-            yDadosTemperaturaExterna: list = []
+                yDadosUmidade: list = []
+                yDadosPressao: list = []
+                yDadosTemperaturaInterna: list = []
+                yDadosTemperaturaExterna: list = []
 
-            dadosRecebidosArduino: dict = {
-                'u': '',
-                'p': '',
-                '1': '',
-                '2': ''
-            }
-            c2 = count()
-            contador2: int = next(c2)
-            contadorDadosRestantes: int = 0
-            while (contador2 < tempo_graf) and not self.paradaPrograma:
-                tempoInicial = time.time()
-                c1 = count()
-                contador1: int = next(c1)
-                while contador1 < 4:
-                    try:
-                        flag: bool = True
-                        while flag:
-                            dado = str(self.arduino.readline())
-                            dado = dado[2:-5]
-                            if float(dado[1:].strip()) == nan:
-                                continue
-                            elif float(dado[1:]) <= 0:
-                                continue
-                            else:
-                                if dado[0] == 'u':
-                                    dadosRecebidosArduino['u'] = float(dado[1:].strip())
-                                if dado[0] == 'p':
-                                    dadosRecebidosArduino['p'] = float(dado[1:].strip())
-                                if dado[0] == '1':
-                                    dadosRecebidosArduino['1'] = float(dado[1:].strip())
-                                if dado[0] == '2':
-                                    dadosRecebidosArduino['2'] = float(dado[1:].strip())
-                                flag = False
-                    except Exception:
-                        ...
+                dadosRecebidosArduino: dict = {
+                    'u': '',
+                    'p': '',
+                    '1': '',
+                    '2': ''
+                }
+                c2 = count()
+                contador2: int = next(c2)
+                contadorDadosRestantes: int = 0
+                while (contador2 < tempo_graf) and not self.paradaPrograma:
+                    tempoInicial = time.time()
+                    c1 = count()
+                    contador1: int = next(c1)
+                    while contador1 < 4:
+                        try:
+                            flag: bool = True
+                            while flag:
+                                dado = str(self.arduino.readline())
+                                dado = dado[2:-5]
+                                if float(dado[1:].strip()) == nan:
+                                    continue
+                                elif float(dado[1:]) <= 0:
+                                    continue
+                                else:
+                                    if dado[0] == 'u':
+                                        dadosRecebidosArduino['u'] = float(dado[1:].strip())
+                                    if dado[0] == 'p':
+                                        dadosRecebidosArduino['p'] = float(dado[1:].strip())
+                                    if dado[0] == '1':
+                                        dadosRecebidosArduino['1'] = float(dado[1:].strip())
+                                    if dado[0] == '2':
+                                        dadosRecebidosArduino['2'] = float(dado[1:].strip())
+                                    flag = False
+                        except Exception:
+                            ...
 
-                    contador1 = next(c1)
-                dadosLcd: list = []
-                dadosLcd.append(dadosRecebidosArduino["u"])
-                dadosLcd.append(dadosRecebidosArduino["p"])
-                dadosLcd.append(dadosRecebidosArduino["1"])
-                dadosLcd.append(dadosRecebidosArduino["2"])
-                self.saidaData.emit(data())
-                self.saidaDadosLCD.emit(dadosLcd)
-                with open(dataDoArquivo(), 'a+', newline='', encoding='utf-8') as log:
-                    try:
-                        w = csv.writer(log)
-                        w.writerow([data(), dadosRecebidosArduino['u'], dadosRecebidosArduino['p'],
-                                    dadosRecebidosArduino['1'], dadosRecebidosArduino['2']])
-                        yDadosUmidade.append(float(dadosRecebidosArduino['u']))
-                        yDadosPressao.append(float(dadosRecebidosArduino['p']))
-                        yDadosTemperaturaInterna.append(float(dadosRecebidosArduino['1']))
-                        yDadosTemperaturaExterna.append(float(dadosRecebidosArduino['2']))
-                    except ValueError:
-                        ...
-                contador2 = next(c2)
-                percent: int = self.porcentagem(tempo_graf, contador2)
-                self.barraProgresso.emit(percent)
-                tempoRestante = tempo_graf
-                self.mostradorTempoRestante.emit((tempoRestante - contadorDadosRestantes) - 1)
-                contadorDadosRestantes += 1
-                tempoFinal: float = time.time()
-                while tempoFinal - tempoInicial < 1:
-                    tempoFinal = time.time()
-            plot_umidade(yDadosUmidade, inicio, caminhoDiretorio)
-            plot_pressao(yDadosPressao, inicio, caminhoDiretorio)
-            plot_temp1(yDadosTemperaturaInterna, inicio, caminhoDiretorio)
-            plot_temp2(yDadosTemperaturaExterna, inicio, caminhoDiretorio)
-            contador3 = next(c3)
-            emaail = EmailThread(
-                                inicio=inicio,
-                                umi=round(mean(yDadosUmidade), 2),
-                                press=round(mean(yDadosPressao), 2),
-                                t1=round(mean(yDadosTemperaturaInterna), 2),
-                                t2=round(mean(yDadosTemperaturaExterna), 2),
-                                t1max=maximos(yDadosTemperaturaInterna),
-                                t1min=minimos(yDadosTemperaturaInterna),
-                                t2max=maximos(yDadosTemperaturaExterna),
-                                t2min=minimos(yDadosTemperaturaExterna),
-                                umimax=maximos(yDadosUmidade),
-                                umimini=minimos(yDadosUmidade),
-                                pressmax=maximos(yDadosPressao),
-                                pressmini=minimos(yDadosPressao),
-                                ini=inicio,
-                                fim=data(),
-                                path=caminhoDiretorio)
-            emaail.start()
-            self.saidaInfoInicio.emit('Email Enviado')
-        self.saidaInfoInicio.emit('Programa Parado !!!')
-        self.finalizar.emit()
-        self.barraProgresso.emit(0)
+                        contador1 = next(c1)
+                    dadosLcd: list = []
+                    dadosLcd.append(dadosRecebidosArduino["u"])
+                    dadosLcd.append(dadosRecebidosArduino["p"])
+                    dadosLcd.append(dadosRecebidosArduino["1"])
+                    dadosLcd.append(dadosRecebidosArduino["2"])
+                    self.saidaData.emit(data())
+                    self.saidaDadosLCD.emit(dadosLcd)
+                    with open(dataDoArquivo(), 'a+', newline='', encoding='utf-8') as log:
+                        try:
+                            w = csv.writer(log)
+                            w.writerow([data(), dadosRecebidosArduino['u'], dadosRecebidosArduino['p'],
+                                        dadosRecebidosArduino['1'], dadosRecebidosArduino['2']])
+                            yDadosUmidade.append(float(dadosRecebidosArduino['u']))
+                            yDadosPressao.append(float(dadosRecebidosArduino['p']))
+                            yDadosTemperaturaInterna.append(float(dadosRecebidosArduino['1']))
+                            yDadosTemperaturaExterna.append(float(dadosRecebidosArduino['2']))
+                        except ValueError:
+                            ...
+                    contador2 = next(c2)
+                    percent: int = self.porcentagem(tempo_graf, contador2)
+                    self.barraProgresso.emit(percent)
+                    tempoRestante = tempo_graf
+                    self.mostradorTempoRestante.emit((tempoRestante - contadorDadosRestantes) - 1)
+                    contadorDadosRestantes += 1
+                    tempoFinal: float = time.time()
+                    while tempoFinal - tempoInicial < 1:
+                        tempoFinal = time.time()
+                plot_umidade(yDadosUmidade, inicio, caminhoDiretorio)
+                plot_pressao(yDadosPressao, inicio, caminhoDiretorio)
+                plot_temp1(yDadosTemperaturaInterna, inicio, caminhoDiretorio)
+                plot_temp2(yDadosTemperaturaExterna, inicio, caminhoDiretorio)
+                contador3 = next(c3)
+                emaail = EmailThread(
+                                    inicio=inicio,
+                                    umi=round(mean(yDadosUmidade), 2),
+                                    press=round(mean(yDadosPressao), 2),
+                                    t1=round(mean(yDadosTemperaturaInterna), 2),
+                                    t2=round(mean(yDadosTemperaturaExterna), 2),
+                                    t1max=maximos(yDadosTemperaturaInterna),
+                                    t1min=minimos(yDadosTemperaturaInterna),
+                                    t2max=maximos(yDadosTemperaturaExterna),
+                                    t2min=minimos(yDadosTemperaturaExterna),
+                                    umimax=maximos(yDadosUmidade),
+                                    umimini=minimos(yDadosUmidade),
+                                    pressmax=maximos(yDadosPressao),
+                                    pressmini=minimos(yDadosPressao),
+                                    ini=inicio,
+                                    fim=data(),
+                                    path=caminhoDiretorio)
+                emaail.start()
+                self.saidaInfoInicio.emit('Email Enviado')
+            self.saidaInfoInicio.emit('Programa Parado !!!')
+            self.finalizar.emit()
+            self.barraProgresso.emit(0)
+        except (ValueError, Exception) as e:
+            self.saidaInfoInicio.emit(f'{e.__class__.__name__}: {e}')
 
 
 class EntradaError(Exception):
+    ...
+
+
+class DadosError(Exception):
     ...
 
 
