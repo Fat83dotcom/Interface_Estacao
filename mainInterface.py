@@ -198,7 +198,7 @@ def plot_temp2(t2y, inicio, path):
 class Worker(QObject):
     finalizar = pyqtSignal()
     barraProgresso = pyqtSignal(int)
-    saidaInfo = pyqtSignal(str)
+    saidaInfoInicio = pyqtSignal(str)
     saidaDadosLCD = pyqtSignal(list)
     saidaData = pyqtSignal(str)
     mostradorTempoRestante = pyqtSignal(int)
@@ -227,18 +227,18 @@ class Worker(QObject):
         caminhoDiretorio = os.path.dirname(os.path.realpath(__file__))
 
         if os.path.isfile('EMAIL_USER_DATA.txt'):
-            self.saidaInfo.emit('Arquivo "EMAIL_USER_DATA.txt" já existe.')
+            self.saidaInfoInicio.emit('Arquivo "EMAIL_USER_DATA.txt" já existe.')
         else:
             define_arquivo()
-            self.saidaInfo.emit('Arquivo "EMAIL_USER_DATA.txt" foi criado, por favor, configure antes de continuar.')
+            self.saidaInfoInicio.emit('Arquivo "EMAIL_USER_DATA.txt" foi criado, por favor, configure antes de continuar.')
         c3 = count()
         contador3 = next(c3)
         while not self.paradaPrograma:
             if contador3 == 0:
                 tempo_graf = self.tempoConvertido
-                self.saidaInfo.emit(f'Inicio: --> {data()} <--')
+                self.saidaInfoInicio.emit(f'Inicio: --> {data()} <--')
             else:
-                self.saidaInfo.emit(f'Parcial {contador3} --> {data()} <--')
+                self.saidaInfoInicio.emit(f'Parcial {contador3} --> {data()} <--')
 
             inicio = data()
 
@@ -334,8 +334,8 @@ class Worker(QObject):
                                 fim=data(),
                                 path=caminhoDiretorio)
             emaail.start()
-            self.saidaInfo.emit('Email Enviado')
-        self.saidaInfo.emit('Programa Parado !!!')
+            self.saidaInfoInicio.emit('Email Enviado')
+        self.saidaInfoInicio.emit('Programa Parado !!!')
         self.finalizar.emit()
         self.barraProgresso.emit(0)
 
@@ -367,30 +367,27 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         self.modeloInfo = QStandardItemModel()
         self.saidaDetalhes.setModel(self.modeloInfo)
 
-    def mostradorDisplayDadosColetados(self, dados):
-        self.modeloDadosTReal.appendRow(QStandardItem(dados))
+    def mostrardorDisplayBarraProgresso(self, percent):
+        self.barraProgresso.setValue(percent)
 
     def mostradorDisplayInfo(self, info):
         self.modeloInfo.appendRow(QStandardItem(info))
 
-    def mostrardorDisplayBarraProgresso(self, percent):
-        self.barraProgresso.setValue(percent)
-
-    def mostradorDisplayLCD(self, valor):
+    def mostradorDisplayLCDTempoRestante(self, valor):
         self.visorTempoRestante.display(valor)
 
-    def retornandoBotoesInicio(self):
-        self.btnInciarEstacao.setEnabled(True)
-        self.btnPararEstacao.setEnabled(False)
-
-    def atualizacaoDisplayLCDDados(self, dados: list):
+    def mostradorDisplayLCDDados(self, dados: list):
         self.dadoUmidade.display(dados[0])
         self.dadoPressao.display(dados[1])
         self.dadoTempInterna.display(dados[2])
         self.dadoTempExterna.display(dados[3])
 
-    def atualizarLabelDataHora(self, dt_hr):
+    def mostradorLabelDataHora(self, dt_hr):
         self.dadosHoraData.setText(dt_hr)
+
+    def retornarBotoesInicio(self):
+        self.btnInciarEstacao.setEnabled(True)
+        self.btnPararEstacao.setEnabled(False)
 
     def execucaoMainEstacao(self):
         self.btnInciarEstacao.setEnabled(False)
@@ -398,14 +395,14 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         self.porta = self.portaArduino.text()
         if self.porta == '':
             self.mostradorDisplayInfo('Entre com uma porta válida.')
-            self.retornandoBotoesInicio()
+            self.retornarBotoesInicio()
             return
         try:
             self.tempoGrafico = self.tempoGraficos.text()
             t = TransSegundos(self.tempoGrafico)
             self.tempoGrafico = t.conversorHorasSegundo()
             if self.tempoGrafico <= 0:
-                self.retornandoBotoesInicio()
+                self.retornarBotoesInicio()
                 raise EntradaError('Tempo não pode ser menor ou igual a Zero.')
         except Exception as e:
             self.mostradorDisplayInfo(f'{e.__class__.__name__}: {e}')
@@ -422,18 +419,16 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             self.thread.started.connect(self.worker.run)
             self.thread.start()
             self.worker.barraProgresso.connect(self.mostrardorDisplayBarraProgresso)
-            self.worker.saidaInfo.connect(self.mostradorDisplayInfo)
-            self.worker.saidaDadosLCD.connect(self.atualizacaoDisplayLCDDados)
+            self.worker.saidaInfoInicio.connect(self.mostradorDisplayInfo)
+            self.worker.saidaDadosLCD.connect(self.mostradorDisplayLCDDados)
             self.worker.saidaData.connect(self.atualizarLabelDataHora)
-            self.worker.mostradorTempoRestante.connect(self.mostradorDisplayLCD)
-            self.thread.finished.connect(
-                lambda: self.btnInciarEstacao.setEnabled(True)
-            )
+            self.worker.mostradorTempoRestante.connect(self.mostradorDisplayLCDTempoRestante)
+            self.thread.finished.connect(lambda: self.btnInciarEstacao.setEnabled(True))
             self.portaArduino.setEnabled(False)
             self.tempoGraficos.setEnabled(False)
         except Exception as e:
             self.mostradorDisplayInfo(f'{e.__class__.__name__}: {e}')
-            self.retornandoBotoesInicio()
+            self.retornarBotoesInicio()
             return
 
     def pararWorker(self):
