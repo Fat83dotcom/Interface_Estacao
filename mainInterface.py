@@ -421,7 +421,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             self.worker.barraProgresso.connect(self.mostrardorDisplayBarraProgresso)
             self.worker.saidaInfoInicio.connect(self.mostradorDisplayInfo)
             self.worker.saidaDadosLCD.connect(self.mostradorDisplayLCDDados)
-            self.worker.saidaData.connect(self.atualizarLabelDataHora)
+            self.worker.saidaData.connect(self.mostradorLabelDataHora)
             self.worker.mostradorTempoRestante.connect(self.mostradorDisplayLCDTempoRestante)
             self.thread.finished.connect(lambda: self.btnInciarEstacao.setEnabled(True))
             self.portaArduino.setEnabled(False)
