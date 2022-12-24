@@ -257,6 +257,12 @@ class Worker(QObject):
                 self.saidaInfoInicio.emit('Arquivo "EMAIL_USER_DATA.txt" foi criado, por favor, configure antes de continuar.')
             c3 = count()
             contador3: int = next(c3)
+            bufferDadosRecebidosArduino: dict = {
+                'u': '',
+                'p': '',
+                '1': '',
+                '2': ''
+            }
             while not self.paradaPrograma:
                 if contador3 == 0:
                     tempo_graf = self.tempoConvertido
@@ -286,27 +292,32 @@ class Worker(QObject):
                     contador1: int = next(c1)
                     while contador1 < 4:
                         try:
-                            flag: bool = True
-                            while flag:
-                                dado = str(self.arduino.readline())
-                                dado = dado[2:-5]
-                                if float(dado[1:].strip()) == nan:
-                                    continue
-                                elif float(dado[1:]) <= 0:
-                                    continue
-                                else:
-                                    if dado[0] == 'u':
-                                        dadosRecebidosArduino['u'] = float(dado[1:].strip())
-                                    if dado[0] == 'p':
-                                        dadosRecebidosArduino['p'] = float(dado[1:].strip())
-                                    if dado[0] == '1':
-                                        dadosRecebidosArduino['1'] = float(dado[1:].strip())
-                                    if dado[0] == '2':
-                                        dadosRecebidosArduino['2'] = float(dado[1:].strip())
-                                    flag = False
+                            dado = str(self.arduino.readline())
+                            dado = dado[2:-5]
+                            if float(dado[1:].strip()) == nan:
+                                ...
+                            if float(dado[1:]) <= 0:
+                                dadosRecebidosArduino['u'] = bufferDadosRecebidosArduino['u'] if bufferDadosRecebidosArduino['u'] != 0 else ...
+                                dadosRecebidosArduino['p'] = bufferDadosRecebidosArduino['p'] if bufferDadosRecebidosArduino['p'] != 0 else ...
+                                dadosRecebidosArduino['1'] = bufferDadosRecebidosArduino['1'] if bufferDadosRecebidosArduino['1'] != 0 else ...
+                                dadosRecebidosArduino['2'] = bufferDadosRecebidosArduino['2'] if bufferDadosRecebidosArduino['2'] != 0 else ...
+                            else:
+                                if dado[0] == 'u':
+                                    dadosRecebidosArduino['u'] = float(dado[1:].strip())
+                                    bufferDadosRecebidosArduino['u'] = float(dado[1:].strip())
+                                if dado[0] == 'p':
+                                    dadosRecebidosArduino['p'] = float(dado[1:].strip())
+                                    bufferDadosRecebidosArduino['p'] = float(dado[1:].strip())
+                                if dado[0] == '1':
+                                    dadosRecebidosArduino['1'] = float(dado[1:].strip())
+                                    bufferDadosRecebidosArduino['1'] = float(dado[1:].strip())
+                                if dado[0] == '2':
+                                    dadosRecebidosArduino['2'] = float(dado[1:].strip())
+                                    bufferDadosRecebidosArduino['2'] = float(dado[1:].strip())      
                         except Exception:
                             ...
-
+                        finally:
+                            self.arduino.reset_output_buffer()
                         contador1 = next(c1)
                     dadosLcd: list = []
                     dadosLcd.append(dadosRecebidosArduino["u"])
@@ -380,7 +391,7 @@ class ConexaoUSB():
 
     def conectPortaUSB(self) -> Serial:
         try:
-            conexaoArduino: Serial = Serial(self.caminho, 9600, timeout=1, bytesize=serial.EIGHTBITS)
+            conexaoArduino: Serial = Serial(self.caminho, 9600, timeout=2, bytesize=serial.EIGHTBITS)
             conexaoArduino.reset_input_buffer()
             return conexaoArduino
         except Exception as e:
@@ -433,11 +444,11 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             self.retornarBotoesInicio()
             return
         try:
-            self.tempoGrafico = self.tempoGraficos.text()
-            t = TransSegundos(self.tempoGrafico)
-            self.tempoGrafico = t.conversorHorasSegundo()
-            self.mostradorDisplayLCDTempoDefinido(self.tempoGrafico)
-            if self.tempoGrafico <= 0:
+            self.receptorTempoGraficos = self.tempoGraficos.text()
+            t = TransSegundos(self.receptorTempoGraficos)
+            self.receptorTempoGraficos = t.conversorHorasSegundo()
+            self.mostradorDisplayLCDTempoDefinido(self.receptorTempoGraficos)
+            if self.receptorTempoGraficos <= 0:
                 self.retornarBotoesInicio()
                 raise EntradaError('Tempo não pode ser menor ou igual a Zero.')
         except Exception as e:
@@ -447,7 +458,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             portaArduino: ConexaoUSB = ConexaoUSB(self.porta)
             pA: Serial = portaArduino.conectPortaUSB()
             self.thread = QThread(parent=self)
-            self.worker = Worker(portaArduino=pA, tempoGrafico=self.tempoGrafico)
+            self.worker = Worker(portaArduino=pA, tempoGrafico=self.receptorTempoGraficos)
             self.worker.moveToThread(self.thread)
             self.worker.finalizar.connect(self.thread.quit)
             self.worker.finalizar.connect(self.worker.deleteLater)
