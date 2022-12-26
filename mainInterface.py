@@ -377,13 +377,13 @@ class Worker(QObject):
                                 data(),
                                 caminhoDiretorio)
             self.saidaInfoInicio.emit('Programa Parado !!!')
-            self.finalizar.emit()
             self.barraProgresso.emit(0)
+            self.finalizar.emit()
         except (ValueError, Exception) as e:
             self.saidaInfoInicio.emit(f'{e.__class__.__name__}: {e}')
             self.saidaInfoInicio.emit('Programa Parado !!!')
-            self.finalizar.emit()
             self.barraProgresso.emit(0)
+            self.finalizar.emit()
 
 
 class EntradaError(Exception):
