@@ -12,7 +12,6 @@ import csv
 import matplotlib.pyplot as plt
 import matplotlib.backends.backend_pdf
 import smtplib
-from threading import Thread
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
@@ -23,11 +22,14 @@ from itertools import count
 from math import nan
 
 
-class EmailThread(Thread):
+class EmailWorker(QObject):
+    termino = pyqtSignal()
+    msgEnvio = pyqtSignal(str)
+
     def __init__(self, inicio, umi, press, t1, t2, t1max,
                  t1min, t2max, t2min, umimax, umimini,
-                 pressmax, pressmini, ini, fim, path):
-        super().__init__()
+                 pressmax, pressmini, ini, fim, path, parent=None):
+        super().__init__(parent)
         self.inicio = inicio
         self.path = path
         self.umi = umi
@@ -53,6 +55,7 @@ class EmailThread(Thread):
             anexo.add_header('Conteudo', enderecoPdf)
             msg.attach(anexo)
 
+    @pyqtSlot()
     def run(self):
         msg = MIMEMultipart()
         msg['from'] = 'Fernando Mendes'
@@ -79,13 +82,16 @@ class EmailThread(Thread):
                 smtp.starttls()
                 smtp.login(''.join(meu_email()), ''.join(minha_senha()))
                 smtp.send_message(msg)
-        except Exception:
-            print('\nE-mail não enviado, sem conexão.\n\nVerifique a rede.\n')
+        except Exception as e:
+            self.msgEnvio.emit(f'{e.__class__.__name__}: {e}')
+            self.termino.emit()
 
         os.remove(f'{self.path}/Umidade{self.inicio}.pdf')
         os.remove(f'{self.path}/Pressao{self.inicio}.pdf')
         os.remove(f'{self.path}/Temperatura_Interna{self.inicio}.pdf')
         os.remove(f'{self.path}/Temperatura_Externa{self.inicio}.pdf')
+        self.msgEnvio.emit('Email enviado com sucesso.')
+        self.termino.emit()
 
 
 class TransSegundos:
@@ -133,7 +139,7 @@ def renderizadorHtml(umidade, pressao, temp1, temp2, temp1max, temp1min,
     return corpo_msg
 
 
-def data():
+def data() -> str:
     try:
         data = time.strftime('%d %b %Y %H:%M:%S', time.localtime())
         return data
@@ -141,7 +147,7 @@ def data():
         raise e
 
 
-def dataDoArquivo():
+def dataDoArquivo() -> str:
     try:
         dataA = time.strftime('%b_%Y_log.csv').lower()
         return dataA
@@ -149,14 +155,14 @@ def dataDoArquivo():
         raise e
 
 
-def maximos(dados):
+def maximos(dados) -> float:
     try:
         return round(max(dados), 2)
     except (ValueError, Exception) as e:
         raise DadosError(f'{e.__class__.__name__} -> função: {maximos.__name__}: Não há dados a serem processados.')
 
 
-def minimos(dados):
+def minimos(dados) -> float:
     try:
         return round(min(dados), 2)
     except (ValueError, Exception) as e:
@@ -225,6 +231,8 @@ class Worker(QObject):
     saidaInfoInicio = pyqtSignal(str)
     saidaDadosLCD = pyqtSignal(list)
     saidaData = pyqtSignal(str)
+    saidaDadosEmail = pyqtSignal(str, float, float, float, float, float, float,
+                                 float, float, float, float, float, float, str, str, str)
     mostradorTempoRestante = pyqtSignal(int)
 
     def __init__(self, portaArduino: Serial, tempoGrafico: int, parent=None) -> None:
@@ -313,7 +321,7 @@ class Worker(QObject):
                                     bufferDadosRecebidosArduino['1'] = float(dado[1:].strip())
                                 if dado[0] == '2':
                                     dadosRecebidosArduino['2'] = float(dado[1:].strip())
-                                    bufferDadosRecebidosArduino['2'] = float(dado[1:].strip())      
+                                    bufferDadosRecebidosArduino['2'] = float(dado[1:].strip())
                         except Exception:
                             ...
                         finally:
@@ -346,35 +354,36 @@ class Worker(QObject):
                     tempoFinal: float = time.time()
                     while tempoFinal - tempoInicial < 1:
                         tempoFinal = time.time()
+                contador3 = next(c3)
                 plot_umidade(yDadosUmidade, inicio, caminhoDiretorio)
                 plot_pressao(yDadosPressao, inicio, caminhoDiretorio)
                 plot_temp1(yDadosTemperaturaInterna, inicio, caminhoDiretorio)
                 plot_temp2(yDadosTemperaturaExterna, inicio, caminhoDiretorio)
-                contador3 = next(c3)
-                emaail = EmailThread(
-                                    inicio=inicio,
-                                    umi=round(mean(yDadosUmidade), 2),
-                                    press=round(mean(yDadosPressao), 2),
-                                    t1=round(mean(yDadosTemperaturaInterna), 2),
-                                    t2=round(mean(yDadosTemperaturaExterna), 2),
-                                    t1max=maximos(yDadosTemperaturaInterna),
-                                    t1min=minimos(yDadosTemperaturaInterna),
-                                    t2max=maximos(yDadosTemperaturaExterna),
-                                    t2min=minimos(yDadosTemperaturaExterna),
-                                    umimax=maximos(yDadosUmidade),
-                                    umimini=minimos(yDadosUmidade),
-                                    pressmax=maximos(yDadosPressao),
-                                    pressmini=minimos(yDadosPressao),
-                                    ini=inicio,
-                                    fim=data(),
-                                    path=caminhoDiretorio)
-                emaail.start()
-                self.saidaInfoInicio.emit('Email Enviado')
+                self.saidaDadosEmail.emit(
+                                inicio,
+                                round(mean(yDadosUmidade), 2),
+                                round(mean(yDadosPressao), 2),
+                                round(mean(yDadosTemperaturaInterna), 2),
+                                round(mean(yDadosTemperaturaExterna), 2),
+                                maximos(yDadosTemperaturaInterna),
+                                minimos(yDadosTemperaturaInterna),
+                                maximos(yDadosTemperaturaExterna),
+                                minimos(yDadosTemperaturaExterna),
+                                maximos(yDadosUmidade),
+                                minimos(yDadosUmidade),
+                                maximos(yDadosPressao),
+                                minimos(yDadosPressao),
+                                inicio,
+                                data(),
+                                caminhoDiretorio)
             self.saidaInfoInicio.emit('Programa Parado !!!')
             self.finalizar.emit()
             self.barraProgresso.emit(0)
         except (ValueError, Exception) as e:
             self.saidaInfoInicio.emit(f'{e.__class__.__name__}: {e}')
+            self.saidaInfoInicio.emit('Programa Parado !!!')
+            self.finalizar.emit()
+            self.barraProgresso.emit(0)
 
 
 class EntradaError(Exception):
@@ -469,6 +478,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             self.worker.saidaInfoInicio.connect(self.mostradorDisplayInfo)
             self.worker.saidaDadosLCD.connect(self.mostradorDisplayLCDDados)
             self.worker.saidaData.connect(self.mostradorLabelDataHora)
+            self.worker.saidaDadosEmail.connect(self.executarEmail)
             self.worker.mostradorTempoRestante.connect(self.mostradorDisplayLCDTempoRestante)
             self.thread.finished.connect(lambda: self.btnInciarEstacao.setEnabled(True))
             self.portaArduino.setEnabled(False)
@@ -485,6 +495,27 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         self.btnPararEstacao.setEnabled(False)
         self.portaArduino.setEnabled(True)
         self.tempoGraficos.setEnabled(True)
+
+    def executarEmail(self, inicio, umi, press, t1, t2, t1max,
+                      t1min, t2max, t2min, umimax, umimini,
+                      pressmax, pressmini, ini, fim, path):
+        try:
+            self.emailThread = QThread(parent=None)
+            self.emailWorker = EmailWorker(inicio=inicio, umi=umi, press=press, t1=t1,
+                                           t2=t2, t1max=t1max, t1min=t1min, t2max=t2max,
+                                           t2min=t2min, umimax=umimax, umimini=umimini,
+                                           pressmax=pressmax, pressmini=pressmini,
+                                           ini=ini, fim=fim, path=path)
+            self.emailWorker.moveToThread(self.emailThread)
+            self.emailThread.started.connect(self.emailWorker.run)
+            self.emailThread.start()
+            self.emailWorker.msgEnvio.connect(self.mostradorDisplayInfo)
+            self.emailWorker.termino.connect(self.emailThread.quit)
+            self.emailWorker.termino.connect(self.emailWorker.deleteLater)
+            self.emailWorker.termino.connect(self.emailThread.deleteLater)
+        except Exception as e:
+            self.mostradorDisplayInfo(f'{e.__class__.__name__}: {e}')
+            return
 
 
 if __name__ == '__main__':
