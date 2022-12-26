@@ -82,16 +82,16 @@ class EmailWorker(QObject):
                 smtp.starttls()
                 smtp.login(''.join(meu_email()), ''.join(minha_senha()))
                 smtp.send_message(msg)
+                self.msgEnvio.emit('Email enviado com sucesso.')
         except Exception as e:
-            self.msgEnvio.emit(f'{e.__class__.__name__}: {e}')
+            self.msgEnvio.emit('Não foi possivel enviar o email.')
+            self.msgEnvio.emit(f'Motivo: {e.__class__.__name__}: {e}')
+        finally:
+            os.remove(f'{self.path}/Umidade{self.inicio}.pdf')
+            os.remove(f'{self.path}/Pressao{self.inicio}.pdf')
+            os.remove(f'{self.path}/Temperatura_Interna{self.inicio}.pdf')
+            os.remove(f'{self.path}/Temperatura_Externa{self.inicio}.pdf')
             self.termino.emit()
-
-        os.remove(f'{self.path}/Umidade{self.inicio}.pdf')
-        os.remove(f'{self.path}/Pressao{self.inicio}.pdf')
-        os.remove(f'{self.path}/Temperatura_Interna{self.inicio}.pdf')
-        os.remove(f'{self.path}/Temperatura_Externa{self.inicio}.pdf')
-        self.msgEnvio.emit('Email enviado com sucesso.')
-        self.termino.emit()
 
 
 class TransSegundos:
