@@ -55,6 +55,7 @@ class EmailWorker(QObject):
             anexo.add_header('Conteudo', enderecoPdf)
             msg.attach(anexo)
 
+    @pyqtSlot()
     def run(self):
         msg = MIMEMultipart()
         msg['from'] = 'Fernando Mendes'
