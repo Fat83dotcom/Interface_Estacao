@@ -511,8 +511,9 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             self.emailThread.start()
             self.emailWorker.msgEnvio.connect(self.mostradorDisplayInfo)
             self.emailWorker.termino.connect(self.emailThread.quit)
-            self.emailWorker.termino.connect(self.emailWorker.deleteLater)
+            self.emailWorker.termino.connect(self.emailThread.wait)
             self.emailWorker.termino.connect(self.emailThread.deleteLater)
+            self.emailWorker.termino.connect(self.emailWorker.deleteLater)
         except Exception as e:
             self.mostradorDisplayInfo(f'{e.__class__.__name__}: {e}')
             return
