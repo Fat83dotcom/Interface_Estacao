@@ -90,7 +90,7 @@ class EmailWorker(QObject):
             os.remove(f'{self.path}/Pressao{self.inicio}.pdf')
             os.remove(f'{self.path}/Temperatura_Interna{self.inicio}.pdf')
             os.remove(f'{self.path}/Temperatura_Externa{self.inicio}.pdf')
-            self.termino.emit()
+        self.termino.emit()
 
 class TransSegundos:
     def __init__(self, horas) -> None:
