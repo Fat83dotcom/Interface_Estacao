@@ -581,10 +581,13 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
 
     def manipuladorDestinatarios(self) -> None:
-        emailDestinatarios = my_recipients()
-        self.tabelaDestinatarios.setRowCount(len(emailDestinatarios))
-        for linha, email in enumerate(emailDestinatarios):
-            self.tabelaDestinatarios.setItem(linha, 0, QTableWidgetItem(email))
+        try:
+            emailDestinatarios = my_recipients()
+            self.tabelaDestinatarios.setRowCount(len(emailDestinatarios))
+            for linha, email in enumerate(emailDestinatarios):
+                self.tabelaDestinatarios.setItem(linha, 0, QTableWidgetItem(email))
+        except Exception:
+            self.statusOperacoes.setText('Defina as configurações de e-mail.')
 
     def obterEmailDestinatario(self) -> str:
         try:
