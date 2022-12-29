@@ -132,3 +132,6 @@ confidentials.py
 *.csv
 *.pdf
 teste.py
+.EMAIL_USER_DATA.txt
+.PASSWORD_USER_DATA.txt
+.RECIPIENTS_USER_DATA.txt

@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>686</width>
+    <width>684</width>
     <height>618</height>
    </rect>
   </property>
@@ -586,38 +586,6 @@
         <string>Iniciar Estação</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout">
-        <item>
-         <widget class="QLabel" name="label">
-          <property name="maximumSize">
-           <size>
-            <width>16777215</width>
-            <height>30</height>
-           </size>
-          </property>
-          <property name="font">
-           <font>
-            <pointsize>20</pointsize>
-            <weight>75</weight>
-            <bold>true</bold>
-           </font>
-          </property>
-          <property name="frameShape">
-           <enum>QFrame::Panel</enum>
-          </property>
-          <property name="frameShadow">
-           <enum>QFrame::Sunken</enum>
-          </property>
-          <property name="lineWidth">
-           <number>2</number>
-          </property>
-          <property name="text">
-           <string>Estação Metereologica Fat83DotCom</string>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignCenter</set>
-          </property>
-         </widget>
-        </item>
         <item>
          <widget class="QFrame" name="frame_5">
           <property name="frameShape">
@@ -1407,13 +1375,13 @@
       </widget>
       <widget class="QWidget" name="emailUser">
        <attribute name="title">
-        <string>Definir config. Email</string>
+        <string>Definir config. E-mail</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_6">
         <item>
          <widget class="QFrame" name="frame_4">
           <property name="frameShape">
-           <enum>QFrame::StyledPanel</enum>
+           <enum>QFrame::NoFrame</enum>
           </property>
           <property name="frameShadow">
            <enum>QFrame::Raised</enum>
@@ -1430,16 +1398,120 @@
              <property name="font">
               <font>
                <pointsize>20</pointsize>
-               <weight>75</weight>
-               <bold>true</bold>
+               <weight>50</weight>
+               <bold>false</bold>
               </font>
              </property>
+             <property name="frameShape">
+              <enum>QFrame::NoFrame</enum>
+             </property>
              <property name="text">
-              <string>Estação Metereologica Fat83DotCom</string>
+              <string>Configuração Para Envio Dos E-mails</string>
              </property>
              <property name="alignment">
               <set>Qt::AlignCenter</set>
              </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QFrame" name="frame_33">
+             <property name="frameShape">
+              <enum>QFrame::NoFrame</enum>
+             </property>
+             <property name="frameShadow">
+              <enum>QFrame::Raised</enum>
+             </property>
+             <layout class="QVBoxLayout" name="verticalLayout_25">
+              <item>
+               <widget class="QLabel" name="label_21">
+                <property name="text">
+                 <string>E-mail Remetente</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLineEdit" name="emailUsuario"/>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_23">
+                <property name="text">
+                 <string>Senha</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLineEdit" name="senhaUsuario"/>
+              </item>
+              <item>
+               <widget class="QPushButton" name="btnSalvarUsuarioSenha">
+                <property name="text">
+                 <string>Salvar</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="QFrame" name="frame_34">
+             <property name="frameShape">
+              <enum>QFrame::NoFrame</enum>
+             </property>
+             <property name="frameShadow">
+              <enum>QFrame::Raised</enum>
+             </property>
+             <layout class="QVBoxLayout" name="verticalLayout_27">
+              <item>
+               <widget class="QLabel" name="label_24">
+                <property name="text">
+                 <string>Destinatários</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLineEdit" name="adicionarDestinatario"/>
+              </item>
+              <item>
+               <widget class="QPushButton" name="btnAdicionarDestinatario">
+                <property name="text">
+                 <string>Adicionar</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="QFrame" name="frame_35">
+             <property name="frameShape">
+              <enum>QFrame::NoFrame</enum>
+             </property>
+             <property name="frameShadow">
+              <enum>QFrame::Raised</enum>
+             </property>
+             <layout class="QVBoxLayout" name="verticalLayout_20">
+              <item>
+               <widget class="QTableWidget" name="tabelaDestinatarios">
+                <column>
+                 <property name="text">
+                  <string>Número</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>E-mail Destinatário</string>
+                 </property>
+                </column>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="btnExcluirDestinatario">
+                <property name="text">
+                 <string>Excluir</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
             </widget>
            </item>
           </layout>

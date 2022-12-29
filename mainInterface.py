@@ -6,7 +6,6 @@ from PyQt5.QtGui import QStandardItemModel, QStandardItem
 from PyQt5.QtCore import QThread, QObject, pyqtSignal, QMutex, pyqtSlot
 from interface import Ui_MainWindow
 from serial import Serial
-from confidentials import define_arquivo
 import time
 import csv
 import matplotlib.pyplot as plt
@@ -258,11 +257,11 @@ class WorkerEstacao(QObject):
         try:
             caminhoDiretorio: str = os.path.dirname(os.path.realpath(__file__))
 
-            if os.path.isfile('EMAIL_USER_DATA.txt'):
-                self.saidaInfoInicio.emit('Arquivo "EMAIL_USER_DATA.txt" já existe.')
-            else:
-                define_arquivo()
-                self.saidaInfoInicio.emit('Arquivo "EMAIL_USER_DATA.txt" foi criado, por favor, configure antes de continuar.')
+            # if os.path.isfile('EMAIL_USER_DATA.txt'):
+            #     self.saidaInfoInicio.emit('Arquivo "EMAIL_USER_DATA.txt" já existe.')
+            # else:
+            #     define_arquivo()
+            #     self.saidaInfoInicio.emit('Arquivo "EMAIL_USER_DATA.txt" foi criado, por favor, configure antes de continuar.')
             c3 = count()
             contador3: int = next(c3)
             bufferDadosRecebidosArduino: dict = {
