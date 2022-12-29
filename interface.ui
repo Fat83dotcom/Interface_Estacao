@@ -10,6 +10,12 @@
     <height>674</height>
    </rect>
   </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
   <property name="palette">
    <palette>
     <active>
@@ -452,6 +458,9 @@
     </disabled>
    </palette>
   </property>
+  <property name="tabletTracking">
+   <bool>false</bool>
+  </property>
   <property name="windowTitle">
    <string>Estação Metereologica Fat83DotCom</string>
   </property>
@@ -469,7 +478,7 @@
      <enum>QTabWidget::Rounded</enum>
     </property>
     <property name="currentIndex">
-     <number>3</number>
+     <number>0</number>
     </property>
     <widget class="QWidget" name="paginaApresentacao">
      <attribute name="title">
@@ -1518,7 +1527,11 @@
              </widget>
             </item>
             <item>
-             <widget class="QLineEdit" name="adicionarDestinatario"/>
+             <widget class="QLineEdit" name="adicionarDestinatario">
+              <property name="placeholderText">
+               <string>Adicione os Destinatários Aqui</string>
+              </property>
+             </widget>
             </item>
             <item>
              <widget class="QPushButton" name="btnAdicionarDestinatario">
@@ -1541,9 +1554,21 @@
            <layout class="QVBoxLayout" name="verticalLayout_20">
             <item>
              <widget class="QTableWidget" name="tabelaDestinatarios">
+              <property name="sizeAdjustPolicy">
+               <enum>QAbstractScrollArea::AdjustIgnored</enum>
+              </property>
+              <property name="gridStyle">
+               <enum>Qt::SolidLine</enum>
+              </property>
+              <attribute name="horizontalHeaderStretchLastSection">
+               <bool>true</bool>
+              </attribute>
               <column>
                <property name="text">
                 <string>E-mail Destinatário</string>
+               </property>
+               <property name="textAlignment">
+                <set>AlignCenter</set>
                </property>
               </column>
              </widget>
