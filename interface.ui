@@ -1445,7 +1445,11 @@
              </widget>
             </item>
             <item row="1" column="0" colspan="2">
-             <widget class="QLineEdit" name="emailUsuario"/>
+             <widget class="QLineEdit" name="emailUsuario">
+              <property name="placeholderText">
+               <string>Digite Seu E-mail (Somente Gmail)</string>
+              </property>
+             </widget>
             </item>
             <item row="2" column="0" colspan="2">
              <widget class="QLabel" name="label_23">
@@ -1455,7 +1459,14 @@
              </widget>
             </item>
             <item row="3" column="0" colspan="2">
-             <widget class="QLineEdit" name="senhaUsuario"/>
+             <widget class="QLineEdit" name="senhaUsuario">
+              <property name="echoMode">
+               <enum>QLineEdit::Password</enum>
+              </property>
+              <property name="placeholderText">
+               <string>Digite a Senha do E-mail</string>
+              </property>
+             </widget>
             </item>
             <item row="4" column="0">
              <widget class="QPushButton" name="btnSalvarUsuarioSenha">
