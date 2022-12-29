@@ -57,7 +57,7 @@ class WorkerEmail(QObject):
     @pyqtSlot()
     def run(self):
         msg = MIMEMultipart()
-        msg['from'] = 'Fernando Mendes'
+        msg['from'] = ''.join(meu_email())
         msg['to'] = ','.join(my_recipients())
         msg['subject'] = f'Monitoramento Estação Metereologica Fat83dotcom {data()}'
         corpo = MIMEText(renderizadorHtml(self.umi, self.press, self.t1, self.t2,
