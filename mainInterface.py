@@ -22,7 +22,7 @@ from itertools import count
 from math import nan
 
 
-class EmailWorker(QObject):
+class WorkerEmail(QObject):
     termino = pyqtSignal()
     msgEnvio = pyqtSignal(str)
 
@@ -225,7 +225,7 @@ def plot_temp2(t2y, inicio, path):
         raise e
 
 
-class Worker(QObject):
+class WorkerEstacao(QObject):
     finalizar = pyqtSignal()
     barraProgresso = pyqtSignal(int)
     saidaInfoInicio = pyqtSignal(str)
@@ -466,21 +466,21 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         try:
             portaArduino: ConexaoUSB = ConexaoUSB(self.porta)
             pA: Serial = portaArduino.conectPortaUSB()
-            self.thread = QThread(parent=self)
-            self.worker = Worker(portaArduino=pA, tempoGrafico=self.receptorTempoGraficos)
-            self.worker.moveToThread(self.thread)
-            self.worker.finalizar.connect(self.thread.quit)
-            self.worker.finalizar.connect(self.worker.deleteLater)
-            self.worker.finalizar.connect(self.thread.deleteLater)
-            self.thread.started.connect(self.worker.run)
-            self.thread.start()
-            self.worker.barraProgresso.connect(self.mostrardorDisplayBarraProgresso)
-            self.worker.saidaInfoInicio.connect(self.mostradorDisplayInfo)
-            self.worker.saidaDadosLCD.connect(self.mostradorDisplayLCDDados)
-            self.worker.saidaData.connect(self.mostradorLabelDataHora)
-            self.worker.saidaDadosEmail.connect(self.executarEmail)
-            self.worker.mostradorTempoRestante.connect(self.mostradorDisplayLCDTempoRestante)
-            self.thread.finished.connect(lambda: self.btnInciarEstacao.setEnabled(True))
+            self.estacaoThread = QThread(parent=self)
+            self.estacaoWorker = WorkerEstacao(portaArduino=pA, tempoGrafico=self.receptorTempoGraficos)
+            self.estacaoWorker.moveToThread(self.estacaoThread)
+            self.estacaoWorker.finalizar.connect(self.estacaoThread.quit)
+            self.estacaoWorker.finalizar.connect(self.estacaoWorker.deleteLater)
+            self.estacaoWorker.finalizar.connect(self.estacaoThread.deleteLater)
+            self.estacaoThread.started.connect(self.estacaoWorker.run)
+            self.estacaoThread.start()
+            self.estacaoWorker.barraProgresso.connect(self.mostrardorDisplayBarraProgresso)
+            self.estacaoWorker.saidaInfoInicio.connect(self.mostradorDisplayInfo)
+            self.estacaoWorker.saidaDadosLCD.connect(self.mostradorDisplayLCDDados)
+            self.estacaoWorker.saidaData.connect(self.mostradorLabelDataHora)
+            self.estacaoWorker.saidaDadosEmail.connect(self.executarEmail)
+            self.estacaoWorker.mostradorTempoRestante.connect(self.mostradorDisplayLCDTempoRestante)
+            self.estacaoThread.finished.connect(lambda: self.btnInciarEstacao.setEnabled(True))
             self.portaArduino.setEnabled(False)
             self.tempoGraficos.setEnabled(False)
         except Exception as e:
@@ -489,9 +489,9 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             return
 
     def pararWorker(self):
-        self.worker.parar()
-        self.thread.quit()
-        self.thread.wait()
+        self.estacaoWorker.parar()
+        self.estacaoThread.quit()
+        self.estacaoThread.wait()
         self.btnPararEstacao.setEnabled(False)
         self.portaArduino.setEnabled(True)
         self.tempoGraficos.setEnabled(True)
@@ -501,7 +501,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
                       pressmax, pressmini, ini, fim, path):
         try:
             self.emailThread = QThread(parent=None)
-            self.emailWorker = EmailWorker(inicio=inicio, umi=umi, press=press, t1=t1,
+            self.emailWorker = WorkerEmail(inicio=inicio, umi=umi, press=press, t1=t1,
                                            t2=t2, t1max=t1max, t1min=t1min, t2max=t2max,
                                            t2min=t2min, umimax=umimax, umimini=umimini,
                                            pressmax=pressmax, pressmini=pressmini,
