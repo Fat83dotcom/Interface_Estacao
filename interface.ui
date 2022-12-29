@@ -498,7 +498,7 @@
            </property>
            <property name="font">
             <font>
-             <pointsize>20</pointsize>
+             <pointsize>18</pointsize>
              <weight>75</weight>
              <bold>true</bold>
             </font>
@@ -788,7 +788,7 @@
           <widget class="QLabel" name="label_4">
            <property name="font">
             <font>
-             <pointsize>20</pointsize>
+             <pointsize>16</pointsize>
             </font>
            </property>
            <property name="text">
@@ -1403,7 +1403,7 @@
            </property>
            <property name="font">
             <font>
-             <pointsize>20</pointsize>
+             <pointsize>16</pointsize>
              <weight>50</weight>
              <bold>false</bold>
             </font>
@@ -1422,6 +1422,9 @@
            </property>
            <property name="alignment">
             <set>Qt::AlignCenter</set>
+           </property>
+           <property name="indent">
+            <number>0</number>
            </property>
           </widget>
          </item>
