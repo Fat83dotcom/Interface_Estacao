@@ -517,6 +517,21 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             self.mostradorDisplayInfo(f'{e.__class__.__name__}: {e}')
             return
 
+    def defineArquivoEmail(self, dadoUsuario):
+        with open('.EMAIL_USER_DATA.txt', 'w') as file:
+            file.write(dadoUsuario)
+
+    def defineArquivoSenha(self, dadoUsuario):
+        with open('.PASSWORD_USER_DATA.txt', 'w') as file:
+            file.write(dadoUsuario)
+
+    def defineArquivoDestinatarios(self, dadoUsuario):
+        with open('.RECIPIENTS_USER_DATA.txt', 'a') as file:
+            file.write(f'{dadoUsuario}\n')
+
+    def manipuladorArquivosEmail(sefl):
+        pass
+
 
 if __name__ == '__main__':
     qt = QApplication(sys.argv)
