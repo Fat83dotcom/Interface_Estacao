@@ -416,6 +416,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         self.btnPararEstacao.setEnabled(False)
         self.modeloInfo = QStandardItemModel()
         self.saidaDetalhes.setModel(self.modeloInfo)
+        self.verificadorRemtenteSenha()
 
     def mostrardorDisplayBarraProgresso(self, percent):
         self.barraProgresso.setValue(percent)
@@ -530,6 +531,19 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         with open('.RECIPIENTS_USER_DATA.txt', 'a') as file:
             file.write(f'{dadoUsuario}\n')
 
+    def verificadorRemtenteSenha(self):
+        try:
+            if len(meu_email()) == 1 and len(minha_senha()) == 1:
+                email = ''.join(meu_email())
+                senha = ''.join(minha_senha())
+                self.statusRemetenteSenha.setText(f'Dados Atuais: Email: {email} | '
+                                                  f'Senha: {"".join([letra.replace(letra, "*") for letra in senha])}')
+            else:
+                self.statusRemetenteSenha.setText('Os dados de e-mail e/ou a \
+                    senha do remetente não estão definidos')
+        except Exception as e:
+            self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
+
     def manipuladorRemetenteSenha(self):
         try:
             self.statusOperacoes.setText('')
@@ -541,7 +555,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             else:
                 pass
         except Exception as e:
-            print(e)
+            self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
 
 
 if __name__ == '__main__':
