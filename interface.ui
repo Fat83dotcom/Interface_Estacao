@@ -469,7 +469,7 @@
      <enum>QTabWidget::Rounded</enum>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>3</number>
     </property>
     <widget class="QWidget" name="paginaApresentacao">
      <attribute name="title">
@@ -1530,11 +1530,6 @@
            <layout class="QVBoxLayout" name="verticalLayout_20">
             <item>
              <widget class="QTableWidget" name="tabelaDestinatarios">
-              <column>
-               <property name="text">
-                <string>Número</string>
-               </property>
-              </column>
               <column>
                <property name="text">
                 <string>E-mail Destinatário</string>

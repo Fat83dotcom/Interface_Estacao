@@ -665,12 +665,10 @@ class Ui_MainWindow(object):
         self.verticalLayout_20.setObjectName("verticalLayout_20")
         self.tabelaDestinatarios = QtWidgets.QTableWidget(self.frame_35)
         self.tabelaDestinatarios.setObjectName("tabelaDestinatarios")
-        self.tabelaDestinatarios.setColumnCount(2)
+        self.tabelaDestinatarios.setColumnCount(1)
         self.tabelaDestinatarios.setRowCount(0)
         item = QtWidgets.QTableWidgetItem()
         self.tabelaDestinatarios.setHorizontalHeaderItem(0, item)
-        item = QtWidgets.QTableWidgetItem()
-        self.tabelaDestinatarios.setHorizontalHeaderItem(1, item)
         self.verticalLayout_20.addWidget(self.tabelaDestinatarios)
         self.btnExcluirDestinatario = QtWidgets.QPushButton(self.frame_35)
         self.btnExcluirDestinatario.setObjectName("btnExcluirDestinatario")
@@ -688,7 +686,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralwidget)
 
         self.retranslateUi(MainWindow)
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(3)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -727,8 +725,6 @@ class Ui_MainWindow(object):
         self.label_24.setText(_translate("MainWindow", "Destinatários"))
         self.btnAdicionarDestinatario.setText(_translate("MainWindow", "Adicionar"))
         item = self.tabelaDestinatarios.horizontalHeaderItem(0)
-        item.setText(_translate("MainWindow", "Número"))
-        item = self.tabelaDestinatarios.horizontalHeaderItem(1)
         item.setText(_translate("MainWindow", "E-mail Destinatário"))
         self.btnExcluirDestinatario.setText(_translate("MainWindow", "Excluir"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.emailUser), _translate("MainWindow", "Definir config. E-mail"))
