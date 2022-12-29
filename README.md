@@ -1,6 +1,9 @@
 # PYTHON_INTERFACE_ESTACAO
 Interface gráfica para a estação metereologica
 
+Versão 2.0.1:
+-> Implementação de um botão de testes, para verificar o login do e-mail do usuário
+
 Versão 2.0:
 -> Formulário para email e senha do remetente e manipulação dos emails do destinatário
 -> Mudança na estrutura dos arquivos responsável pelo armazenamento dos dados relacionados ao envio de email
