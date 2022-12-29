@@ -14,7 +14,7 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
-from confidentials import meu_email, minha_senha, my_recipients
+from manipuladoresArquivos import meu_email, minha_senha, my_recipients
 from statistics import mean
 from string import Template
 from itertools import count
