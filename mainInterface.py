@@ -411,7 +411,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         super().setupUi(self)
-        self.btnInciarEstacao.clicked.connect(self.execucaoMainEstacao)
+        self.btnInciarEstacao.clicked.connect(self.executarMainEstacao)
         self.btnPararEstacao.clicked.connect(self.pararWorker)
         self.btnPararEstacao.setEnabled(False)
         self.modeloInfo = QStandardItemModel()
@@ -444,7 +444,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         self.btnInciarEstacao.setEnabled(True)
         self.btnPararEstacao.setEnabled(False)
 
-    def execucaoMainEstacao(self):
+    def executarMainEstacao(self):
         self.btnInciarEstacao.setEnabled(False)
         self.btnPararEstacao.setEnabled(True)
         self.porta = self.portaArduino.text()
