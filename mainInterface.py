@@ -1,7 +1,7 @@
 import sys
 import serial
 import os
-from PyQt5.QtWidgets import QMainWindow, QApplication
+from PyQt5.QtWidgets import QMainWindow, QApplication, QTableWidgetItem
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
 from PyQt5.QtCore import QThread, QObject, pyqtSignal, QMutex, pyqtSlot
 from interface import Ui_MainWindow
@@ -413,10 +413,12 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         self.btnInciarEstacao.clicked.connect(self.executarMainEstacao)
         self.btnPararEstacao.clicked.connect(self.pararWorker)
         self.btnSalvarUsuarioSenha.clicked.connect(self.manipuladorRemetenteSenha)
+        self.btnExcluirDestinatario.clicked.connect(self.deletarEmailDestinatario)
         self.btnPararEstacao.setEnabled(False)
         self.modeloInfo = QStandardItemModel()
         self.saidaDetalhes.setModel(self.modeloInfo)
         self.verificadorRemtenteSenha()
+        self.manipuladorDestinatarios()
 
     def mostrardorDisplayBarraProgresso(self, percent):
         self.barraProgresso.setValue(percent)
@@ -531,6 +533,10 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         with open('.RECIPIENTS_USER_DATA.txt', 'a') as file:
             file.write(f'{dadoUsuario}\n')
 
+    def apagadorArquivo(self, caminhoArquivo: str):
+        with open(caminhoArquivo, 'w') as file:
+            file.write('')
+
     def verificadorRemtenteSenha(self):
         try:
             if len(meu_email()) == 1 and len(minha_senha()) == 1:
@@ -557,6 +563,40 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         except Exception as e:
             self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
 
+    def manipuladorDestinatarios(self):
+        emailDestinatarios = my_recipients()
+        self.tabelaDestinatarios.setRowCount(len(emailDestinatarios))
+        for linha, email in enumerate(emailDestinatarios):
+            self.tabelaDestinatarios.setItem(linha, 0, QTableWidgetItem(email))
+
+    def obterEmailDestinatario(self):
+        try:
+            emailDeletado = self.tabelaDestinatarios.currentItem().text()
+            if emailDeletado:
+                return emailDeletado
+        except Exception:
+            return None
+
+    def deletarEmailDestinatario(self):
+        try:
+            emailDestinatarios: list = my_recipients()
+            emailDeletado = self.obterEmailDestinatario()
+            if emailDeletado:
+                emailDestinatarios.remove(emailDeletado)
+                self.apagadorArquivo('.RECIPIENTS_USER_DATA.txt')
+                for email in emailDestinatarios:
+                    self.defineArquivoDestinatarios(email)
+                self.manipuladorDestinatarios()
+            else:
+                if len(emailDestinatarios) == 0:
+                    self.statusOperacoes.setText('Não há itens para mostrar.')
+                else:
+                    self.statusOperacoes.setText('Selecione um email na tabela.')
+        except Exception as e:
+            self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
+
+    def adicionarEmailDestinatarios(self):
+        pass
 
 if __name__ == '__main__':
     qt = QApplication(sys.argv)
