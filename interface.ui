@@ -463,7 +463,7 @@
        <enum>QTabWidget::Rounded</enum>
       </property>
       <property name="currentIndex">
-       <number>3</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="paginaApresentacao">
        <attribute name="title">
@@ -1427,35 +1427,58 @@
              <property name="frameShadow">
               <enum>QFrame::Raised</enum>
              </property>
-             <layout class="QVBoxLayout" name="verticalLayout_25">
-              <item>
+             <layout class="QGridLayout" name="gridLayout_3">
+              <item row="0" column="0" colspan="2">
                <widget class="QLabel" name="label_21">
                 <property name="text">
                  <string>E-mail Remetente</string>
                 </property>
                </widget>
               </item>
-              <item>
+              <item row="1" column="0" colspan="2">
                <widget class="QLineEdit" name="emailUsuario"/>
               </item>
-              <item>
+              <item row="2" column="0">
                <widget class="QLabel" name="label_23">
                 <property name="text">
                  <string>Senha</string>
                 </property>
                </widget>
               </item>
-              <item>
+              <item row="3" column="0" colspan="2">
                <widget class="QLineEdit" name="senhaUsuario"/>
               </item>
-              <item>
+              <item row="4" column="0">
                <widget class="QPushButton" name="btnSalvarUsuarioSenha">
                 <property name="text">
                  <string>Salvar</string>
                 </property>
                </widget>
               </item>
+              <item row="4" column="1">
+               <widget class="QPushButton" name="btnTesteConexao">
+                <property name="text">
+                 <string>Testar Conexão</string>
+                </property>
+               </widget>
+              </item>
              </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="statusRemetenteSenha">
+             <property name="frameShape">
+              <enum>QFrame::Panel</enum>
+             </property>
+             <property name="frameShadow">
+              <enum>QFrame::Sunken</enum>
+             </property>
+             <property name="text">
+              <string/>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+             </property>
             </widget>
            </item>
            <item>
