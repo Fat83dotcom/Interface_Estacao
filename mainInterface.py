@@ -412,6 +412,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         super().setupUi(self)
         self.btnInciarEstacao.clicked.connect(self.executarMainEstacao)
         self.btnPararEstacao.clicked.connect(self.pararWorker)
+        self.btnSalvarUsuarioSenha.clicked.connect(self.manipuladorRemetenteSenha)
         self.btnPararEstacao.setEnabled(False)
         self.modeloInfo = QStandardItemModel()
         self.saidaDetalhes.setModel(self.modeloInfo)
@@ -529,8 +530,18 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         with open('.RECIPIENTS_USER_DATA.txt', 'a') as file:
             file.write(f'{dadoUsuario}\n')
 
-    def manipuladorArquivosEmail(sefl):
-        pass
+    def manipuladorRemetenteSenha(self):
+        try:
+            self.statusOperacoes.setText('')
+            self.emailRemetente = self.emailUsuario.text()
+            self.senhaRemetente = self.senhaUsuario.text()
+            if self.emailRemetente == '' or self.senhaRemetente == '':
+                self.statusOperacoes.setText('Entre com o e-mail e senha ! ')
+                return
+            else:
+                pass
+        except Exception as e:
+            print(e)
 
 
 if __name__ == '__main__':
