@@ -413,6 +413,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         self.btnInciarEstacao.clicked.connect(self.executarMainEstacao)
         self.btnPararEstacao.clicked.connect(self.pararWorker)
         self.btnSalvarUsuarioSenha.clicked.connect(self.manipuladorRemetenteSenha)
+        self.btnAdicionarDestinatario.clicked.connect(self.adicionarEmailDestinatarios)
         self.btnExcluirDestinatario.clicked.connect(self.deletarEmailDestinatario)
         self.btnPararEstacao.setEnabled(False)
         self.modeloInfo = QStandardItemModel()
@@ -521,15 +522,15 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             self.mostradorDisplayInfo(f'{e.__class__.__name__}: {e}')
             return
 
-    def defineArquivoEmail(self, dadoUsuario):
+    def defineArquivoEmail(self, dadoUsuario: str):
         with open('.EMAIL_USER_DATA.txt', 'w') as file:
             file.write(dadoUsuario)
 
-    def defineArquivoSenha(self, dadoUsuario):
+    def defineArquivoSenha(self, dadoUsuario: str):
         with open('.PASSWORD_USER_DATA.txt', 'w') as file:
             file.write(dadoUsuario)
 
-    def defineArquivoDestinatarios(self, dadoUsuario):
+    def defineArquivoDestinatarios(self, dadoUsuario: str):
         with open('.RECIPIENTS_USER_DATA.txt', 'a') as file:
             file.write(f'{dadoUsuario}\n')
 
@@ -563,17 +564,16 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         except Exception as e:
             self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
 
-    def manipuladorDestinatarios(self):
+    def manipuladorDestinatarios(self) -> None:
         emailDestinatarios = my_recipients()
         self.tabelaDestinatarios.setRowCount(len(emailDestinatarios))
         for linha, email in enumerate(emailDestinatarios):
             self.tabelaDestinatarios.setItem(linha, 0, QTableWidgetItem(email))
 
-    def obterEmailDestinatario(self):
+    def obterEmailDestinatario(self) -> str:
         try:
             emailDeletado = self.tabelaDestinatarios.currentItem().text()
-            if emailDeletado:
-                return emailDeletado
+            return emailDeletado
         except Exception:
             return None
 
@@ -596,7 +596,19 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
 
     def adicionarEmailDestinatarios(self):
-        pass
+        try:
+            emailDestinatario = self.adicionarDestinatario.text()
+            if emailDestinatario:
+                self.defineArquivoDestinatarios(emailDestinatario)
+                self.statusOperacoes.setText(f'{emailDestinatario}: Dado gravado com sucesso.')
+                self.manipuladorDestinatarios()
+                self.adicionarDestinatario.clear()
+            else:
+                self.statusOperacoes.setText('Digite um e-mail')
+        except Exception as e:
+            self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
+
+
 
 if __name__ == '__main__':
     qt = QApplication(sys.argv)
