@@ -412,13 +412,13 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         super().setupUi(self)
         self.btnInciarEstacao.clicked.connect(self.executarMainEstacao)
         self.btnPararEstacao.clicked.connect(self.pararWorker)
-        self.btnSalvarUsuarioSenha.clicked.connect(self.manipuladorRemetenteSenha)
+        self.btnSalvarUsuarioSenha.clicked.connect(self.adicionarEmailRemetenteSenha)
         self.btnAdicionarDestinatario.clicked.connect(self.adicionarEmailDestinatarios)
         self.btnExcluirDestinatario.clicked.connect(self.deletarEmailDestinatario)
         self.btnPararEstacao.setEnabled(False)
         self.modeloInfo = QStandardItemModel()
         self.saidaDetalhes.setModel(self.modeloInfo)
-        self.verificadorRemtenteSenha()
+        self.manipuladorRemetenteSenha()
         self.manipuladorDestinatarios()
 
     def mostrardorDisplayBarraProgresso(self, percent):
@@ -538,7 +538,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         with open(caminhoArquivo, 'w') as file:
             file.write('')
 
-    def verificadorRemtenteSenha(self):
+    def manipuladorRemetenteSenha(self):
         try:
             if len(meu_email()) == 1 and len(minha_senha()) == 1:
                 email = ''.join(meu_email())
@@ -551,16 +551,32 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         except Exception as e:
             self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
 
-    def manipuladorRemetenteSenha(self):
+    def adicionarEmailRemetenteSenha(self):
         try:
             self.statusOperacoes.setText('')
-            self.emailRemetente = self.emailUsuario.text()
-            self.senhaRemetente = self.senhaUsuario.text()
-            if self.emailRemetente == '' or self.senhaRemetente == '':
+            emailRemetente = self.emailUsuario.text()
+            senhaRemetente = self.senhaUsuario.text()
+            if emailRemetente == '' or senhaRemetente == '':
                 self.statusOperacoes.setText('Entre com o e-mail e senha ! ')
                 return
             else:
-                pass
+                self.adicionarEmailRemetente(emailRemetente)
+                self.adicionarSenhaRemetente(senhaRemetente)
+                self.emailUsuario.clear()
+                self.senhaUsuario.clear()
+                self.manipuladorRemetenteSenha()
+        except Exception as e:
+            self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
+
+    def adicionarEmailRemetente(self, email: str):
+        try:
+            self.defineArquivoEmail(email)
+        except Exception as e:
+            self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
+
+    def adicionarSenhaRemetente(self, senha: str):
+        try:
+            self.defineArquivoSenha(senha)
         except Exception as e:
             self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
 
@@ -607,7 +623,6 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
                 self.statusOperacoes.setText('Digite um e-mail')
         except Exception as e:
             self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
-
 
 
 if __name__ == '__main__':
