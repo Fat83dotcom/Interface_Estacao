@@ -11,6 +11,7 @@ import csv
 import matplotlib.pyplot as plt
 import matplotlib.backends.backend_pdf
 import smtplib
+import pathlib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
@@ -19,89 +20,6 @@ from statistics import mean
 from string import Template
 from itertools import count
 from math import nan
-
-
-class WorkerEmail(QObject):
-    termino = pyqtSignal()
-    msgEnvio = pyqtSignal(str)
-
-    def __init__(self, inicio, umi, press, t1, t2, t1max,
-                 t1min, t2max, t2min, umimax, umimini,
-                 pressmax, pressmini, ini, fim, path, parent=None):
-        super().__init__(parent)
-        self.inicio = inicio
-        self.path = path
-        self.umi = umi
-        self.press = press
-        self.t1 = t1
-        self.t2 = t2
-        self.t1max = t1max
-        self.t1min = t1min
-        self.t2max = t2max
-        self.t2min = t2min
-        self.umimax = umimax
-        self.umimini = umimini
-        self.pressmax = pressmax
-        self.pressmini = pressmini
-        self.ini = ini
-        self.fim = fim
-
-    @staticmethod
-    def __anexadorPdf(enderecoPdf, msg):
-        with open(enderecoPdf, 'rb') as pdf:
-            anexo = MIMEApplication(pdf.read(), _subtype='pdf')
-            pdf.close()
-            anexo.add_header('Conteudo', enderecoPdf)
-            msg.attach(anexo)
-
-    @pyqtSlot()
-    def run(self):
-        msg = MIMEMultipart()
-        msg['from'] = ''.join(meu_email())
-        msg['to'] = ','.join(my_recipients())
-        msg['subject'] = f'Monitoramento Estação Metereologica Fat83dotcom {data()}'
-        corpo = MIMEText(renderizadorHtml(self.umi, self.press, self.t1, self.t2,
-                         self.t1max, self.t1min, self.t2max, self.t2min,
-                         self.umimax, self.umimini, self.pressmax, self.pressmini,
-                         self.ini, self.fim, data()), 'html')
-        msg.attach(corpo)
-
-        umidade = f'{self.path}/Umidade{self.inicio}.pdf'
-        pressao = f'{self.path}/Pressao{self.inicio}.pdf'
-        tmp1 = f'{self.path}/Temperatura_Interna{self.inicio}.pdf'
-        temp2 = f'{self.path}/Temperatura_Externa{self.inicio}.pdf'
-
-        self.__anexadorPdf(umidade, msg)
-        self.__anexadorPdf(pressao, msg)
-        self.__anexadorPdf(tmp1, msg)
-        self.__anexadorPdf(temp2, msg)
-        try:
-            with smtplib.SMTP(host='smtp.gmail.com', port=587) as smtp:
-                smtp.ehlo()
-                smtp.starttls()
-                smtp.login(''.join(meu_email()), ''.join(minha_senha()))
-                smtp.send_message(msg)
-                self.msgEnvio.emit('Email enviado com sucesso.')
-        except Exception as e:
-            self.msgEnvio.emit('Não foi possivel enviar o email.')
-            self.msgEnvio.emit(f'Motivo: {e.__class__.__name__}: {e}')
-        finally:
-            os.remove(f'{self.path}/Umidade{self.inicio}.pdf')
-            os.remove(f'{self.path}/Pressao{self.inicio}.pdf')
-            os.remove(f'{self.path}/Temperatura_Interna{self.inicio}.pdf')
-            os.remove(f'{self.path}/Temperatura_Externa{self.inicio}.pdf')
-        self.termino.emit()
-
-
-class TransSegundos:
-    def __init__(self, horas) -> None:
-        self.horas = horas
-
-    def conversorHorasSegundo(self) -> int:
-        horas = self.horas[:2]
-        minutos = self.horas[3:]
-        segundos = int(int(horas) * 3600 + int(minutos) * 60)
-        return segundos
 
 
 def leia_me():
@@ -222,6 +140,126 @@ def plot_temp2(t2y, inicio, path):
         plt.clf()
     except (ValueError, Exception) as e:
         raise e
+
+
+class TransSegundos:
+    def __init__(self, horas) -> None:
+        self.horas = horas
+
+    def conversorHorasSegundo(self) -> int:
+        horas = self.horas[:2]
+        minutos = self.horas[3:]
+        segundos = int(int(horas) * 3600 + int(minutos) * 60)
+        return segundos
+
+
+class WorkerEmailTesteConexao(QObject):
+    termino = pyqtSignal()
+    msgEnvio = pyqtSignal(str)
+
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+
+    def run(self):
+        try:
+            usuario = ''.join(meu_email())
+            msg = MIMEMultipart()
+            msg['from'] = usuario
+            msg['to'] = usuario
+            msg['subject'] = f'Teste de Conexão {data()}'
+            caminhoEmail = pathlib.Path(__file__).parent / 'emailTeste.html'
+            with open(caminhoEmail, 'r') as page:
+                email = page.read()
+                template = Template(email)
+                htmlEmail = template.safe_substitute(usuario=usuario)
+            corpo = MIMEText(htmlEmail, 'html')
+            msg.attach(corpo)
+            try:
+                with smtplib.SMTP(host='smtp.gmail.com', port=587) as smtp:
+                    smtp.ehlo()
+                    smtp.starttls()
+                    smtp.login(''.join(meu_email()), ''.join(minha_senha()))
+                    smtp.send_message(msg)
+                    self.msgEnvio.emit('Email enviado com sucesso.')
+            except Exception as e:
+                self.msgEnvio.emit(f'Não foi possivel enviar o email. Motivo: {e.__class__.__name__}: {e}')
+                self.termino.emit()
+        except Exception as e:
+            self.msgEnvio.emit(f'Não foi possivel enviar o email. Motivo: {e.__class__.__name__}: {e}')
+            self.termino.emit()
+        self.termino.emit()
+
+
+class WorkerEmail(QObject):
+    termino = pyqtSignal()
+    msgEnvio = pyqtSignal(str)
+
+    def __init__(self, inicio, umi, press, t1, t2, t1max,
+                 t1min, t2max, t2min, umimax, umimini,
+                 pressmax, pressmini, ini, fim, path, parent=None):
+        super().__init__(parent)
+        self.inicio = inicio
+        self.path = path
+        self.umi = umi
+        self.press = press
+        self.t1 = t1
+        self.t2 = t2
+        self.t1max = t1max
+        self.t1min = t1min
+        self.t2max = t2max
+        self.t2min = t2min
+        self.umimax = umimax
+        self.umimini = umimini
+        self.pressmax = pressmax
+        self.pressmini = pressmini
+        self.ini = ini
+        self.fim = fim
+
+    @staticmethod
+    def __anexadorPdf(enderecoPdf, msg):
+        with open(enderecoPdf, 'rb') as pdf:
+            anexo = MIMEApplication(pdf.read(), _subtype='pdf')
+            pdf.close()
+            anexo.add_header('Conteudo', enderecoPdf)
+            msg.attach(anexo)
+
+    @pyqtSlot()
+    def run(self):
+        msg = MIMEMultipart()
+        msg['from'] = ''.join(meu_email())
+        msg['to'] = ','.join(my_recipients())
+        msg['subject'] = f'Monitoramento Estação Metereologica Fat83dotcom {data()}'
+        corpo = MIMEText(renderizadorHtml(self.umi, self.press, self.t1, self.t2,
+                         self.t1max, self.t1min, self.t2max, self.t2min,
+                         self.umimax, self.umimini, self.pressmax, self.pressmini,
+                         self.ini, self.fim, data()), 'html')
+        msg.attach(corpo)
+
+        umidade = f'{self.path}/Umidade{self.inicio}.pdf'
+        pressao = f'{self.path}/Pressao{self.inicio}.pdf'
+        tmp1 = f'{self.path}/Temperatura_Interna{self.inicio}.pdf'
+        temp2 = f'{self.path}/Temperatura_Externa{self.inicio}.pdf'
+
+        self.__anexadorPdf(umidade, msg)
+        self.__anexadorPdf(pressao, msg)
+        self.__anexadorPdf(tmp1, msg)
+        self.__anexadorPdf(temp2, msg)
+        try:
+            with smtplib.SMTP(host='smtp.gmail.com', port=587) as smtp:
+                smtp.ehlo()
+                smtp.starttls()
+                smtp.login(''.join(meu_email()), ''.join(minha_senha()))
+                smtp.send_message(msg)
+                self.msgEnvio.emit('Email enviado com sucesso.')
+        except Exception as e:
+            self.msgEnvio.emit('Não foi possivel enviar o email.')
+            self.msgEnvio.emit(f'Motivo: {e.__class__.__name__}: {e}')
+        finally:
+            os.remove(f'{self.path}/Umidade{self.inicio}.pdf')
+            os.remove(f'{self.path}/Pressao{self.inicio}.pdf')
+            os.remove(f'{self.path}/Temperatura_Interna{self.inicio}.pdf')
+            os.remove(f'{self.path}/Temperatura_Externa{self.inicio}.pdf')
+        self.termino.emit()
 
 
 class WorkerEstacao(QObject):
@@ -415,6 +453,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         self.btnSalvarUsuarioSenha.clicked.connect(self.adicionarEmailRemetenteSenha)
         self.btnAdicionarDestinatario.clicked.connect(self.adicionarEmailDestinatarios)
         self.btnExcluirDestinatario.clicked.connect(self.deletarEmailDestinatario)
+        self.btnTesteConexao.clicked.connect(self.executarEmailTeste)
         self.btnPararEstacao.setEnabled(False)
         self.modeloInfo = QStandardItemModel()
         self.saidaDetalhes.setModel(self.modeloInfo)
@@ -591,7 +630,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
 
     def obterEmailDestinatario(self) -> str:
         try:
-            emailDeletado = self.tabelaDestinatarios.currentItem().text()
+            emailDeletado: str = self.tabelaDestinatarios.currentItem().text().strip()
             return emailDeletado
         except Exception:
             return None
@@ -616,7 +655,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
 
     def adicionarEmailDestinatarios(self):
         try:
-            emailDestinatario = self.adicionarDestinatario.text()
+            emailDestinatario: str = self.adicionarDestinatario.text().strip()
             if emailDestinatario:
                 self.defineArquivoDestinatarios(emailDestinatario)
                 self.statusOperacoes.setText(f'{emailDestinatario}: Dado gravado com sucesso.')
@@ -624,6 +663,21 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
                 self.adicionarDestinatario.clear()
             else:
                 self.statusOperacoes.setText('Digite um e-mail')
+        except Exception as e:
+            self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
+
+    def executarEmailTeste(self):
+        try:
+            self.emailTesteThread = QThread(parent=None)
+            self.emailTesteWorker = WorkerEmailTesteConexao()
+            self.emailTesteWorker.moveToThread(self.emailTesteThread)
+            self.emailTesteThread.started.connect(self.emailTesteWorker.run)
+            self.emailTesteThread.start()
+            self.emailTesteWorker.msgEnvio.connect(lambda msg: self.statusOperacoes.setText(msg))
+            self.emailTesteWorker.termino.connect(self.emailTesteThread.quit)
+            self.emailTesteWorker.termino.connect(self.emailTesteThread.wait)
+            self.emailTesteWorker.termino.connect(self.emailTesteThread.deleteLater)
+            self.emailTesteWorker.termino.connect(self.emailTesteWorker.deleteLater)
         except Exception as e:
             self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
 
