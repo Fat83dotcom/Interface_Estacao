@@ -603,7 +603,9 @@ class Ui_MainWindow(object):
         font.setBold(False)
         font.setWeight(50)
         self.label_3.setFont(font)
-        self.label_3.setFrameShape(QtWidgets.QFrame.NoFrame)
+        self.label_3.setFrameShape(QtWidgets.QFrame.Panel)
+        self.label_3.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.label_3.setLineWidth(2)
         self.label_3.setAlignment(QtCore.Qt.AlignCenter)
         self.label_3.setObjectName("label_3")
         self.verticalLayout_7.addWidget(self.label_3)
@@ -663,6 +665,13 @@ class Ui_MainWindow(object):
         self.btnExcluirDestinatario = QtWidgets.QPushButton(self.frame_35)
         self.btnExcluirDestinatario.setObjectName("btnExcluirDestinatario")
         self.verticalLayout_20.addWidget(self.btnExcluirDestinatario)
+        self.statusOperacoes = QtWidgets.QLabel(self.frame_35)
+        self.statusOperacoes.setFrameShape(QtWidgets.QFrame.Panel)
+        self.statusOperacoes.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.statusOperacoes.setText("")
+        self.statusOperacoes.setAlignment(QtCore.Qt.AlignCenter)
+        self.statusOperacoes.setObjectName("statusOperacoes")
+        self.verticalLayout_20.addWidget(self.statusOperacoes)
         self.verticalLayout_7.addWidget(self.frame_35)
         self.verticalLayout_6.addWidget(self.frame_4)
         self.tabWidget.addTab(self.emailUser, "")
@@ -670,7 +679,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralwidget)
 
         self.retranslateUi(MainWindow)
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(3)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
