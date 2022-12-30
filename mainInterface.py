@@ -11,7 +11,6 @@ import csv
 import matplotlib.pyplot as plt
 import matplotlib.backends.backend_pdf
 import smtplib
-import pathlib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
@@ -19,7 +18,7 @@ from manipuladoresArquivos import meu_email, minha_senha, my_recipients
 from statistics import mean
 from string import Template
 from itertools import count
-from math import nan
+from time import sleep
 
 
 def leia_me():
@@ -293,20 +292,9 @@ class WorkerEstacao(QObject):
     def run(self):
         try:
             caminhoDiretorio: str = os.path.dirname(os.path.realpath(__file__))
-
-            # if os.path.isfile('EMAIL_USER_DATA.txt'):
-            #     self.saidaInfoInicio.emit('Arquivo "EMAIL_USER_DATA.txt" já existe.')
-            # else:
-            #     define_arquivo()
-            #     self.saidaInfoInicio.emit('Arquivo "EMAIL_USER_DATA.txt" foi criado, por favor, configure antes de continuar.')
             c3 = count()
             contador3: int = next(c3)
-            bufferDadosRecebidosArduino: dict = {
-                'u': '',
-                'p': '',
-                '1': '',
-                '2': ''
-            }
+
             while not self.paradaPrograma:
                 if contador3 == 0:
                     tempo_graf = self.tempoConvertido
@@ -321,55 +309,52 @@ class WorkerEstacao(QObject):
                 yDadosTemperaturaInterna: list = []
                 yDadosTemperaturaExterna: list = []
 
-                dadosRecebidosArduino: dict = {
-                    'u': '',
-                    'p': '',
-                    '1': '',
-                    '2': ''
-                }
                 c2 = count()
                 contador2: int = next(c2)
                 contadorDadosRestantes: int = 0
                 while (contador2 < tempo_graf) and not self.paradaPrograma:
                     tempoInicial = time.time()
-                    c1 = count()
-                    contador1: int = next(c1)
-                    while contador1 < 4:
-                        try:
-                            dado = str(self.arduino.readline())
-                            dado = dado[2:-5]
-                            if float(dado[1:].strip()) == nan:
-                                ...
-                            if float(dado[1:]) <= 0:
-                                dadosRecebidosArduino['u'] = bufferDadosRecebidosArduino['u'] if bufferDadosRecebidosArduino['u'] != 0 else ...
-                                dadosRecebidosArduino['p'] = bufferDadosRecebidosArduino['p'] if bufferDadosRecebidosArduino['p'] != 0 else ...
-                                dadosRecebidosArduino['1'] = bufferDadosRecebidosArduino['1'] if bufferDadosRecebidosArduino['1'] != 0 else ...
-                                dadosRecebidosArduino['2'] = bufferDadosRecebidosArduino['2'] if bufferDadosRecebidosArduino['2'] != 0 else ...
-                            else:
-                                if dado[0] == 'u':
-                                    dadosRecebidosArduino['u'] = float(dado[1:].strip())
-                                    bufferDadosRecebidosArduino['u'] = float(dado[1:].strip())
-                                if dado[0] == 'p':
-                                    dadosRecebidosArduino['p'] = float(dado[1:].strip())
-                                    bufferDadosRecebidosArduino['p'] = float(dado[1:].strip())
-                                if dado[0] == '1':
-                                    dadosRecebidosArduino['1'] = float(dado[1:].strip())
-                                    bufferDadosRecebidosArduino['1'] = float(dado[1:].strip())
-                                if dado[0] == '2':
-                                    dadosRecebidosArduino['2'] = float(dado[1:].strip())
-                                    bufferDadosRecebidosArduino['2'] = float(dado[1:].strip())
-                        except Exception:
-                            ...
-                        finally:
-                            self.arduino.reset_output_buffer()
-                        contador1 = next(c1)
-                    dadosLcd: list = []
-                    dadosLcd.append(dadosRecebidosArduino["u"])
-                    dadosLcd.append(dadosRecebidosArduino["p"])
-                    dadosLcd.append(dadosRecebidosArduino["1"])
-                    dadosLcd.append(dadosRecebidosArduino["2"])
+                    dadosRecebidosArduino: dict = {
+                        'u': '',
+                        'p': '',
+                        '1': '',
+                        '2': ''
+                    }
+                    bufferDadosArduino: list = []
+                    self.arduino.reset_input_buffer()
+                    while len(bufferDadosArduino) < 4:
+                        self.arduino.write('u'.encode('utf-8'))
+                        sleep(0.1)
+                        if self.arduino.in_waiting:
+                            dado = self.arduino.readline().decode('utf-8')
+                            bufferDadosArduino.append(dado.strip())
+                        self.arduino.write('p'.encode('utf-8'))
+                        sleep(0.1)
+                        if self.arduino.in_waiting:
+                            dado = self.arduino.readline().decode('utf-8')
+                            bufferDadosArduino.append(dado.strip())
+                        self.arduino.write('1'.encode('utf-8'))
+                        sleep(0.1)
+                        if self.arduino.in_waiting:
+                            dado = self.arduino.readline().decode('utf-8')
+                            bufferDadosArduino.append(dado.strip())
+                        self.arduino.write('2'.encode('utf-8'))
+                        sleep(0.1)
+                        if self.arduino.in_waiting:
+                            dado = self.arduino.readline().decode('utf-8')
+                            bufferDadosArduino.append(dado.strip())
+                    if len(bufferDadosArduino) == 5:
+                        bufferDadosArduino.pop()
+                    for dado in bufferDadosArduino:
+                        dadosRecebidosArduino[dado[0]] = dado[2:]
+
+                    dadosMostradorLcd: list = []
+                    dadosMostradorLcd.append(dadosRecebidosArduino["u"])
+                    dadosMostradorLcd.append(dadosRecebidosArduino["p"])
+                    dadosMostradorLcd.append(dadosRecebidosArduino["1"])
+                    dadosMostradorLcd.append(dadosRecebidosArduino["2"])
                     self.saidaData.emit(data())
-                    self.saidaDadosLCD.emit(dadosLcd)
+                    self.saidaDadosLCD.emit(dadosMostradorLcd)
                     with open(dataDoArquivo(), 'a+', newline='', encoding='utf-8') as log:
                         try:
                             w = csv.writer(log)
@@ -433,14 +418,17 @@ class DadosError(Exception):
 class ConexaoUSB():
     def __init__(self, caminhoPorta: str) -> None:
         self.caminho: str = caminhoPorta
+        self.conexaoArduino: Serial = Serial(self.caminho, 9600, timeout=2, bytesize=serial.EIGHTBITS)
 
     def conectPortaUSB(self) -> Serial:
         try:
-            conexaoArduino: Serial = Serial(self.caminho, 9600, timeout=2, bytesize=serial.EIGHTBITS)
-            conexaoArduino.reset_input_buffer()
-            return conexaoArduino
+            self.conexaoArduino.reset_input_buffer()
+            return self.conexaoArduino
         except Exception as e:
             raise e
+
+    def desconectarPortaUSB(self):
+        self.conexaoArduino.close()
 
 
 class InterfaceEstacao(QMainWindow, Ui_MainWindow):
@@ -514,6 +502,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             self.estacaoWorker.finalizar.connect(self.estacaoThread.quit)
             self.estacaoWorker.finalizar.connect(self.estacaoWorker.deleteLater)
             self.estacaoWorker.finalizar.connect(self.estacaoThread.deleteLater)
+            self.estacaoWorker.finalizar.connect(portaArduino.desconectarPortaUSB)
             self.estacaoThread.started.connect(self.estacaoWorker.run)
             self.estacaoThread.start()
             self.estacaoWorker.barraProgresso.connect(self.mostrardorDisplayBarraProgresso)
