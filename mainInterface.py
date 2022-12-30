@@ -167,8 +167,7 @@ class WorkerEmailTesteConexao(QObject):
             msg['from'] = usuario
             msg['to'] = usuario
             msg['subject'] = f'Teste de Conexão {data()}'
-            caminhoEmail = pathlib.Path(__file__).parent / 'emailTeste.html'
-            with open(caminhoEmail, 'r') as page:
+            with open('emailTeste.html', 'r') as page:
                 email = page.read()
                 template = Template(email)
                 htmlEmail = template.safe_substitute(usuario=usuario)
