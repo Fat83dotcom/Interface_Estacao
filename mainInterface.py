@@ -21,20 +21,7 @@ from itertools import count
 from time import sleep
 
 
-def renderizadorHtml(umidade, pressao, temp1, temp2, temp1max, temp1min,
-                     temp2max, temp2min, umima, umimi, pressma, pressmi,
-                     inicio, fim, data):
-    with open('template.html', 'r') as doc:
-        template = Template(doc.read())
-        corpo_msg = template.safe_substitute(umi=umidade, press=pressao, t1=temp1, t2=temp2,
-                                             t1max=temp1max, t1min=temp1min, t2max=temp2max,
-                                             t2min=temp2min, umimax=umima, umimini=umimi,
-                                             pressmax=pressma, pressmini=pressmi, ini=inicio,
-                                             fim=fim, dat=data)
-    return corpo_msg
-
-
-def data() -> str:
+def dataInstantanea() -> str:
     try:
         data = time.strftime('%d %b %Y %H:%M:%S', time.localtime())
         return data
@@ -64,60 +51,58 @@ def minimos(dados) -> float:
         raise DadosError(f'{e.__class__.__name__} -> função: {minimos.__name__}: Não há dados a serem processados.')
 
 
-def plot_umidade(uy, inicio, path):
-    try:
-        ux = range(len(uy))
-        file = f'{path}/Umidade{inicio}.pdf'
-        plt.title(f'Gráfico Umidade\n-> Inicio: {inicio} <-|-> Termino: {data()} <-\nMáxima: {maximos(uy)} --- Mínima: {minimos(uy)}')
-        plt.xlabel('Tempo em segundos.')
-        plt.ylabel('Umidade Relativa do Ar %')
-        plt.plot(ux, uy)
-        plt.savefig(file)
-        plt.clf()
-    except (ValueError, Exception) as e:
-        raise e
+class PlotterGraficoPDF:
+    def __init__(self, dataInicio: str, caminhoDiretorioPrograma: str) -> None:
+        self.dtInicio = dataInicio
+        self.caminhoDiretorioPrograma = caminhoDiretorioPrograma
+        self.tipoGrafico = {
+            'umi': 'Umidade',
+            'press': 'Pressao',
+            'tempInt': 'Temperatura_Interna',
+            'tempExt': 'Temperatura_Externa',
+        }
+        self.grandeza = {
+            'temp': 'Temperatura em °C',
+            'press': 'Pressão Atmosférica em hPa',
+            'umi': 'Umidade Relativa do Ar %',
+        }
 
+    def geradorCaminhoArquivoPDF(self, tipoGrafico: str) -> str:
+        """
+            Argumentos que devem ser passados para cada situação:
+            Tipos de Gráfico -> 'umi', 'press', 'tempInt', 'tempExt'
+        """
+        arquivoPDF = f'{self.caminhoDiretorioPrograma}/{self.tipoGrafico[tipoGrafico]}{self.dtInicio}.pdf'
+        return arquivoPDF
 
-def plot_pressao(py, inicio, path):
-    try:
-        px = range(len(py))
-        file = f'{path}/Pressao{inicio}.pdf'
-        plt.title(f'Gráfico Pressão\n-> Inicio: {inicio} <-|-> Termino: {data()} <-\nMáxima: {maximos(py)} --- Mínima: {minimos(py)}')
-        plt.xlabel('Tempo em segundos.')
-        plt.ylabel('Pressão Atmosferica em hPa')
-        plt.plot(px, py)
-        plt.savefig(file)
-        plt.clf()
-    except (ValueError, Exception) as e:
-        raise e
+    def plotadorPDF(self, dadosEixo_Y: list, tipoGrafico: str, grandezaEixo_Y: str) -> None:
+        """
+            Argumentos que devem ser passados para cada situação:
+            tipoGrafico -> 'umi', 'press', 'tempInt', 'tempExt'
+            Grandezas -> 'temp', 'press', 'umi'
+        """
+        try:
+            tempoEixo_X = range(len(dadosEixo_Y))
+            arquivoPDF = self.geradorCaminhoArquivoPDF(tipoGrafico)
+            plt.title(f'{self.tipoGrafico[tipoGrafico]}\n-> Inicio: {self.dtInicio} <-|-> Termino: {dataInstantanea()} '
+                      f' <-\nMáxima: {maximos(dadosEixo_Y)} --- Mínima: {minimos(dadosEixo_Y)}')
+            plt.xlabel('Tempo em segundos.')
+            plt.ylabel(self.grandeza[grandezaEixo_Y])
+            plt.plot(tempoEixo_X, dadosEixo_Y)
+            plt.savefig(arquivoPDF)
+            plt.clf()
+        except (ValueError, Exception) as e:
+            raise e
 
-
-def plot_temp1(t1y, inicio, path):
-    try:
-        t1x = range(len(t1y))
-        file = f'{path}/Temperatura_Interna{inicio}.pdf'
-        plt.title(f'Gráfico Temp Interna\n-> Inicio: {inicio} <-|-> Termino: {data()} <-\nMáxima: {maximos(t1y)} --- Mínima: {minimos(t1y)}')
-        plt.xlabel('Tempo em segundos.')
-        plt.ylabel('Temperatura em °C')
-        plt.plot(t1x, t1y)
-        plt.savefig(file)
-        plt.clf()
-    except (ValueError, Exception) as e:
-        raise e
-
-
-def plot_temp2(t2y, inicio, path):
-    try:
-        t2x = range(len(t2y))
-        file = f'{path}/Temperatura_Externa{inicio}.pdf'
-        plt.title(f'Gráfico Temp Externa\n-> Inicio: {inicio} <-|-> Termino: {data()} <-\nMáxima: {maximos(t2y)} --- Mínima: {minimos(t2y)}')
-        plt.xlabel('Tempo em segundos.')
-        plt.ylabel('Temperatura em °C')
-        plt.plot(t2x, t2y)
-        plt.savefig(file)
-        plt.clf()
-    except (ValueError, Exception) as e:
-        raise e
+    def apagadorArquivosPDF(self, tipoGrafico: str) -> None:
+        """
+            Argumentos que devem ser passados para cada situação:
+            Tipos de Gráfico -> 'umi', 'press', 'tempInt', 'tempExt'
+        """
+        try:
+            os.remove(self.geradorCaminhoArquivoPDF(tipoGrafico))
+        except Exception as e:
+            raise e
 
 
 class TransSegundos:
@@ -144,7 +129,7 @@ class WorkerEmailTesteConexao(QObject):
             msg = MIMEMultipart()
             msg['from'] = usuario
             msg['to'] = usuario
-            msg['subject'] = f'Teste de Conexão {data()}'
+            msg['subject'] = f'Teste de Conexão {dataInstantanea()}'
             with open('emailTeste.html', 'r') as page:
                 email = page.read()
                 template = Template(email)
@@ -190,14 +175,25 @@ class WorkerEmail(QObject):
         self.pressmax = pressmax
         self.pressmini = pressmini
         self.fim = fim
+        self.servicosArquivosPDF = PlotterGraficoPDF(self.inicio, self.path)
 
-    @staticmethod
-    def __anexadorPdf(enderecoPdf, msg):
+    def anexadorPdf(self, enderecoPdf, msg):
         with open(enderecoPdf, 'rb') as pdf:
             anexo = MIMEApplication(pdf.read(), _subtype='pdf')
-            pdf.close()
             anexo.add_header('Conteudo', enderecoPdf)
             msg.attach(anexo)
+
+    def renderizadorHtml(self, umidade, pressao, temp1, temp2, temp1max, temp1min,
+                         temp2max, temp2min, umima, umimi, pressma, pressmi,
+                         inicio, fim, data):
+        with open('template.html', 'r') as doc:
+            template = Template(doc.read())
+            corpo_msg = template.safe_substitute(umi=umidade, press=pressao, t1=temp1, t2=temp2,
+                                                 t1max=temp1max, t1min=temp1min, t2max=temp2max,
+                                                 t2min=temp2min, umimax=umima, umimini=umimi,
+                                                 pressmax=pressma, pressmini=pressmi, ini=inicio,
+                                                 fim=fim, dat=data)
+        return corpo_msg
 
     @pyqtSlot()
     def run(self):
@@ -205,22 +201,22 @@ class WorkerEmail(QObject):
             msg = MIMEMultipart()
             msg['from'] = ''.join(meu_email())
             msg['to'] = ','.join(my_recipients())
-            msg['subject'] = f'Monitoramento Estação Metereologica Fat83dotcom {data()}'
-            corpo = MIMEText(renderizadorHtml(self.umi, self.press, self.t1, self.t2,
+            msg['subject'] = f'Monitoramento Estação Metereologica Fat83dotcom {dataInstantanea()}'
+            corpo = MIMEText(self.renderizadorHtml(self.umi, self.press, self.t1, self.t2,
                              self.t1max, self.t1min, self.t2max, self.t2min,
                              self.umimax, self.umimini, self.pressmax, self.pressmini,
-                             self.inicio, self.fim, data()), 'html')
+                             self.inicio, self.fim, dataInstantanea()), 'html')
             msg.attach(corpo)
 
-            umidade = f'{self.path}/Umidade{self.inicio}.pdf'
-            pressao = f'{self.path}/Pressao{self.inicio}.pdf'
-            tmp1 = f'{self.path}/Temperatura_Interna{self.inicio}.pdf'
-            temp2 = f'{self.path}/Temperatura_Externa{self.inicio}.pdf'
+            umidade = self.servicosArquivosPDF.geradorCaminhoArquivoPDF('umi')
+            pressao = self.servicosArquivosPDF.geradorCaminhoArquivoPDF('press')
+            tmp1 = self.servicosArquivosPDF.geradorCaminhoArquivoPDF('tempInt')
+            temp2 = self.servicosArquivosPDF.geradorCaminhoArquivoPDF('tempExt')
 
-            self.__anexadorPdf(umidade, msg)
-            self.__anexadorPdf(pressao, msg)
-            self.__anexadorPdf(tmp1, msg)
-            self.__anexadorPdf(temp2, msg)
+            self.anexadorPdf(umidade, msg)
+            self.anexadorPdf(pressao, msg)
+            self.anexadorPdf(tmp1, msg)
+            self.anexadorPdf(temp2, msg)
 
             with smtplib.SMTP(host='smtp.gmail.com', port=587) as smtp:
                 smtp.ehlo()
@@ -232,10 +228,10 @@ class WorkerEmail(QObject):
             self.msgEnvio.emit('Não foi possivel enviar o email.')
             self.msgEnvio.emit(f'Motivo: {e.__class__.__name__}: {e}')
         finally:
-            os.remove(f'{self.path}/Umidade{self.inicio}.pdf')
-            os.remove(f'{self.path}/Pressao{self.inicio}.pdf')
-            os.remove(f'{self.path}/Temperatura_Interna{self.inicio}.pdf')
-            os.remove(f'{self.path}/Temperatura_Externa{self.inicio}.pdf')
+            self.servicosArquivosPDF.apagadorArquivosPDF('umi')
+            self.servicosArquivosPDF.apagadorArquivosPDF('press')
+            self.servicosArquivosPDF.apagadorArquivosPDF('tempInt')
+            self.servicosArquivosPDF.apagadorArquivosPDF('tempExt')
         self.termino.emit()
 
 
@@ -299,7 +295,7 @@ class WorkerEstacao(QObject):
         dadosMostradorLcd.append(dados["p"])
         dadosMostradorLcd.append(dados["1"])
         dadosMostradorLcd.append(dados["2"])
-        self.saidaData.emit(data())
+        self.saidaData.emit(dataInstantanea())
         self.saidaDadosLCD.emit(dadosMostradorLcd)
 
     def atualizarBarraProgresso(self, tempoTotal, tempoCorrente) -> None:
@@ -313,7 +309,7 @@ class WorkerEstacao(QObject):
         with open(dataDoArquivo(), 'a+', newline='', encoding='utf-8') as log:
             try:
                 w = csv.writer(log)
-                w.writerow([data(), dadosAGravar['u'], dadosAGravar['p'],
+                w.writerow([dataInstantanea(), dadosAGravar['u'], dadosAGravar['p'],
                             dadosAGravar['1'], dadosAGravar['2']])
             except (ValueError, Exception) as e:
                 self.saidaInfoInicio.emit(' ATENÇÃO: Erro ao registrar dados no arquivo !!!')
@@ -329,11 +325,13 @@ class WorkerEstacao(QObject):
             while not self.paradaPrograma:
                 if contadorParciais == 0:
                     tempoEmSegundos = self.tempoConvertido
-                    self.saidaInfoInicio.emit(f'Inicio: --> {data()} <--')
+                    self.saidaInfoInicio.emit(f'Inicio: --> {dataInstantanea()} <--')
                 else:
-                    self.saidaInfoInicio.emit(f'Parcial {contadorParciais} --> {data()} <--')
+                    self.saidaInfoInicio.emit(f'Parcial {contadorParciais} --> {dataInstantanea()} <--')
 
-                inicioParcial: str = data()
+                inicioParcial: str = dataInstantanea()
+
+                plotGrafico = PlotterGraficoPDF(inicioParcial, caminhoDiretorio)
 
                 yDadosUmidade: list = []
                 yDadosPressao: list = []
@@ -375,11 +373,13 @@ class WorkerEstacao(QObject):
                     terminoDelimitadorDeTempo: float = time.time()
                     while (terminoDelimitadorDeTempo - inicioDelimitadorDeTempo) < 1:
                         terminoDelimitadorDeTempo = time.time()
+
                 contadorParciais = next(cP)
-                plot_umidade(yDadosUmidade, inicioParcial, caminhoDiretorio)
-                plot_pressao(yDadosPressao, inicioParcial, caminhoDiretorio)
-                plot_temp1(yDadosTemperaturaInterna, inicioParcial, caminhoDiretorio)
-                plot_temp2(yDadosTemperaturaExterna, inicioParcial, caminhoDiretorio)
+                plotGrafico.plotadorPDF(yDadosUmidade, 'umi', 'umi')
+                plotGrafico.plotadorPDF(yDadosPressao, 'press', 'press')
+                plotGrafico.plotadorPDF(yDadosTemperaturaInterna, 'tempInt', 'temp')
+                plotGrafico.plotadorPDF(yDadosTemperaturaExterna, 'tempExt', 'temp')
+
                 self.saidaDadosEmail.emit(
                                 inicioParcial,
                                 round(mean(yDadosUmidade), 2),
@@ -394,8 +394,9 @@ class WorkerEstacao(QObject):
                                 minimos(yDadosUmidade),
                                 maximos(yDadosPressao),
                                 minimos(yDadosPressao),
-                                data(),
+                                dataInstantanea(),
                                 caminhoDiretorio)
+
             self.saidaInfoInicio.emit('Programa Parado !!!')
             self.barraProgresso.emit(0)
             self.finalizar.emit()
