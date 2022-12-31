@@ -21,27 +21,6 @@ from itertools import count
 from time import sleep
 
 
-def leia_me():
-    with open('LEIA_ME.txt', 'w') as file:
-        texto = '''
-                ***
-                Para usar corretamente este programa, você deve observar os seguintes procedimentos:
-                -> No arquivo "EMAIL_USER_DATA" é o local onde o usuário irá configurar seu login de
-                email, respeitando algumas regras simples que, se não seguidas, podem ocasionar
-                funcionamento inesperado, erros ou a quebra do programa.
-                AS REGRAS SÃO:
-                -> NA PRIMEIRA E SEGUNDA LINHA DO ARQUIVO, NOS CAMPOS "MEU EMAIL" E "MINHA SENHA", APÓS ":" COLOQUE UM (1) ESPAÇO E APENAS UM (1)
-                ESPAÇO, E CASO ESSA REGRA NÃO SEJA SEGUIDA, O PROGRAMA NÃO LERÁ CORRETAMENTE OS DADOS E NÃO ENVIARÁ OS EMAILS CORRETAMENTE.
-                -> NA TERCEIRA LINHA, INSIRA OS EMAILS DOS DESTINATARIOS, SEPARADOS POR VIRGULAS E SEM QUEBRAS DE LINHA.
-                SE HOUVER QUEBRA DE LINHA, O PROGRAMA AINDA ENVIARÁ OS EMAILS MAS OCORRERÁ ERROS E OMISSÕES DE DADOS INDESEJADAS.
-                -> SEGUINDO ESSAS REGRAS É ESPERADO QUE OS EMAILS SEJAM ENVIADOS SEM PROBLEMAS E, CASO ACONTEÇA ALGUM
-                PROBLEMA, POR FAVOR, ENTRAR EM CONTATO COM O DESENVOLVEDOR EXPLICANDO O PROBLEMA.
-                OBRIGADO!!!
-                ***
-        '''
-        file.write(texto)
-
-
 def renderizadorHtml(umidade, pressao, temp1, temp2, temp1max, temp1min,
                      temp2max, temp2min, umima, umimi, pressma, pressmi,
                      inicio, fim, data):
