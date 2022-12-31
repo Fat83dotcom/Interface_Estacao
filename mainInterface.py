@@ -194,7 +194,7 @@ class WorkerEmail(QObject):
 
     def __init__(self, inicio, umi, press, t1, t2, t1max,
                  t1min, t2max, t2min, umimax, umimini,
-                 pressmax, pressmini, ini, fim, path, parent=None):
+                 pressmax, pressmini, fim, path, parent=None):
         super().__init__(parent)
         self.inicio = inicio
         self.path = path
@@ -210,7 +210,6 @@ class WorkerEmail(QObject):
         self.umimini = umimini
         self.pressmax = pressmax
         self.pressmini = pressmini
-        self.ini = ini
         self.fim = fim
 
     @staticmethod
@@ -223,26 +222,27 @@ class WorkerEmail(QObject):
 
     @pyqtSlot()
     def run(self):
-        msg = MIMEMultipart()
-        msg['from'] = ''.join(meu_email())
-        msg['to'] = ','.join(my_recipients())
-        msg['subject'] = f'Monitoramento Estação Metereologica Fat83dotcom {data()}'
-        corpo = MIMEText(renderizadorHtml(self.umi, self.press, self.t1, self.t2,
-                         self.t1max, self.t1min, self.t2max, self.t2min,
-                         self.umimax, self.umimini, self.pressmax, self.pressmini,
-                         self.ini, self.fim, data()), 'html')
-        msg.attach(corpo)
-
-        umidade = f'{self.path}/Umidade{self.inicio}.pdf'
-        pressao = f'{self.path}/Pressao{self.inicio}.pdf'
-        tmp1 = f'{self.path}/Temperatura_Interna{self.inicio}.pdf'
-        temp2 = f'{self.path}/Temperatura_Externa{self.inicio}.pdf'
-
-        self.__anexadorPdf(umidade, msg)
-        self.__anexadorPdf(pressao, msg)
-        self.__anexadorPdf(tmp1, msg)
-        self.__anexadorPdf(temp2, msg)
         try:
+            msg = MIMEMultipart()
+            msg['from'] = ''.join(meu_email())
+            msg['to'] = ','.join(my_recipients())
+            msg['subject'] = f'Monitoramento Estação Metereologica Fat83dotcom {data()}'
+            corpo = MIMEText(renderizadorHtml(self.umi, self.press, self.t1, self.t2,
+                             self.t1max, self.t1min, self.t2max, self.t2min,
+                             self.umimax, self.umimini, self.pressmax, self.pressmini,
+                             self.inicio, self.fim, data()), 'html')
+            msg.attach(corpo)
+
+            umidade = f'{self.path}/Umidade{self.inicio}.pdf'
+            pressao = f'{self.path}/Pressao{self.inicio}.pdf'
+            tmp1 = f'{self.path}/Temperatura_Interna{self.inicio}.pdf'
+            temp2 = f'{self.path}/Temperatura_Externa{self.inicio}.pdf'
+
+            self.__anexadorPdf(umidade, msg)
+            self.__anexadorPdf(pressao, msg)
+            self.__anexadorPdf(tmp1, msg)
+            self.__anexadorPdf(temp2, msg)
+            
             with smtplib.SMTP(host='smtp.gmail.com', port=587) as smtp:
                 smtp.ehlo()
                 smtp.starttls()
@@ -267,7 +267,7 @@ class WorkerEstacao(QObject):
     saidaDadosLCD = pyqtSignal(list)
     saidaData = pyqtSignal(str)
     saidaDadosEmail = pyqtSignal(str, float, float, float, float, float, float,
-                                 float, float, float, float, float, float, str, str, str)
+                                 float, float, float, float, float, float, str, str)
     mostradorTempoRestante = pyqtSignal(int)
 
     def __init__(self, portaArduino: Serial, tempoGrafico: int, parent=None) -> None:
@@ -288,100 +288,123 @@ class WorkerEstacao(QObject):
         self.paradaPrograma: bool = True
         self.mutex.unlock()
 
+    def bufferingDados(self) -> list:
+        bufferDadosArduino: list = []
+        self.arduino.reset_input_buffer()
+        while len(bufferDadosArduino) < 4:
+            self.arduino.write('u'.encode('utf-8'))
+            sleep(0.1)
+            if self.arduino.in_waiting:
+                dado = self.arduino.readline().decode('utf-8')
+                bufferDadosArduino.append(dado.strip())
+            self.arduino.write('p'.encode('utf-8'))
+            sleep(0.1)
+            if self.arduino.in_waiting:
+                dado = self.arduino.readline().decode('utf-8')
+                bufferDadosArduino.append(dado.strip())
+            self.arduino.write('1'.encode('utf-8'))
+            sleep(0.1)
+            if self.arduino.in_waiting:
+                dado = self.arduino.readline().decode('utf-8')
+                bufferDadosArduino.append(dado.strip())
+            self.arduino.write('2'.encode('utf-8'))
+            sleep(0.1)
+            if self.arduino.in_waiting:
+                dado = self.arduino.readline().decode('utf-8')
+                bufferDadosArduino.append(dado.strip())
+        return bufferDadosArduino
+
+    def enviarDadosTempoRealParaLCD(self, dados: dict) -> None:
+        dadosMostradorLcd: list = []
+        dadosMostradorLcd.append(dados["u"])
+        dadosMostradorLcd.append(dados["p"])
+        dadosMostradorLcd.append(dados["1"])
+        dadosMostradorLcd.append(dados["2"])
+        self.saidaData.emit(data())
+        self.saidaDadosLCD.emit(dadosMostradorLcd)
+
+    def atualizarBarraProgresso(self, tempoTotal, contadorTempoCorrente) -> None:
+        percentualTempoCorrido: int = self.porcentagem(tempoTotal, contadorTempoCorrente)
+        self.barraProgresso.emit(percentualTempoCorrido)
+
+    def atualizarTempoRestante(self, tempoTotal, contadorTempoRestante) -> None:
+        self.mostradorTempoRestante.emit((tempoTotal - contadorTempoRestante) - 1)
+
+    def registradorDadosArquivo(self, dadosAGravar: dict) -> None:
+        with open(dataDoArquivo(), 'a+', newline='', encoding='utf-8') as log:
+            try:
+                w = csv.writer(log)
+                w.writerow([data(), dadosAGravar['u'], dadosAGravar['p'],
+                            dadosAGravar['1'], dadosAGravar['2']])
+            except (ValueError, Exception) as e:
+                self.saidaInfoInicio.emit(' ATENÇÃO: Erro ao registrar dados no arquivo !!!')
+                self.saidaInfoInicio.emit(f'ERRO: {e.__class__.__name__} -> {e}')
+
     @pyqtSlot()
     def run(self):
         try:
             caminhoDiretorio: str = os.path.dirname(os.path.realpath(__file__))
-            c3 = count()
-            contador3: int = next(c3)
+            cP = count()
+            contadorParciais: int = next(cP)
 
             while not self.paradaPrograma:
-                if contador3 == 0:
-                    tempo_graf = self.tempoConvertido
+                if contadorParciais == 0:
+                    tempoEmSegundos = self.tempoConvertido
                     self.saidaInfoInicio.emit(f'Inicio: --> {data()} <--')
                 else:
-                    self.saidaInfoInicio.emit(f'Parcial {contador3} --> {data()} <--')
+                    self.saidaInfoInicio.emit(f'Parcial {contadorParciais} --> {data()} <--')
 
-                inicio: str = data()
+                inicioParcial: str = data()
 
                 yDadosUmidade: list = []
                 yDadosPressao: list = []
                 yDadosTemperaturaInterna: list = []
                 yDadosTemperaturaExterna: list = []
 
-                c2 = count()
-                contador2: int = next(c2)
-                contadorDadosRestantes: int = 0
-                while (contador2 < tempo_graf) and not self.paradaPrograma:
-                    tempoInicial = time.time()
+                cS = count()
+                contadorSegundos: int = next(cS)
+                contadorSegundosRestantes: int = 0
+
+                while (contadorSegundos < tempoEmSegundos) and not self.paradaPrograma:
+                    inicioDelimitadorDeTempo: float = time.time()
                     dadosRecebidosArduino: dict = {
                         'u': '',
                         'p': '',
                         '1': '',
                         '2': ''
                     }
-                    bufferDadosArduino: list = []
-                    self.arduino.reset_input_buffer()
-                    while len(bufferDadosArduino) < 4:
-                        self.arduino.write('u'.encode('utf-8'))
-                        sleep(0.1)
-                        if self.arduino.in_waiting:
-                            dado = self.arduino.readline().decode('utf-8')
-                            bufferDadosArduino.append(dado.strip())
-                        self.arduino.write('p'.encode('utf-8'))
-                        sleep(0.1)
-                        if self.arduino.in_waiting:
-                            dado = self.arduino.readline().decode('utf-8')
-                            bufferDadosArduino.append(dado.strip())
-                        self.arduino.write('1'.encode('utf-8'))
-                        sleep(0.1)
-                        if self.arduino.in_waiting:
-                            dado = self.arduino.readline().decode('utf-8')
-                            bufferDadosArduino.append(dado.strip())
-                        self.arduino.write('2'.encode('utf-8'))
-                        sleep(0.1)
-                        if self.arduino.in_waiting:
-                            dado = self.arduino.readline().decode('utf-8')
-                            bufferDadosArduino.append(dado.strip())
-                    if len(bufferDadosArduino) == 5:
-                        bufferDadosArduino.pop()
-                    for dado in bufferDadosArduino:
+
+                    tratamentoBuffer: list = self.bufferingDados()
+                    if len(tratamentoBuffer) > 4:
+                        for _ in range(len(tratamentoBuffer) - 4):
+                            tratamentoBuffer.pop()
+                    for dado in tratamentoBuffer:
                         dadosRecebidosArduino[dado[0]] = dado[2:]
 
-                    dadosMostradorLcd: list = []
-                    dadosMostradorLcd.append(dadosRecebidosArduino["u"])
-                    dadosMostradorLcd.append(dadosRecebidosArduino["p"])
-                    dadosMostradorLcd.append(dadosRecebidosArduino["1"])
-                    dadosMostradorLcd.append(dadosRecebidosArduino["2"])
-                    self.saidaData.emit(data())
-                    self.saidaDadosLCD.emit(dadosMostradorLcd)
-                    with open(dataDoArquivo(), 'a+', newline='', encoding='utf-8') as log:
-                        try:
-                            w = csv.writer(log)
-                            w.writerow([data(), dadosRecebidosArduino['u'], dadosRecebidosArduino['p'],
-                                        dadosRecebidosArduino['1'], dadosRecebidosArduino['2']])
-                            yDadosUmidade.append(float(dadosRecebidosArduino['u']))
-                            yDadosPressao.append(float(dadosRecebidosArduino['p']))
-                            yDadosTemperaturaInterna.append(float(dadosRecebidosArduino['1']))
-                            yDadosTemperaturaExterna.append(float(dadosRecebidosArduino['2']))
-                        except ValueError:
-                            ...
-                    contador2 = next(c2)
-                    percent: int = self.porcentagem(tempo_graf, contador2)
-                    self.barraProgresso.emit(percent)
-                    tempoRestante = tempo_graf
-                    self.mostradorTempoRestante.emit((tempoRestante - contadorDadosRestantes) - 1)
-                    contadorDadosRestantes += 1
-                    tempoFinal: float = time.time()
-                    while tempoFinal - tempoInicial < 1:
-                        tempoFinal = time.time()
-                contador3 = next(c3)
-                plot_umidade(yDadosUmidade, inicio, caminhoDiretorio)
-                plot_pressao(yDadosPressao, inicio, caminhoDiretorio)
-                plot_temp1(yDadosTemperaturaInterna, inicio, caminhoDiretorio)
-                plot_temp2(yDadosTemperaturaExterna, inicio, caminhoDiretorio)
+                    self.registradorDadosArquivo(dadosRecebidosArduino)
+
+                    yDadosUmidade.append(float(dadosRecebidosArduino['u']))
+                    yDadosPressao.append(float(dadosRecebidosArduino['p']))
+                    yDadosTemperaturaInterna.append(float(dadosRecebidosArduino['1']))
+                    yDadosTemperaturaExterna.append(float(dadosRecebidosArduino['2']))
+
+                    self.enviarDadosTempoRealParaLCD(dadosRecebidosArduino)
+
+                    contadorSegundos = next(cS)
+                    self.atualizarBarraProgresso(tempoEmSegundos, contadorSegundos)
+                    self.atualizarTempoRestante(tempoEmSegundos, contadorSegundosRestantes)
+                    contadorSegundosRestantes += 1
+
+                    terminoDelimitadorDeTempo: float = time.time()
+                    while (terminoDelimitadorDeTempo - inicioDelimitadorDeTempo) < 1:
+                        terminoDelimitadorDeTempo = time.time()
+                contadorParciais = next(cP)
+                plot_umidade(yDadosUmidade, inicioParcial, caminhoDiretorio)
+                plot_pressao(yDadosPressao, inicioParcial, caminhoDiretorio)
+                plot_temp1(yDadosTemperaturaInterna, inicioParcial, caminhoDiretorio)
+                plot_temp2(yDadosTemperaturaExterna, inicioParcial, caminhoDiretorio)
                 self.saidaDadosEmail.emit(
-                                inicio,
+                                inicioParcial,
                                 round(mean(yDadosUmidade), 2),
                                 round(mean(yDadosPressao), 2),
                                 round(mean(yDadosTemperaturaInterna), 2),
@@ -394,7 +417,6 @@ class WorkerEstacao(QObject):
                                 minimos(yDadosUmidade),
                                 maximos(yDadosPressao),
                                 minimos(yDadosPressao),
-                                inicio,
                                 data(),
                                 caminhoDiretorio)
             self.saidaInfoInicio.emit('Programa Parado !!!')
@@ -529,14 +551,14 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
 
     def executarEmail(self, inicio, umi, press, t1, t2, t1max,
                       t1min, t2max, t2min, umimax, umimini,
-                      pressmax, pressmini, ini, fim, path):
+                      pressmax, pressmini, fim, path):
         try:
             self.emailThread = QThread(parent=None)
             self.emailWorker = WorkerEmail(inicio=inicio, umi=umi, press=press, t1=t1,
                                            t2=t2, t1max=t1max, t1min=t1min, t2max=t2max,
                                            t2min=t2min, umimax=umimax, umimini=umimini,
                                            pressmax=pressmax, pressmini=pressmini,
-                                           ini=ini, fim=fim, path=path)
+                                           fim=fim, path=path)
             self.emailWorker.moveToThread(self.emailThread)
             self.emailThread.started.connect(self.emailWorker.run)
             self.emailThread.start()
