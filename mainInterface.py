@@ -242,7 +242,7 @@ class WorkerEmail(QObject):
             self.__anexadorPdf(pressao, msg)
             self.__anexadorPdf(tmp1, msg)
             self.__anexadorPdf(temp2, msg)
-            
+
             with smtplib.SMTP(host='smtp.gmail.com', port=587) as smtp:
                 smtp.ehlo()
                 smtp.starttls()
@@ -288,31 +288,31 @@ class WorkerEstacao(QObject):
         self.paradaPrograma: bool = True
         self.mutex.unlock()
 
-    def bufferingDados(self) -> list:
-        bufferDadosArduino: list = []
+    def carregadorDados(self) -> list:
+        cargaDadosArduino: list = []
         self.arduino.reset_input_buffer()
-        while len(bufferDadosArduino) < 4:
+        while len(cargaDadosArduino) < 4:
             self.arduino.write('u'.encode('utf-8'))
             sleep(0.1)
             if self.arduino.in_waiting:
                 dado = self.arduino.readline().decode('utf-8')
-                bufferDadosArduino.append(dado.strip())
+                cargaDadosArduino.append(dado.strip())
             self.arduino.write('p'.encode('utf-8'))
             sleep(0.1)
             if self.arduino.in_waiting:
                 dado = self.arduino.readline().decode('utf-8')
-                bufferDadosArduino.append(dado.strip())
+                cargaDadosArduino.append(dado.strip())
             self.arduino.write('1'.encode('utf-8'))
             sleep(0.1)
             if self.arduino.in_waiting:
                 dado = self.arduino.readline().decode('utf-8')
-                bufferDadosArduino.append(dado.strip())
+                cargaDadosArduino.append(dado.strip())
             self.arduino.write('2'.encode('utf-8'))
             sleep(0.1)
             if self.arduino.in_waiting:
                 dado = self.arduino.readline().decode('utf-8')
-                bufferDadosArduino.append(dado.strip())
-        return bufferDadosArduino
+                cargaDadosArduino.append(dado.strip())
+        return cargaDadosArduino
 
     def enviarDadosTempoRealParaLCD(self, dados: dict) -> None:
         dadosMostradorLcd: list = []
@@ -323,12 +323,12 @@ class WorkerEstacao(QObject):
         self.saidaData.emit(data())
         self.saidaDadosLCD.emit(dadosMostradorLcd)
 
-    def atualizarBarraProgresso(self, tempoTotal, contadorTempoCorrente) -> None:
-        percentualTempoCorrido: int = self.porcentagem(tempoTotal, contadorTempoCorrente)
+    def atualizarBarraProgresso(self, tempoTotal, tempoCorrente) -> None:
+        percentualTempoCorrido: int = self.porcentagem(tempoTotal, tempoCorrente)
         self.barraProgresso.emit(percentualTempoCorrido)
 
-    def atualizarTempoRestante(self, tempoTotal, contadorTempoRestante) -> None:
-        self.mostradorTempoRestante.emit((tempoTotal - contadorTempoRestante) - 1)
+    def atualizarTempoRestante(self, tempoTotal, tempoCorrente) -> None:
+        self.mostradorTempoRestante.emit((tempoTotal - tempoCorrente))
 
     def registradorDadosArquivo(self, dadosAGravar: dict) -> None:
         with open(dataDoArquivo(), 'a+', newline='', encoding='utf-8') as log:
@@ -363,37 +363,35 @@ class WorkerEstacao(QObject):
 
                 cS = count()
                 contadorSegundos: int = next(cS)
-                contadorSegundosRestantes: int = 0
 
                 while (contadorSegundos < tempoEmSegundos) and not self.paradaPrograma:
                     inicioDelimitadorDeTempo: float = time.time()
-                    dadosRecebidosArduino: dict = {
+                    dadosCarregadosArduino: dict = {
                         'u': '',
                         'p': '',
                         '1': '',
                         '2': ''
                     }
 
-                    tratamentoBuffer: list = self.bufferingDados()
-                    if len(tratamentoBuffer) > 4:
-                        for _ in range(len(tratamentoBuffer) - 4):
-                            tratamentoBuffer.pop()
-                    for dado in tratamentoBuffer:
-                        dadosRecebidosArduino[dado[0]] = dado[2:]
+                    tratamentoCarga: list = self.carregadorDados()
+                    if len(tratamentoCarga) > 4:
+                        for _ in range(len(tratamentoCarga) - 4):
+                            tratamentoCarga.pop()
+                    for dado in tratamentoCarga:
+                        dadosCarregadosArduino[dado[0]] = dado[2:]
 
-                    self.registradorDadosArquivo(dadosRecebidosArduino)
+                    yDadosUmidade.append(float(dadosCarregadosArduino['u']))
+                    yDadosPressao.append(float(dadosCarregadosArduino['p']))
+                    yDadosTemperaturaInterna.append(float(dadosCarregadosArduino['1']))
+                    yDadosTemperaturaExterna.append(float(dadosCarregadosArduino['2']))
 
-                    yDadosUmidade.append(float(dadosRecebidosArduino['u']))
-                    yDadosPressao.append(float(dadosRecebidosArduino['p']))
-                    yDadosTemperaturaInterna.append(float(dadosRecebidosArduino['1']))
-                    yDadosTemperaturaExterna.append(float(dadosRecebidosArduino['2']))
+                    self.registradorDadosArquivo(dadosCarregadosArduino)
 
-                    self.enviarDadosTempoRealParaLCD(dadosRecebidosArduino)
+                    self.enviarDadosTempoRealParaLCD(dadosCarregadosArduino)
 
                     contadorSegundos = next(cS)
                     self.atualizarBarraProgresso(tempoEmSegundos, contadorSegundos)
-                    self.atualizarTempoRestante(tempoEmSegundos, contadorSegundosRestantes)
-                    contadorSegundosRestantes += 1
+                    self.atualizarTempoRestante(tempoEmSegundos, contadorSegundos)
 
                     terminoDelimitadorDeTempo: float = time.time()
                     while (terminoDelimitadorDeTempo - inicioDelimitadorDeTempo) < 1:
