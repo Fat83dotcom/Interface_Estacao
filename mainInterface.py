@@ -1,54 +1,25 @@
-import sys
-import serial
 import os
-from PyQt5.QtWidgets import QMainWindow, QApplication, QTableWidgetItem
-from PyQt5.QtGui import QStandardItemModel, QStandardItem
-from PyQt5.QtCore import QThread, QObject, pyqtSignal, QMutex, pyqtSlot
-from interface import Ui_MainWindow
-from serial import Serial
-import time
+import sys
 import csv
+import time
+import serial
+import smtplib
 import matplotlib.pyplot as plt
 import matplotlib.backends.backend_pdf
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.application import MIMEApplication
-from manipuladoresArquivos import meu_email, minha_senha, my_recipients
+from time import sleep
+from serial import Serial
+from itertools import count
 from statistics import mean
 from string import Template
-from itertools import count
-from time import sleep
-
-
-def dataInstantanea() -> str:
-    try:
-        data = time.strftime('%d %b %Y %H:%M:%S', time.localtime())
-        return data
-    except (ValueError, Exception) as e:
-        raise e
-
-
-def dataDoArquivo() -> str:
-    try:
-        dataA = time.strftime('%b_%Y_log.csv').lower()
-        return dataA
-    except (ValueError, Exception) as e:
-        raise e
-
-
-def maximos(dados) -> float:
-    try:
-        return round(max(dados), 2)
-    except (ValueError, Exception) as e:
-        raise DadosError(f'{e.__class__.__name__} -> função: {maximos.__name__}: Não há dados a serem processados.')
-
-
-def minimos(dados) -> float:
-    try:
-        return round(min(dados), 2)
-    except (ValueError, Exception) as e:
-        raise DadosError(f'{e.__class__.__name__} -> função: {minimos.__name__}: Não há dados a serem processados.')
+from interface import Ui_MainWindow
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
+from PyQt5.QtGui import QStandardItemModel, QStandardItem
+from PyQt5.QtWidgets import QMainWindow, QApplication, QTableWidgetItem
+from PyQt5.QtCore import QThread, QObject, pyqtSignal, QMutex, pyqtSlot
+from manipuladoresArquivos import meu_email, minha_senha, my_recipients
+from funcoesGlobais import maximos, minimos, dataInstantanea, dataDoArquivo
 
 
 class PlotterGraficoPDF:
@@ -123,7 +94,7 @@ class WorkerEmailTesteConexao(QObject):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
-    def run(self):
+    def run(self) -> None:
         try:
             usuario = ''.join(meu_email())
             msg = MIMEMultipart()
@@ -140,7 +111,7 @@ class WorkerEmailTesteConexao(QObject):
                 with smtplib.SMTP(host='smtp.gmail.com', port=587) as smtp:
                     smtp.ehlo()
                     smtp.starttls()
-                    smtp.login(''.join(meu_email()), ''.join(minha_senha()))
+                    smtp.login(usuario, ''.join(minha_senha()))
                     smtp.send_message(msg)
                     self.msgEnvio.emit('Email enviado com sucesso.')
             except Exception as e:
@@ -158,7 +129,7 @@ class WorkerEmail(QObject):
 
     def __init__(self, inicio, umi, press, t1, t2, t1max,
                  t1min, t2max, t2min, umimax, umimini,
-                 pressmax, pressmini, fim, path, parent=None):
+                 pressmax, pressmini, fim, path, parent=None) -> None:
         super().__init__(parent)
         self.inicio = inicio
         self.path = path
@@ -177,15 +148,16 @@ class WorkerEmail(QObject):
         self.fim = fim
         self.servicosArquivosPDF = PlotterGraficoPDF(self.inicio, self.path)
 
-    def anexadorPdf(self, enderecoPdf, msg):
+    def anexadorPdf(self, enderecoPdf, msg) -> MIMEApplication:
         with open(enderecoPdf, 'rb') as pdf:
             anexo = MIMEApplication(pdf.read(), _subtype='pdf')
             anexo.add_header('Conteudo', enderecoPdf)
-            msg.attach(anexo)
+        return anexo
 
     def renderizadorHtml(self, umidade, pressao, temp1, temp2, temp1max, temp1min,
                          temp2max, temp2min, umima, umimi, pressma, pressmi,
-                         inicio, fim, data):
+                         inicio, fim, data
+                         ) -> str:
         with open('template.html', 'r') as doc:
             template = Template(doc.read())
             corpo_msg = template.safe_substitute(umi=umidade, press=pressao, t1=temp1, t2=temp2,
@@ -196,27 +168,26 @@ class WorkerEmail(QObject):
         return corpo_msg
 
     @pyqtSlot()
-    def run(self):
+    def run(self) -> None:
         try:
-            msg = MIMEMultipart()
-            msg['from'] = ''.join(meu_email())
-            msg['to'] = ','.join(my_recipients())
-            msg['subject'] = f'Monitoramento Estação Metereologica Fat83dotcom {dataInstantanea()}'
-            corpo = MIMEText(self.renderizadorHtml(self.umi, self.press, self.t1, self.t2,
-                             self.t1max, self.t1min, self.t2max, self.t2min,
-                             self.umimax, self.umimini, self.pressmax, self.pressmini,
-                             self.inicio, self.fim, dataInstantanea()), 'html')
-            msg.attach(corpo)
-
             umidade = self.servicosArquivosPDF.geradorCaminhoArquivoPDF('umi')
             pressao = self.servicosArquivosPDF.geradorCaminhoArquivoPDF('press')
             tmp1 = self.servicosArquivosPDF.geradorCaminhoArquivoPDF('tempInt')
             temp2 = self.servicosArquivosPDF.geradorCaminhoArquivoPDF('tempExt')
 
-            self.anexadorPdf(umidade, msg)
-            self.anexadorPdf(pressao, msg)
-            self.anexadorPdf(tmp1, msg)
-            self.anexadorPdf(temp2, msg)
+            msg = MIMEMultipart()
+            msg['from'] = ''.join(meu_email())
+            msg['to'] = ','.join(my_recipients())
+            msg['subject'] = f'Monitoramento Estação Metereologica ©BrainStorm Tecnologia {dataInstantanea()}'
+            corpo = MIMEText(self.renderizadorHtml(self.umi, self.press, self.t1, self.t2,
+                             self.t1max, self.t1min, self.t2max, self.t2min,
+                             self.umimax, self.umimini, self.pressmax, self.pressmini,
+                             self.inicio, self.fim, dataInstantanea()), 'html')
+            msg.attach(corpo)
+            msg.attach(self.anexadorPdf(umidade, msg))
+            msg.attach(self.anexadorPdf(pressao, msg))
+            msg.attach(self.anexadorPdf(tmp1, msg))
+            msg.attach(self.anexadorPdf(temp2, msg))
 
             with smtplib.SMTP(host='smtp.gmail.com', port=587) as smtp:
                 smtp.ehlo()
@@ -237,13 +208,13 @@ class WorkerEmail(QObject):
 
 class WorkerEstacao(QObject):
     finalizar = pyqtSignal()
+    saidaData = pyqtSignal(str)
+    saidaDadosLCD = pyqtSignal(list)
     barraProgresso = pyqtSignal(int)
     saidaInfoInicio = pyqtSignal(str)
-    saidaDadosLCD = pyqtSignal(list)
-    saidaData = pyqtSignal(str)
+    mostradorTempoRestante = pyqtSignal(int)
     saidaDadosEmail = pyqtSignal(str, float, float, float, float, float, float,
                                  float, float, float, float, float, float, str, str)
-    mostradorTempoRestante = pyqtSignal(int)
 
     def __init__(self, portaArduino: Serial, tempoGrafico: int, parent=None) -> None:
         super().__init__(parent)
@@ -258,7 +229,7 @@ class WorkerEstacao(QObject):
         return int(porcentagem)
 
     @pyqtSlot()
-    def parar(self):
+    def parar(self) -> None:
         self.mutex.lock()
         self.paradaPrograma: bool = True
         self.mutex.unlock()
@@ -316,7 +287,7 @@ class WorkerEstacao(QObject):
                 self.saidaInfoInicio.emit(f'ERRO: {e.__class__.__name__} -> {e}')
 
     @pyqtSlot()
-    def run(self):
+    def run(self) -> None:
         try:
             caminhoDiretorio: str = os.path.dirname(os.path.realpath(__file__))
             cP = count()
@@ -411,14 +382,10 @@ class EntradaError(Exception):
     ...
 
 
-class DadosError(Exception):
-    ...
-
-
 class ConexaoUSB():
     def __init__(self, caminhoPorta: str) -> None:
         self.caminho: str = caminhoPorta
-        self.conexaoArduino: Serial = Serial(self.caminho, 9600, timeout=2, bytesize=serial.EIGHTBITS)
+        self.conexaoArduino: Serial = Serial(self.caminho, 9600, timeout=1, bytesize=serial.EIGHTBITS)
 
     def conectPortaUSB(self) -> Serial:
         try:
@@ -427,7 +394,7 @@ class ConexaoUSB():
         except Exception as e:
             raise e
 
-    def desconectarPortaUSB(self):
+    def desconectarPortaUSB(self) -> None:
         self.conexaoArduino.close()
 
 
@@ -447,34 +414,34 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         self.manipuladorRemetenteSenha()
         self.manipuladorDestinatarios()
 
-    def mostrardorDisplayBarraProgresso(self, percent):
+    def mostrardorDisplayBarraProgresso(self, percent) -> None:
         self.barraProgresso.setValue(percent)
 
-    def mostradorDisplayInfo(self, info):
+    def mostradorDisplayInfo(self, info) -> None:
         self.modeloInfo.appendRow(QStandardItem(info))
 
-    def mostradorDisplayLCDTempoRestante(self, valor):
+    def mostradorDisplayLCDTempoRestante(self, valor) -> None:
         self.visorTempoRestante.display(valor)
         self.visorTempoRestante_2.display(valor)
 
-    def mostradorDisplayLCDTempoDefinido(self, valor):
+    def mostradorDisplayLCDTempoDefinido(self, valor) -> None:
         self.tempoDefinido.display(valor)
         self.tempoDefinido_2.display(valor)
 
-    def mostradorDisplayLCDDados(self, dados: list):
+    def mostradorDisplayLCDDados(self, dados: list) -> None:
         self.dadoUmidade.display(dados[0])
         self.dadoPressao.display(dados[1])
         self.dadoTempInterna.display(dados[2])
         self.dadoTempExterna.display(dados[3])
 
-    def mostradorLabelDataHora(self, dt_hr):
+    def mostradorLabelDataHora(self, dt_hr) -> None:
         self.dadosHoraData.setText(dt_hr)
 
-    def retornarBotoesInicio(self):
+    def retornarBotoesInicio(self) -> None:
         self.btnInciarEstacao.setEnabled(True)
         self.btnPararEstacao.setEnabled(False)
 
-    def executarMainEstacao(self):
+    def executarMainEstacao(self) -> None:
         self.btnInciarEstacao.setEnabled(False)
         self.btnPararEstacao.setEnabled(True)
         self.porta = self.portaArduino.text()
@@ -519,7 +486,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             self.retornarBotoesInicio()
             return
 
-    def pararWorker(self):
+    def pararWorker(self) -> None:
         self.estacaoWorker.parar()
         self.estacaoThread.quit()
         self.estacaoThread.wait()
@@ -529,7 +496,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
 
     def executarEmail(self, inicio, umi, press, t1, t2, t1max,
                       t1min, t2max, t2min, umimax, umimini,
-                      pressmax, pressmini, fim, path):
+                      pressmax, pressmini, fim, path) -> None:
         try:
             self.emailThread = QThread(parent=None)
             self.emailWorker = WorkerEmail(inicio=inicio, umi=umi, press=press, t1=t1,
@@ -549,23 +516,23 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             self.mostradorDisplayInfo(f'{e.__class__.__name__}: {e}')
             return
 
-    def defineArquivoEmail(self, dadoUsuario: str):
+    def defineArquivoEmail(self, dadoUsuario: str) -> None:
         with open('.EMAIL_USER_DATA.txt', 'w') as file:
             file.write(dadoUsuario)
 
-    def defineArquivoSenha(self, dadoUsuario: str):
+    def defineArquivoSenha(self, dadoUsuario: str) -> None:
         with open('.PASSWORD_USER_DATA.txt', 'w') as file:
             file.write(dadoUsuario)
 
-    def defineArquivoDestinatarios(self, dadoUsuario: str):
+    def defineArquivoDestinatarios(self, dadoUsuario: str) -> None:
         with open('.RECIPIENTS_USER_DATA.txt', 'a') as file:
             file.write(f'{dadoUsuario}\n')
 
-    def apagadorArquivo(self, caminhoArquivo: str):
+    def apagadorArquivo(self, caminhoArquivo: str) -> None:
         with open(caminhoArquivo, 'w') as file:
             file.write('')
 
-    def manipuladorRemetenteSenha(self):
+    def manipuladorRemetenteSenha(self) -> None:
         try:
             if len(meu_email()) == 1 and len(minha_senha()) == 1:
                 email = ''.join(meu_email())
@@ -578,14 +545,14 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         except Exception as e:
             self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
 
-    def adicionarEmailRemetenteSenha(self):
+    def adicionarEmailRemetenteSenha(self) -> None:
         try:
             self.statusOperacoes.setText('')
             emailRemetente = self.emailUsuario.text()
             senhaRemetente = self.senhaUsuario.text()
             if emailRemetente == '' or senhaRemetente == '':
                 self.statusOperacoes.setText('Entre com o e-mail e senha ! ')
-                return
+                return None
             else:
                 self.adicionarEmailRemetente(emailRemetente)
                 self.adicionarSenhaRemetente(senhaRemetente)
@@ -595,13 +562,13 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         except Exception as e:
             self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
 
-    def adicionarEmailRemetente(self, email: str):
+    def adicionarEmailRemetente(self, email: str) -> None:
         try:
             self.defineArquivoEmail(email)
         except Exception as e:
             self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
 
-    def adicionarSenhaRemetente(self, senha: str):
+    def adicionarSenhaRemetente(self, senha: str) -> None:
         try:
             self.defineArquivoSenha(senha)
         except Exception as e:
@@ -623,7 +590,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         except Exception:
             return None
 
-    def deletarEmailDestinatario(self):
+    def deletarEmailDestinatario(self) -> None:
         try:
             emailDestinatarios: list = my_recipients()
             emailDeletado = self.obterEmailDestinatario()
@@ -641,7 +608,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         except Exception as e:
             self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
 
-    def adicionarEmailDestinatarios(self):
+    def adicionarEmailDestinatarios(self) -> None:
         try:
             emailDestinatario: str = self.adicionarDestinatario.text().strip()
             if emailDestinatario:
@@ -654,7 +621,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         except Exception as e:
             self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
 
-    def executarEmailTeste(self):
+    def executarEmailTeste(self) -> None:
         try:
             self.emailTesteThread = QThread(parent=None)
             self.emailTesteWorker = WorkerEmailTesteConexao()
