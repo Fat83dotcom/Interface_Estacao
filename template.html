@@ -5,16 +5,17 @@
     <meta charset=" UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estação Meteorologica Com Arduíno</title>
+    <title>Estação Meteorologica ©BrainStorm Tecnologia</title>
     <style>
-        /* * {
-            margin: 0px;
-            padding: 0px;
-        } */
+        
+        * {
+            box-sizing: border-box;
+        }
 
         h1 {
             text-align: center;
             color: darkred;
+            font-size: 42px;
         }
 
         h2 {
@@ -27,18 +28,21 @@
 
         html {
             font-family: 'Times New Roman', Times, serif;
-            font-size: 24px;
         }
 
         ul {
             color: rgb(238, 209, 209);
         }
+        li {
+            list-style: none;
+        }
 
         .container {
             background-color: crimson;
             margin: 20px;
-            padding: 50px;
+            padding: 30px;
             border-radius: 30px;
+            font-size: 20px;
         }
 
         .rCopy {
@@ -54,46 +58,54 @@
         .cabecalho {
             padding: 20px 0 0 0;
         }
+        @media screen and (max-width: 500px) {
+            h1{
+                font-size: 20px;
+            }
+            .container{
+                font-size: 10px;
+            }
+        }
     </style>
 </head>
 
 <body>
     <div class="containerExterior">
         <div class="cabecalho">
-            <h1>Estação Metereologica <br> Fat83dotcom&trade;</h1>
+            <h1>Estação Metereologica <br> ©BrainStorm Tecnologia</h1>
         </div>
         <div class="container">
             <ul>
-                <li>Data: <strong>$dat</strong></li>
-                <li>Período: <strong>$ini</strong> até <strong>$fim</strong></li>
+                <li>Data: <strong>${dat}</strong></li>
+                <li>Período: <strong>${ini}</strong> até <strong>$fim</strong></li>
             </ul>
 
             <h2>
                 <li>Médias:</li>
             </h2>
             <ul>
-                <li>Umidade: <strong>$umi</strong> %</li>
-                <li>pressão: <strong>$press</strong> hPa</li>
-                <li>Temperatura Interna: <strong>$t1</strong> C°</li>
-                <li>Temperatura Externa: <strong>$t2</strong> C°</li>
+                <li>Umidade: <strong>${umi}</strong> %</li>
+                <li>pressão: <strong>${press}</strong> hPa</li>
+                <li>Temperatura Interna: <strong>${t1}</strong> C°</li>
+                <li>Temperatura Externa: <strong>${t2}</strong> C°</li>
             </ul>
             <h2>
                 <li>Máximas:</li>
             </h2>
             <ul>
-                <li>Umidade: <strong>$umimax</strong> %</li>
-                <li>Pressão: <strong>$pressmax</strong> hPa</li>
-                <li>Temperatura Interna: <strong>$t1max</strong> C°</li>
-                <li>Temperatura Externa: <strong>$t2max</strong> C°</li>
+                <li>Umidade: <strong>${umimax}</strong> %</li>
+                <li>Pressão: <strong>${pressmax}</strong> hPa</li>
+                <li>Temperatura Interna: <strong>${t1max}</strong> C°</li>
+                <li>Temperatura Externa: <strong>${t2max}</strong> C°</li>
             </ul>
             <h2>
                 <li>Mínimas:</li>
             </h2>
             <ul>
-                <li>Umidade: <strong>$umimini</strong> %</li>
-                <li>Pressão: <strong>$pressmini</strong> hPa</li>
-                <li>Temperatura Interna: <strong>$t1min</strong> C°</li>
-                <li>Temperatura Externa: <strong>$t2min</strong> C°</li>
+                <li>Umidade: <strong>${umimini}</strong> %</li>
+                <li>Pressão: <strong>${pressmini}</strong> hPa</li>
+                <li>Temperatura Interna: <strong>${t1min}</strong> C°</li>
+                <li>Temperatura Externa: <strong>${t2min}</strong> C°</li>
             </ul>
 
         </div>
