@@ -7,36 +7,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Estação Meteorologica ©BrainStorm Tecnologia</title>
     <style>
-        
         * {
             box-sizing: border-box;
         }
-
         h1 {
             text-align: center;
             color: darkred;
             font-size: 42px;
         }
-
         h2 {
             color: rgb(238, 209, 209);
         }
-
+        h4{
+            color: rgb(238, 209, 209);
+        }
+        p{
+            color: rgb(238, 209, 209)
+        }
         strong {
             color: black;
         }
-
         html {
             font-family: 'Times New Roman', Times, serif;
         }
-
         ul {
             color: rgb(238, 209, 209);
         }
         li {
             list-style: none;
         }
-
         .container {
             background-color: crimson;
             margin: 20px;
@@ -44,19 +43,19 @@
             border-radius: 30px;
             font-size: 20px;
         }
-
         .rCopy {
             text-align: center;
             color: red;
             padding: 30px;
         }
-
         .containerExterior {
             background-color: black;
         }
-
         .cabecalho {
             padding: 20px 0 0 0;
+        }
+        .info-data{
+            text-align: center;
         }
         @media screen and (max-width: 500px) {
             h1{
@@ -75,11 +74,12 @@
             <h1>Estação Metereologica <br> ©BrainStorm Tecnologia</h1>
         </div>
         <div class="container">
-            <ul>
-                <li>Data: <strong>${dat}</strong></li>
-                <li>Período: <strong>${ini}</strong> até <strong>$fim</strong></li>
-            </ul>
-
+            <div class="info-data">
+                <h4>Data:</h4>
+                <p></p> <strong>${dat}</strong></p>
+                <h4>Período:</h4>
+                <p><strong>${ini}</strong> até <strong>$fim</strong></p>
+            </div>
             <h2>
                 <li>Médias:</li>
             </h2>
@@ -107,10 +107,8 @@
                 <li>Temperatura Interna: <strong>${t1min}</strong> C°</li>
                 <li>Temperatura Externa: <strong>${t2min}</strong> C°</li>
             </ul>
-
         </div>
         <footer class="rCopy">©BrainStorm Tecnologia</footer>
     </div>
 </body>
-
 </html>
