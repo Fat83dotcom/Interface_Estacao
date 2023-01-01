@@ -279,9 +279,11 @@ class WorkerEstacao(QObject):
     def registradorDadosArquivo(self, dadosAGravar: dict) -> None:
         with open(dataDoArquivo(), 'a+', newline='', encoding='utf-8') as log:
             try:
-                w = csv.writer(log)
-                w.writerow([dataInstantanea(), dadosAGravar['u'], dadosAGravar['p'],
-                            dadosAGravar['1'], dadosAGravar['2']])
+                if float(dadosAGravar['u']) and float(dadosAGravar['p']) and \
+                     float(dadosAGravar['1']) and float(dadosAGravar['2']) != 0:
+                    w = csv.writer(log)
+                    w.writerow([dataInstantanea(), dadosAGravar['u'], dadosAGravar['p'],
+                                dadosAGravar['1'], dadosAGravar['2']])
             except (ValueError, Exception) as e:
                 self.saidaInfoInicio.emit(' ATENÇÃO: Erro ao registrar dados no arquivo !!!')
                 self.saidaInfoInicio.emit(f'ERRO: {e.__class__.__name__} -> {e}')
@@ -304,10 +306,10 @@ class WorkerEstacao(QObject):
 
                 plotGrafico = PlotterGraficoPDF(inicioParcial, caminhoDiretorio)
 
-                yDadosUmidade: list = []
-                yDadosPressao: list = []
-                yDadosTemperaturaInterna: list = []
-                yDadosTemperaturaExterna: list = []
+                yDadosUmidade: list[float] = []
+                yDadosPressao: list[float] = []
+                yDadosTemperaturaInterna: list[float] = []
+                yDadosTemperaturaExterna: list[float] = []
 
                 cS = count()
                 contadorSegundos: int = next(cS)
@@ -328,10 +330,14 @@ class WorkerEstacao(QObject):
                     for dado in tratamentoCarga:
                         dadosCarregadosArduino[dado[0]] = dado[2:]
 
-                    yDadosUmidade.append(float(dadosCarregadosArduino['u']))
-                    yDadosPressao.append(float(dadosCarregadosArduino['p']))
-                    yDadosTemperaturaInterna.append(float(dadosCarregadosArduino['1']))
-                    yDadosTemperaturaExterna.append(float(dadosCarregadosArduino['2']))
+                    if float(dadosCarregadosArduino['u']) > 0:
+                        yDadosUmidade.append(float(dadosCarregadosArduino['u']))
+                    if float(dadosCarregadosArduino['p']) > 0:
+                        yDadosPressao.append(float(dadosCarregadosArduino['p']))
+                    if float(dadosCarregadosArduino['1']) > 0:
+                        yDadosTemperaturaInterna.append(float(dadosCarregadosArduino['1']))
+                    if float(dadosCarregadosArduino['2']) > 0:
+                        yDadosTemperaturaExterna.append(float(dadosCarregadosArduino['2']))
 
                     self.registradorDadosArquivo(dadosCarregadosArduino)
 
