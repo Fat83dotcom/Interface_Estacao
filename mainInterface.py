@@ -544,7 +544,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
                 email = ''.join(meu_email())
                 senha = ''.join(minha_senha())
                 self.statusRemetenteSenha.setText(f'Dados Atuais: Email: {email} | '
-                                                  f'Senha: {"".join([letra.replace(letra, "*") for letra in senha])}')
+                                                  f'Senha: {"".join([caractere.replace(caractere, "*") for caractere in senha])}')
             else:
                 self.statusRemetenteSenha.setText('Os dados de e-mail e/ou a \
                     senha do remetente não estão definidos')
@@ -591,8 +591,8 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
 
     def obterEmailDestinatario(self) -> str:
         try:
-            emailDeletado: str = self.tabelaDestinatarios.currentItem().text().strip()
-            return emailDeletado
+            emailSelecionado: str = self.tabelaDestinatarios.currentItem().text().strip()
+            return emailSelecionado
         except Exception:
             return None
 
