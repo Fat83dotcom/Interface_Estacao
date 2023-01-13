@@ -36,6 +36,10 @@
         li {
             list-style: none;
         }
+        table, th, td{
+            border: 3px solid;
+            border-collapse: collapse;
+        }
         .container {
             background-color: crimson;
             margin: 20px;
@@ -55,6 +59,9 @@
             padding: 20px 0 0 0;
         }
         .info-data{
+            text-align: center;
+        }
+        .center-tabela{
             text-align: center;
         }
         @media screen and (max-width: 500px) {
@@ -79,34 +86,43 @@
                 <p></p> <strong>${dat}</strong></p>
                 <h4>Período:</h4>
                 <p><strong>${ini}</strong> até <strong>$fim</strong></p>
+                <div class="center-tabela">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th>Médias</th>
+                                <th>Máximas</th>
+                                <th>Mínimas</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <td>Umidade</td>
+                            <td><strong>$umi</strong> %</td>
+                            <td><strong>$umimax</strong> %</td>
+                            <td><strong>$umimini</strong> %</td>
+                        </tbody>
+                        <tbody>
+                            <td>Pressão</td>
+                            <td><strong>$press</strong> hPa</td>
+                            <td><strong>$pressmax</strong> hPa</td>
+                            <td><strong>$pressmini</strong> hPa</td>
+                        </tbody>
+                        <tbody>
+                            <td>Temp. Interna</td>
+                            <td><strong>$t1</strong> C°</td>
+                            <td><strong>$t1max</strong> C°</td>
+                            <td><strong>$t1min</strong> C°</td>
+                        </tbody>
+                        <tbody>
+                            <td>Temp. Externa</td>
+                            <td><strong>$t2</strong> C°</td>
+                            <td><strong>$t2max</strong> C°</td>
+                            <td><strong>$t2min</strong> C°</td>
+                        </tbody>
+                    </table>
+                </div>
             </div>
-            <h2>
-                <li>Médias:</li>
-            </h2>
-            <ul>
-                <li>Umidade: <strong>${umi}</strong> %</li>
-                <li>pressão: <strong>${press}</strong> hPa</li>
-                <li>Temperatura Interna: <strong>${t1}</strong> C°</li>
-                <li>Temperatura Externa: <strong>${t2}</strong> C°</li>
-            </ul>
-            <h2>
-                <li>Máximas:</li>
-            </h2>
-            <ul>
-                <li>Umidade: <strong>${umimax}</strong> %</li>
-                <li>Pressão: <strong>${pressmax}</strong> hPa</li>
-                <li>Temperatura Interna: <strong>${t1max}</strong> C°</li>
-                <li>Temperatura Externa: <strong>${t2max}</strong> C°</li>
-            </ul>
-            <h2>
-                <li>Mínimas:</li>
-            </h2>
-            <ul>
-                <li>Umidade: <strong>${umimini}</strong> %</li>
-                <li>Pressão: <strong>${pressmini}</strong> hPa</li>
-                <li>Temperatura Interna: <strong>${t1min}</strong> C°</li>
-                <li>Temperatura Externa: <strong>${t2min}</strong> C°</li>
-            </ul>
         </div>
         <footer class="rCopy">©BrainStorm Tecnologia</footer>
     </div>
