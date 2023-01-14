@@ -39,6 +39,7 @@
         table, th, td{
             border: 3px solid;
             border-collapse: collapse;
+            width: 100%;
         }
         .container {
             background-color: crimson;
@@ -85,12 +86,12 @@
                 <h4>Data:</h4>
                 <p></p> <strong>${dat}</strong></p>
                 <h4>Período:</h4>
-                <p><strong>${ini}</strong> até <strong>$fim</strong></p>
+                <p><strong>${ini}</strong> até <strong>${fim}</strong></p>
                 <div class="center-tabela">
                     <table>
                         <thead>
                             <tr>
-                                <th></th>
+                                <th>Sensores</th>
                                 <th>Médias</th>
                                 <th>Máximas</th>
                                 <th>Mínimas</th>
@@ -98,27 +99,27 @@
                         </thead>
                         <tbody>
                             <td>Umidade</td>
-                            <td><strong>$umi</strong> %</td>
-                            <td><strong>$umimax</strong> %</td>
-                            <td><strong>$umimini</strong> %</td>
+                            <td><strong>${umi}</strong> %</td>
+                            <td><strong>${umimax}</strong> %</td>
+                            <td><strong>${umimini}</strong> %</td>
                         </tbody>
                         <tbody>
                             <td>Pressão</td>
-                            <td><strong>$press</strong> hPa</td>
-                            <td><strong>$pressmax</strong> hPa</td>
-                            <td><strong>$pressmini</strong> hPa</td>
+                            <td><strong>${press}</strong> hPa</td>
+                            <td><strong>${pressmax}</strong> hPa</td>
+                            <td><strong>${pressmini}</strong> hPa</td>
                         </tbody>
                         <tbody>
                             <td>Temp. Interna</td>
-                            <td><strong>$t1</strong> C°</td>
-                            <td><strong>$t1max</strong> C°</td>
-                            <td><strong>$t1min</strong> C°</td>
+                            <td><strong>${t1}</strong> C°</td>
+                            <td><strong>${t1max}</strong> C°</td>
+                            <td><strong>${t1min}</strong> C°</td>
                         </tbody>
                         <tbody>
                             <td>Temp. Externa</td>
-                            <td><strong>$t2</strong> C°</td>
-                            <td><strong>$t2max</strong> C°</td>
-                            <td><strong>$t2min</strong> C°</td>
+                            <td><strong>${t2}</strong> C°</td>
+                            <td><strong>${t2max}</strong> C°</td>
+                            <td><strong>${t2min}</strong> C°</td>
                         </tbody>
                     </table>
                 </div>
