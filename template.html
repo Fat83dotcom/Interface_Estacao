@@ -36,10 +36,17 @@
         li {
             list-style: none;
         }
-        table, th, td{
-            border: 3px solid;
+        th, td{
+            border: 3px solid black;
             border-collapse: collapse;
+            border-radius: 8px;
+        }
+        table{
+            border: 3px solid black;
             width: 100%;
+        }
+        th{
+            color: #fff;
         }
         .container {
             background-color: crimson;
@@ -91,35 +98,43 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>Sensores</th>
+                                <th>Sensor</th>
                                 <th>Médias</th>
                                 <th>Máximas</th>
                                 <th>Mínimas</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <td>Umidade</td>
-                            <td><strong>${umi}</strong> %</td>
-                            <td><strong>${umimax}</strong> %</td>
-                            <td><strong>${umimini}</strong> %</td>
+                            <tr>
+                                <td>Umidade</td>
+                                <td><strong>${umi}</strong> %</td>
+                                <td><strong>${umimax}</strong> %</td>
+                                <td><strong>${umimini}</strong> %</td>
+                            </tr>
                         </tbody>
                         <tbody>
-                            <td>Pressão</td>
-                            <td><strong>${press}</strong> hPa</td>
-                            <td><strong>${pressmax}</strong> hPa</td>
-                            <td><strong>${pressmini}</strong> hPa</td>
+                            <tr>
+                                <td>Pressão</td>
+                                <td><strong>${press}</strong> hPa</td>
+                                <td><strong>${pressmax}</strong> hPa</td>
+                                <td><strong>${pressmini}</strong> hPa</td>
+                            </tr>
                         </tbody>
                         <tbody>
-                            <td>Temp. Interna</td>
-                            <td><strong>${t1}</strong> C°</td>
-                            <td><strong>${t1max}</strong> C°</td>
-                            <td><strong>${t1min}</strong> C°</td>
+                            <tr>
+                                <td>Temp. Interna</td>
+                                <td><strong>${t1}</strong> C°</td>
+                                <td><strong>${t1max}</strong> C°</td>
+                                <td><strong>${t1min}</strong> C°</td>
+                            </tr>
                         </tbody>
                         <tbody>
-                            <td>Temp. Externa</td>
-                            <td><strong>${t2}</strong> C°</td>
-                            <td><strong>${t2max}</strong> C°</td>
-                            <td><strong>${t2min}</strong> C°</td>
+                            <tr>
+                                <td>Temp. Externa</td>
+                                <td><strong>${t2}</strong> C°</td>
+                                <td><strong>${t2max}</strong> C°</td>
+                                <td><strong>${t2min}</strong> C°</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
