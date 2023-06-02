@@ -46,17 +46,22 @@ class PlotterGraficoPDF:
         arquivoPDF = f'{self.caminhoDiretorioPrograma}/{self.tipoGrafico[tipoGrafico]}{self.dtInicio}.pdf'
         return arquivoPDF
 
-    def plotadorPDF(self, dadosEixo_Y: list, tipoGrafico: str, grandezaEixo_Y: str) -> None:
+    def plotadorPDF(
+        self, dadosEixo_Y: list, tipoGrafico: str, grandezaEixo_Y: str
+    ) -> None:
         """
             Argumentos que devem ser passados para cada situação:
             tipoGrafico -> 'umi', 'press', 'tempInt', 'tempExt'
             Grandezas -> 'temp', 'press', 'umi'
         """
+        tituloGrafico1 = f'{self.tipoGrafico[tipoGrafico]}\n-> Inicio: {self.dtInicio} <-|-> Termino: {dataInstantanea()} '
+        tituloGrafico2 = f' <-\nMáxima: {maximos(dadosEixo_Y)} --- Mínima: {minimos(dadosEixo_Y)}'
         try:
             tempoEixo_X = range(len(dadosEixo_Y))
             arquivoPDF = self.geradorCaminhoArquivoPDF(tipoGrafico)
-            plt.title(f'{self.tipoGrafico[tipoGrafico]}\n-> Inicio: {self.dtInicio} <-|-> Termino: {dataInstantanea()} '
-                      f' <-\nMáxima: {maximos(dadosEixo_Y)} --- Mínima: {minimos(dadosEixo_Y)}')
+            plt.title(
+                f'{tituloGrafico1}{tituloGrafico2}'
+            )
             plt.xlabel('Tempo em segundos.')
             plt.ylabel(self.grandeza[grandezaEixo_Y])
             plt.plot(tempoEixo_X, dadosEixo_Y)
@@ -96,6 +101,7 @@ class WorkerEmailTesteConexao(QObject):
 
     def run(self) -> None:
         try:
+            msgErro = 'Não foi possivel enviar o email. Motivo:'
             usuario = ''.join(meu_email())
             msg = MIMEMultipart()
             msg['from'] = usuario
@@ -115,10 +121,13 @@ class WorkerEmailTesteConexao(QObject):
                     smtp.send_message(msg)
                     self.msgEnvio.emit('Email enviado com sucesso.')
             except Exception as e:
-                self.msgEnvio.emit(f'Não foi possivel enviar o email. Motivo: {e.__class__.__name__}: {e}')
+                self.msgEnvio.emit(
+                    f'{msgErro} {e.__class__.__name__}: {e}'
+                )
                 self.termino.emit()
         except Exception as e:
-            self.msgEnvio.emit(f'Não foi possivel enviar o email. Motivo: {e.__class__.__name__}: {e}')
+            self.msgEnvio.emit(
+                f'{msgErro} {e.__class__.__name__}: {e}')
             self.termino.emit()
         self.termino.emit()
 
@@ -154,35 +163,50 @@ class WorkerEmail(QObject):
             anexo.add_header('Conteudo', enderecoPdf)
         return anexo
 
-    def renderizadorHtml(self, umidade, pressao, temp1, temp2, temp1max, temp1min,
+    def renderizadorHtml(self, umidade, pressao, temp1, temp2, temp1max,
+                         temp1min,
                          temp2max, temp2min, umima, umimi, pressma, pressmi,
                          inicio, fim, data
                          ) -> str:
         with open('template.html', 'r') as doc:
             template = Template(doc.read())
-            corpo_msg = template.safe_substitute(umi=umidade, press=pressao, t1=temp1, t2=temp2,
-                                                 t1max=temp1max, t1min=temp1min, t2max=temp2max,
-                                                 t2min=temp2min, umimax=umima, umimini=umimi,
-                                                 pressmax=pressma, pressmini=pressmi, ini=inicio,
-                                                 fim=fim, dat=data)
+            corpo_msg = template.safe_substitute(
+                umi=umidade, press=pressao, t1=temp1, t2=temp2,
+                t1max=temp1max, t1min=temp1min, t2max=temp2max,
+                t2min=temp2min, umimax=umima, umimini=umimi,
+                pressmax=pressma, pressmini=pressmi, ini=inicio,
+                fim=fim, dat=data
+            )
         return corpo_msg
 
     @pyqtSlot()
     def run(self) -> None:
+        msgSubject = 'Monitor Estação Metereologica ©BrainStorm Tecnologia'
         try:
-            umidade = self.servicosArquivosPDF.geradorCaminhoArquivoPDF('umi')
-            pressao = self.servicosArquivosPDF.geradorCaminhoArquivoPDF('press')
-            tmp1 = self.servicosArquivosPDF.geradorCaminhoArquivoPDF('tempInt')
-            temp2 = self.servicosArquivosPDF.geradorCaminhoArquivoPDF('tempExt')
-
+            umidade = self.servicosArquivosPDF.geradorCaminhoArquivoPDF(
+                'umi'
+            )
+            pressao = self.servicosArquivosPDF.geradorCaminhoArquivoPDF(
+                'press'
+            )
+            tmp1 = self.servicosArquivosPDF.geradorCaminhoArquivoPDF(
+                'tempInt'
+            )
+            temp2 = self.servicosArquivosPDF.geradorCaminhoArquivoPDF(
+                'tempExt'
+            )
             msg = MIMEMultipart()
             msg['from'] = ''.join(meu_email())
             msg['to'] = ','.join(my_recipients())
-            msg['subject'] = f'Monitoramento Estação Metereologica ©BrainStorm Tecnologia {dataInstantanea()}'
-            corpo = MIMEText(self.renderizadorHtml(self.umi, self.press, self.t1, self.t2,
-                             self.t1max, self.t1min, self.t2max, self.t2min,
-                             self.umimax, self.umimini, self.pressmax, self.pressmini,
-                             self.inicio, self.fim, dataInstantanea()), 'html')
+            msg['subject'] = f'{msgSubject} {dataInstantanea()}'
+            corpo = MIMEText(
+                self.renderizadorHtml(
+                    self.umi, self.press, self.t1, self.t2,
+                    self.t1max, self.t1min, self.t2max, self.t2min,
+                    self.umimax, self.umimini, self.pressmax, self.pressmini,
+                    self.inicio, self.fim, dataInstantanea()
+                ), 'html'
+            )
             msg.attach(corpo)
             msg.attach(self.anexadorPdf(umidade, msg))
             msg.attach(self.anexadorPdf(pressao, msg))
@@ -213,10 +237,14 @@ class WorkerEstacao(QObject):
     barraProgresso = pyqtSignal(int)
     saidaInfoInicio = pyqtSignal(str)
     mostradorTempoRestante = pyqtSignal(int)
-    saidaDadosEmail = pyqtSignal(str, float, float, float, float, float, float,
-                                 float, float, float, float, float, float, str, str)
+    saidaDadosEmail = pyqtSignal(
+        str, float, float, float, float, float, float,
+        float, float, float, float, float, float, str, str
+    )
 
-    def __init__(self, portaArduino: Serial, tempoGrafico: int, parent=None) -> None:
+    def __init__(
+                self, portaArduino: Serial, tempoGrafico: int, parent=None
+            ) -> None:
         super().__init__(parent)
         self.mutex = QMutex()
         self.porta: Serial = portaArduino
@@ -231,7 +259,7 @@ class WorkerEstacao(QObject):
     @pyqtSlot()
     def parar(self) -> None:
         self.mutex.lock()
-        self.paradaPrograma: bool = True
+        self.paradaPrograma = True
         self.mutex.unlock()
 
     def carregadorDados(self) -> list:
@@ -270,8 +298,8 @@ class WorkerEstacao(QObject):
         self.saidaDadosLCD.emit(dadosMostradorLcd)
 
     def atualizarBarraProgresso(self, tempoTotal, tempoCorrente) -> None:
-        percentualTempoCorrido: int = self.porcentagem(tempoTotal, tempoCorrente)
-        self.barraProgresso.emit(percentualTempoCorrido)
+        percentTempoCorrido: int = self.porcentagem(tempoTotal, tempoCorrente)
+        self.barraProgresso.emit(percentTempoCorrido)
 
     def atualizarTempoRestante(self, tempoTotal, tempoCorrente) -> None:
         self.mostradorTempoRestante.emit((tempoTotal - tempoCorrente))
@@ -282,11 +310,20 @@ class WorkerEstacao(QObject):
                 if float(dadosAGravar['u']) and float(dadosAGravar['p']) and \
                      float(dadosAGravar['1']) and float(dadosAGravar['2']) != 0:
                     w = csv.writer(log)
-                    w.writerow([dataInstantanea(), dadosAGravar['u'], dadosAGravar['p'],
-                                dadosAGravar['1'], dadosAGravar['2']])
+                    w.writerow(
+                        [
+                            dataInstantanea(), dadosAGravar['u'],
+                            dadosAGravar['p'], dadosAGravar['1'],
+                            dadosAGravar['2']
+                        ]
+                    )
             except (ValueError, Exception) as e:
-                self.saidaInfoInicio.emit(' ATENÇÃO: Erro ao registrar dados no arquivo !!!')
-                self.saidaInfoInicio.emit(f'ERRO: {e.__class__.__name__} -> {e}')
+                self.saidaInfoInicio.emit(
+                    ' ATENÇÃO: Erro ao registrar dados no arquivo !!!'
+                )
+                self.saidaInfoInicio.emit(
+                    f'ERRO: {e.__class__.__name__} -> {e}'
+                )
 
     @pyqtSlot()
     def run(self) -> None:
@@ -298,13 +335,19 @@ class WorkerEstacao(QObject):
             while not self.paradaPrograma:
                 if contadorParciais == 0:
                     tempoEmSegundos = self.tempoConvertido
-                    self.saidaInfoInicio.emit(f'Inicio: --> {dataInstantanea()} <--')
+                    self.saidaInfoInicio.emit(
+                        f'Inicio: --> {dataInstantanea()} <--'
+                    )
                 else:
-                    self.saidaInfoInicio.emit(f'Parcial {contadorParciais} --> {dataInstantanea()} <--')
+                    self.saidaInfoInicio.emit(
+                        f'Parcial {contadorParciais} -> {dataInstantanea()} <-'
+                    )
 
                 inicioParcial: str = dataInstantanea()
 
-                plotGrafico = PlotterGraficoPDF(inicioParcial, caminhoDiretorio)
+                plotGrafico = PlotterGraficoPDF(
+                    inicioParcial, caminhoDiretorio
+                )
 
                 yDadosUmidade: list[float] = []
                 yDadosPressao: list[float] = []
@@ -314,7 +357,9 @@ class WorkerEstacao(QObject):
                 cS = count()
                 contadorSegundos: int = next(cS)
 
-                while (contadorSegundos < tempoEmSegundos) and not self.paradaPrograma:
+                while (
+                    contadorSegundos < tempoEmSegundos
+                ) and not self.paradaPrograma:
                     inicioDelimitadorDeTempo: float = time.time()
                     dadosCarregadosArduino: dict = {
                         'u': '',
@@ -331,31 +376,53 @@ class WorkerEstacao(QObject):
                         dadosCarregadosArduino[dado[0]] = dado[2:]
 
                     if float(dadosCarregadosArduino['u']) > 0:
-                        yDadosUmidade.append(float(dadosCarregadosArduino['u']))
+                        yDadosUmidade.append(
+                            float(dadosCarregadosArduino['u'])
+                        )
                     if float(dadosCarregadosArduino['p']) > 0:
-                        yDadosPressao.append(float(dadosCarregadosArduino['p']))
+                        yDadosPressao.append(
+                            float(dadosCarregadosArduino['p'])
+                        )
                     if float(dadosCarregadosArduino['1']) > 0:
-                        yDadosTemperaturaInterna.append(float(dadosCarregadosArduino['1']))
+                        yDadosTemperaturaInterna.append(
+                            float(dadosCarregadosArduino['1'])
+                        )
                     if float(dadosCarregadosArduino['2']) > 0:
-                        yDadosTemperaturaExterna.append(float(dadosCarregadosArduino['2']))
+                        yDadosTemperaturaExterna.append(
+                            float(dadosCarregadosArduino['2'])
+                        )
 
                     self.registradorDadosArquivo(dadosCarregadosArduino)
 
                     self.enviarDadosTempoRealParaLCD(dadosCarregadosArduino)
 
                     contadorSegundos = next(cS)
-                    self.atualizarBarraProgresso(tempoEmSegundos, contadorSegundos)
-                    self.atualizarTempoRestante(tempoEmSegundos, contadorSegundos)
+                    self.atualizarBarraProgresso(
+                        tempoEmSegundos, contadorSegundos
+                    )
+                    self.atualizarTempoRestante(
+                        tempoEmSegundos, contadorSegundos
+                    )
 
                     terminoDelimitadorDeTempo: float = time.time()
-                    while (terminoDelimitadorDeTempo - inicioDelimitadorDeTempo) < 1:
+                    while (
+                        terminoDelimitadorDeTempo - inicioDelimitadorDeTempo
+                    ) < 1:
                         terminoDelimitadorDeTempo = time.time()
 
                 contadorParciais = next(cP)
-                plotGrafico.plotadorPDF(yDadosUmidade, 'umi', 'umi')
-                plotGrafico.plotadorPDF(yDadosPressao, 'press', 'press')
-                plotGrafico.plotadorPDF(yDadosTemperaturaInterna, 'tempInt', 'temp')
-                plotGrafico.plotadorPDF(yDadosTemperaturaExterna, 'tempExt', 'temp')
+                plotGrafico.plotadorPDF(
+                    yDadosUmidade, 'umi', 'umi'
+                )
+                plotGrafico.plotadorPDF(
+                    yDadosPressao, 'press', 'press'
+                )
+                plotGrafico.plotadorPDF(
+                    yDadosTemperaturaInterna, 'tempInt', 'temp'
+                )
+                plotGrafico.plotadorPDF(
+                    yDadosTemperaturaExterna, 'tempExt', 'temp'
+                    )
 
                 self.saidaDadosEmail.emit(
                                 inicioParcial,
@@ -391,7 +458,9 @@ class EntradaError(Exception):
 class ConexaoUSB():
     def __init__(self, caminhoPorta: str) -> None:
         self.caminho: str = caminhoPorta
-        self.conexaoArduino: Serial = Serial(self.caminho, 9600, timeout=1, bytesize=serial.EIGHTBITS)
+        self.conexaoArduino: Serial = Serial(
+            self.caminho, 9600, timeout=1, bytesize=serial.EIGHTBITS
+        )
 
     def conectPortaUSB(self) -> Serial:
         try:
@@ -410,10 +479,18 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         super().setupUi(self)
         self.btnInciarEstacao.clicked.connect(self.executarMainEstacao)
         self.btnPararEstacao.clicked.connect(self.pararWorker)
-        self.btnSalvarUsuarioSenha.clicked.connect(self.adicionarEmailRemetenteSenha)
-        self.btnAdicionarDestinatario.clicked.connect(self.adicionarEmailDestinatarios)
-        self.btnExcluirDestinatario.clicked.connect(self.deletarEmailDestinatario)
-        self.btnTesteConexao.clicked.connect(self.executarEmailTeste)
+        self.btnSalvarUsuarioSenha.clicked.connect(
+            self.adicionarEmailRemetenteSenha
+        )
+        self.btnAdicionarDestinatario.clicked.connect(
+            self.adicionarEmailDestinatarios
+        )
+        self.btnExcluirDestinatario.clicked.connect(
+            self.deletarEmailDestinatario
+        )
+        self.btnTesteConexao.clicked.connect(
+            self.executarEmailTeste
+        )
         self.btnPararEstacao.setEnabled(False)
         self.modeloInfo = QStandardItemModel()
         self.saidaDetalhes.setModel(self.modeloInfo)
@@ -470,21 +547,41 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             portaArduino: ConexaoUSB = ConexaoUSB(self.porta)
             pA: Serial = portaArduino.conectPortaUSB()
             self.estacaoThread = QThread(parent=self)
-            self.estacaoWorker = WorkerEstacao(portaArduino=pA, tempoGrafico=self.receptorTempoGraficos)
+            self.estacaoWorker = WorkerEstacao(
+                portaArduino=pA, tempoGrafico=self.receptorTempoGraficos
+            )
             self.estacaoWorker.moveToThread(self.estacaoThread)
-            self.estacaoWorker.finalizar.connect(self.estacaoThread.quit)
-            self.estacaoWorker.finalizar.connect(self.estacaoWorker.deleteLater)
-            self.estacaoWorker.finalizar.connect(self.estacaoThread.deleteLater)
-            self.estacaoWorker.finalizar.connect(portaArduino.desconectarPortaUSB)
+            self.estacaoWorker.finalizar.connect(
+                self.estacaoThread.quit
+            )
+            self.estacaoWorker.finalizar.connect(
+                self.estacaoWorker.deleteLater
+            )
+            self.estacaoWorker.finalizar.connect(
+                self.estacaoThread.deleteLater
+            )
+            self.estacaoWorker.finalizar.connect(
+                portaArduino.desconectarPortaUSB
+            )
             self.estacaoThread.started.connect(self.estacaoWorker.run)
             self.estacaoThread.start()
-            self.estacaoWorker.barraProgresso.connect(self.mostrardorDisplayBarraProgresso)
-            self.estacaoWorker.saidaInfoInicio.connect(self.mostradorDisplayInfo)
-            self.estacaoWorker.saidaDadosLCD.connect(self.mostradorDisplayLCDDados)
+            self.estacaoWorker.barraProgresso.connect(
+                self.mostrardorDisplayBarraProgresso
+            )
+            self.estacaoWorker.saidaInfoInicio.connect(
+                self.mostradorDisplayInfo
+            )
+            self.estacaoWorker.saidaDadosLCD.connect(
+                self.mostradorDisplayLCDDados
+            )
             self.estacaoWorker.saidaData.connect(self.mostradorLabelDataHora)
             self.estacaoWorker.saidaDadosEmail.connect(self.executarEmail)
-            self.estacaoWorker.mostradorTempoRestante.connect(self.mostradorDisplayLCDTempoRestante)
-            self.estacaoThread.finished.connect(lambda: self.btnInciarEstacao.setEnabled(True))
+            self.estacaoWorker.mostradorTempoRestante.connect(
+                self.mostradorDisplayLCDTempoRestante
+            )
+            self.estacaoThread.finished.connect(
+                lambda: self.btnInciarEstacao.setEnabled(True)
+            )
             self.portaArduino.setEnabled(False)
             self.tempoGraficos.setEnabled(False)
         except Exception as e:
@@ -505,11 +602,13 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
                       pressmax, pressmini, fim, path) -> None:
         try:
             self.emailThread = QThread(parent=None)
-            self.emailWorker = WorkerEmail(inicio=inicio, umi=umi, press=press, t1=t1,
-                                           t2=t2, t1max=t1max, t1min=t1min, t2max=t2max,
-                                           t2min=t2min, umimax=umimax, umimini=umimini,
-                                           pressmax=pressmax, pressmini=pressmini,
-                                           fim=fim, path=path)
+            self.emailWorker = WorkerEmail(
+                inicio=inicio, umi=umi, press=press, t1=t1,
+                t2=t2, t1max=t1max, t1min=t1min, t2max=t2max,
+                t2min=t2min, umimax=umimax, umimini=umimini,
+                pressmax=pressmax, pressmini=pressmini,
+                fim=fim, path=path
+            )
             self.emailWorker.moveToThread(self.emailThread)
             self.emailThread.started.connect(self.emailWorker.run)
             self.emailThread.start()
@@ -543,8 +642,13 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             if len(meu_email()) == 1 and len(minha_senha()) == 1:
                 email = ''.join(meu_email())
                 senha = ''.join(minha_senha())
-                self.statusRemetenteSenha.setText(f'Dados Atuais: Email: {email} | '
-                                                  f'Senha: {"".join([caractere.replace(caractere, "*") for caractere in senha])}')
+                senhaOculta = "".join(
+                    [caractere.replace(caractere, "*") for caractere in senha]
+                )
+                self.statusRemetenteSenha.setText(
+                    f'Dados Atuais: Email: {email} | '
+                    f'Senha: {senhaOculta}'
+                )
             else:
                 self.statusRemetenteSenha.setText('Os dados de e-mail e/ou a \
                     senha do remetente não estão definidos')
@@ -585,7 +689,9 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             emailDestinatarios = my_recipients()
             self.tabelaDestinatarios.setRowCount(len(emailDestinatarios))
             for linha, email in enumerate(emailDestinatarios):
-                self.tabelaDestinatarios.setItem(linha, 0, QTableWidgetItem(email))
+                self.tabelaDestinatarios.setItem(
+                    linha, 0, QTableWidgetItem(email)
+                )
         except Exception:
             self.statusOperacoes.setText('Defina as configurações de e-mail.')
 
@@ -594,7 +700,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             emailSelecionado: str = self.tabelaDestinatarios.currentItem().text().strip()
             return emailSelecionado
         except Exception:
-            return None
+            return ''
 
     def deletarEmailDestinatario(self) -> None:
         try:
@@ -610,7 +716,9 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
                 if len(emailDestinatarios) == 0:
                     self.statusOperacoes.setText('Não há itens para mostrar.')
                 else:
-                    self.statusOperacoes.setText('Selecione um email na tabela.')
+                    self.statusOperacoes.setText(
+                        'Selecione um email na tabela.'
+                    )
         except Exception as e:
             self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
 
@@ -619,7 +727,9 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             emailDestinatario: str = self.adicionarDestinatario.text().strip()
             if emailDestinatario:
                 self.defineArquivoDestinatarios(emailDestinatario)
-                self.statusOperacoes.setText(f'{emailDestinatario}: Dado gravado com sucesso.')
+                self.statusOperacoes.setText(
+                    f'{emailDestinatario}: Dado gravado com sucesso.'
+                )
                 self.manipuladorDestinatarios()
                 self.adicionarDestinatario.clear()
             else:
@@ -634,11 +744,17 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             self.emailTesteWorker.moveToThread(self.emailTesteThread)
             self.emailTesteThread.started.connect(self.emailTesteWorker.run)
             self.emailTesteThread.start()
-            self.emailTesteWorker.msgEnvio.connect(lambda msg: self.statusOperacoes.setText(msg))
+            self.emailTesteWorker.msgEnvio.connect(
+                lambda msg: self.statusOperacoes.setText(msg)
+            )
             self.emailTesteWorker.termino.connect(self.emailTesteThread.quit)
             self.emailTesteWorker.termino.connect(self.emailTesteThread.wait)
-            self.emailTesteWorker.termino.connect(self.emailTesteThread.deleteLater)
-            self.emailTesteWorker.termino.connect(self.emailTesteWorker.deleteLater)
+            self.emailTesteWorker.termino.connect(
+                self.emailTesteThread.deleteLater
+            )
+            self.emailTesteWorker.termino.connect(
+                self.emailTesteWorker.deleteLater
+            )
         except Exception as e:
             self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
 
