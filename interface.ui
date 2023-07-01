@@ -1708,9 +1708,6 @@
                  <property name="text">
                   <string>E-mail Destinatário</string>
                  </property>
-                 <property name="textAlignment">
-                  <set>AlignCenter</set>
-                 </property>
                 </column>
                </widget>
               </item>

@@ -1,6 +1,6 @@
 '''
-Este modulo faz a leitura do email, senha e destinatários de um arquivo externo, que deve estar na
-mesma pasta que o executável Python
+Este modulo faz a leitura do email, senha e destinatários de um arquivo
+externo, que deve estar na mesma pasta que o executável Python.
 '''
 
 

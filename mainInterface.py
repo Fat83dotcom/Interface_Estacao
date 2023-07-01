@@ -1,766 +1,943 @@
-import os
-import sys
-import csv
-import time
-import serial
-import smtplib
-import matplotlib.pyplot as plt
-import matplotlib.backends.backend_pdf
-from time import sleep
-from serial import Serial
-from itertools import count
-from statistics import mean
-from string import Template
-from interface import Ui_MainWindow
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from email.mime.application import MIMEApplication
-from PyQt5.QtGui import QStandardItemModel, QStandardItem
-from PyQt5.QtWidgets import QMainWindow, QApplication, QTableWidgetItem
-from PyQt5.QtCore import QThread, QObject, pyqtSignal, QMutex, pyqtSlot
-from manipuladoresArquivos import meu_email, minha_senha, my_recipients
-from funcoesGlobais import maximos, minimos, dataInstantanea, dataDoArquivo
-
-
-class PlotterGraficoPDF:
-    def __init__(self, dataInicio: str, caminhoDiretorioPrograma: str) -> None:
-        self.dtInicio = dataInicio
-        self.caminhoDiretorioPrograma = caminhoDiretorioPrograma
-        self.tipoGrafico = {
-            'umi': 'Umidade',
-            'press': 'Pressao',
-            'tempInt': 'Temperatura_Interna',
-            'tempExt': 'Temperatura_Externa',
-        }
-        self.grandeza = {
-            'temp': 'Temperatura em °C',
-            'press': 'Pressão Atmosférica em hPa',
-            'umi': 'Umidade Relativa do Ar %',
-        }
-
-    def geradorCaminhoArquivoPDF(self, tipoGrafico: str) -> str:
-        """
-            Argumentos que devem ser passados para cada situação:
-            Tipos de Gráfico -> 'umi', 'press', 'tempInt', 'tempExt'
-        """
-        arquivoPDF = f'{self.caminhoDiretorioPrograma}/{self.tipoGrafico[tipoGrafico]}{self.dtInicio}.pdf'
-        return arquivoPDF
-
-    def plotadorPDF(
-        self, dadosEixo_Y: list, tipoGrafico: str, grandezaEixo_Y: str
-    ) -> None:
-        """
-            Argumentos que devem ser passados para cada situação:
-            tipoGrafico -> 'umi', 'press', 'tempInt', 'tempExt'
-            Grandezas -> 'temp', 'press', 'umi'
-        """
-        tituloGrafico1 = f'{self.tipoGrafico[tipoGrafico]}\n-> Inicio: {self.dtInicio} <-|-> Termino: {dataInstantanea()} '
-        tituloGrafico2 = f' <-\nMáxima: {maximos(dadosEixo_Y)} --- Mínima: {minimos(dadosEixo_Y)}'
-        try:
-            tempoEixo_X = range(len(dadosEixo_Y))
-            arquivoPDF = self.geradorCaminhoArquivoPDF(tipoGrafico)
-            plt.title(
-                f'{tituloGrafico1}{tituloGrafico2}'
-            )
-            plt.xlabel('Tempo em segundos.')
-            plt.ylabel(self.grandeza[grandezaEixo_Y])
-            plt.plot(tempoEixo_X, dadosEixo_Y)
-            plt.savefig(arquivoPDF)
-            plt.clf()
-        except (ValueError, Exception) as e:
-            raise e
-
-    def apagadorArquivosPDF(self, tipoGrafico: str) -> None:
-        """
-            Argumentos que devem ser passados para cada situação:
-            Tipos de Gráfico -> 'umi', 'press', 'tempInt', 'tempExt'
-        """
-        try:
-            os.remove(self.geradorCaminhoArquivoPDF(tipoGrafico))
-        except Exception as e:
-            raise e
-
-
-class TransSegundos:
-    def __init__(self, horas) -> None:
-        self.horas = horas
-
-    def conversorHorasSegundo(self) -> int:
-        horas = self.horas[:2]
-        minutos = self.horas[3:]
-        segundos = int(int(horas) * 3600 + int(minutos) * 60)
-        return segundos
-
-
-class WorkerEmailTesteConexao(QObject):
-    termino = pyqtSignal()
-    msgEnvio = pyqtSignal(str)
-
-    def __init__(self, parent=None) -> None:
-        super().__init__(parent)
-
-    def run(self) -> None:
-        try:
-            msgErro = 'Não foi possivel enviar o email. Motivo:'
-            usuario = ''.join(meu_email())
-            msg = MIMEMultipart()
-            msg['from'] = usuario
-            msg['to'] = usuario
-            msg['subject'] = f'Teste de Conexão {dataInstantanea()}'
-            with open('emailTeste.html', 'r') as page:
-                email = page.read()
-                template = Template(email)
-                htmlEmail = template.safe_substitute(usuario=usuario)
-            corpo = MIMEText(htmlEmail, 'html')
-            msg.attach(corpo)
-            try:
-                with smtplib.SMTP(host='smtp.gmail.com', port=587) as smtp:
-                    smtp.ehlo()
-                    smtp.starttls()
-                    smtp.login(usuario, ''.join(minha_senha()))
-                    smtp.send_message(msg)
-                    self.msgEnvio.emit('Email enviado com sucesso.')
-            except Exception as e:
-                self.msgEnvio.emit(
-                    f'{msgErro} {e.__class__.__name__}: {e}'
-                )
-                self.termino.emit()
-        except Exception as e:
-            self.msgEnvio.emit(
-                f'{msgErro} {e.__class__.__name__}: {e}')
-            self.termino.emit()
-        self.termino.emit()
-
-
-class WorkerEmail(QObject):
-    termino = pyqtSignal()
-    msgEnvio = pyqtSignal(str)
-
-    def __init__(self, inicio, umi, press, t1, t2, t1max,
-                 t1min, t2max, t2min, umimax, umimini,
-                 pressmax, pressmini, fim, path, parent=None) -> None:
-        super().__init__(parent)
-        self.inicio = inicio
-        self.path = path
-        self.umi = umi
-        self.press = press
-        self.t1 = t1
-        self.t2 = t2
-        self.t1max = t1max
-        self.t1min = t1min
-        self.t2max = t2max
-        self.t2min = t2min
-        self.umimax = umimax
-        self.umimini = umimini
-        self.pressmax = pressmax
-        self.pressmini = pressmini
-        self.fim = fim
-        self.servicosArquivosPDF = PlotterGraficoPDF(self.inicio, self.path)
-
-    def anexadorPdf(self, enderecoPdf, msg) -> MIMEApplication:
-        with open(enderecoPdf, 'rb') as pdf:
-            anexo = MIMEApplication(pdf.read(), _subtype='pdf')
-            anexo.add_header('Conteudo', enderecoPdf)
-        return anexo
-
-    def renderizadorHtml(self, umidade, pressao, temp1, temp2, temp1max,
-                         temp1min,
-                         temp2max, temp2min, umima, umimi, pressma, pressmi,
-                         inicio, fim, data
-                         ) -> str:
-        with open('template.html', 'r') as doc:
-            template = Template(doc.read())
-            corpo_msg = template.safe_substitute(
-                umi=umidade, press=pressao, t1=temp1, t2=temp2,
-                t1max=temp1max, t1min=temp1min, t2max=temp2max,
-                t2min=temp2min, umimax=umima, umimini=umimi,
-                pressmax=pressma, pressmini=pressmi, ini=inicio,
-                fim=fim, dat=data
-            )
-        return corpo_msg
-
-    @pyqtSlot()
-    def run(self) -> None:
-        msgSubject = 'Monitor Estação Metereologica ©BrainStorm Tecnologia'
-        try:
-            umidade = self.servicosArquivosPDF.geradorCaminhoArquivoPDF(
-                'umi'
-            )
-            pressao = self.servicosArquivosPDF.geradorCaminhoArquivoPDF(
-                'press'
-            )
-            tmp1 = self.servicosArquivosPDF.geradorCaminhoArquivoPDF(
-                'tempInt'
-            )
-            temp2 = self.servicosArquivosPDF.geradorCaminhoArquivoPDF(
-                'tempExt'
-            )
-            msg = MIMEMultipart()
-            msg['from'] = ''.join(meu_email())
-            msg['to'] = ','.join(my_recipients())
-            msg['subject'] = f'{msgSubject} {dataInstantanea()}'
-            corpo = MIMEText(
-                self.renderizadorHtml(
-                    self.umi, self.press, self.t1, self.t2,
-                    self.t1max, self.t1min, self.t2max, self.t2min,
-                    self.umimax, self.umimini, self.pressmax, self.pressmini,
-                    self.inicio, self.fim, dataInstantanea()
-                ), 'html'
-            )
-            msg.attach(corpo)
-            msg.attach(self.anexadorPdf(umidade, msg))
-            msg.attach(self.anexadorPdf(pressao, msg))
-            msg.attach(self.anexadorPdf(tmp1, msg))
-            msg.attach(self.anexadorPdf(temp2, msg))
-
-            with smtplib.SMTP(host='smtp.gmail.com', port=587) as smtp:
-                smtp.ehlo()
-                smtp.starttls()
-                smtp.login(''.join(meu_email()), ''.join(minha_senha()))
-                smtp.send_message(msg)
-                self.msgEnvio.emit('Email enviado com sucesso.')
-        except Exception as e:
-            self.msgEnvio.emit('Não foi possivel enviar o email.')
-            self.msgEnvio.emit(f'Motivo: {e.__class__.__name__}: {e}')
-        finally:
-            self.servicosArquivosPDF.apagadorArquivosPDF('umi')
-            self.servicosArquivosPDF.apagadorArquivosPDF('press')
-            self.servicosArquivosPDF.apagadorArquivosPDF('tempInt')
-            self.servicosArquivosPDF.apagadorArquivosPDF('tempExt')
-        self.termino.emit()
-
-
-class WorkerEstacao(QObject):
-    finalizar = pyqtSignal()
-    saidaData = pyqtSignal(str)
-    saidaDadosLCD = pyqtSignal(list)
-    barraProgresso = pyqtSignal(int)
-    saidaInfoInicio = pyqtSignal(str)
-    mostradorTempoRestante = pyqtSignal(int)
-    saidaDadosEmail = pyqtSignal(
-        str, float, float, float, float, float, float,
-        float, float, float, float, float, float, str, str
-    )
-
-    def __init__(
-                self, portaArduino: Serial, tempoGrafico: int, parent=None
-            ) -> None:
-        super().__init__(parent)
-        self.mutex = QMutex()
-        self.porta: Serial = portaArduino
-        self.paradaPrograma: bool = False
-        self.tempoConvertido: int = tempoGrafico
-        self.arduino = portaArduino
-
-    def porcentagem(self, totalVoltas: int, voltaAtual: int) -> int:
-        porcentagem: float = voltaAtual * 100 / totalVoltas
-        return int(porcentagem)
-
-    @pyqtSlot()
-    def parar(self) -> None:
-        self.mutex.lock()
-        self.paradaPrograma = True
-        self.mutex.unlock()
-
-    def carregadorDados(self) -> list:
-        cargaDadosArduino: list = []
-        self.arduino.reset_input_buffer()
-        while len(cargaDadosArduino) < 4:
-            self.arduino.write('u'.encode('utf-8'))
-            sleep(0.1)
-            if self.arduino.in_waiting:
-                dado = self.arduino.readline().decode('utf-8')
-                cargaDadosArduino.append(dado.strip())
-            self.arduino.write('p'.encode('utf-8'))
-            sleep(0.1)
-            if self.arduino.in_waiting:
-                dado = self.arduino.readline().decode('utf-8')
-                cargaDadosArduino.append(dado.strip())
-            self.arduino.write('1'.encode('utf-8'))
-            sleep(0.1)
-            if self.arduino.in_waiting:
-                dado = self.arduino.readline().decode('utf-8')
-                cargaDadosArduino.append(dado.strip())
-            self.arduino.write('2'.encode('utf-8'))
-            sleep(0.1)
-            if self.arduino.in_waiting:
-                dado = self.arduino.readline().decode('utf-8')
-                cargaDadosArduino.append(dado.strip())
-        return cargaDadosArduino
-
-    def enviarDadosTempoRealParaLCD(self, dados: dict) -> None:
-        dadosMostradorLcd: list = []
-        dadosMostradorLcd.append(dados["u"])
-        dadosMostradorLcd.append(dados["p"])
-        dadosMostradorLcd.append(dados["1"])
-        dadosMostradorLcd.append(dados["2"])
-        self.saidaData.emit(dataInstantanea())
-        self.saidaDadosLCD.emit(dadosMostradorLcd)
-
-    def atualizarBarraProgresso(self, tempoTotal, tempoCorrente) -> None:
-        percentTempoCorrido: int = self.porcentagem(tempoTotal, tempoCorrente)
-        self.barraProgresso.emit(percentTempoCorrido)
-
-    def atualizarTempoRestante(self, tempoTotal, tempoCorrente) -> None:
-        self.mostradorTempoRestante.emit((tempoTotal - tempoCorrente))
-
-    def registradorDadosArquivo(self, dadosAGravar: dict) -> None:
-        with open(dataDoArquivo(), 'a+', newline='', encoding='utf-8') as log:
-            try:
-                if float(dadosAGravar['u']) and float(dadosAGravar['p']) and \
-                     float(dadosAGravar['1']) and float(dadosAGravar['2']) != 0:
-                    w = csv.writer(log)
-                    w.writerow(
-                        [
-                            dataInstantanea(), dadosAGravar['u'],
-                            dadosAGravar['p'], dadosAGravar['1'],
-                            dadosAGravar['2']
-                        ]
-                    )
-            except (ValueError, Exception) as e:
-                self.saidaInfoInicio.emit(
-                    ' ATENÇÃO: Erro ao registrar dados no arquivo !!!'
-                )
-                self.saidaInfoInicio.emit(
-                    f'ERRO: {e.__class__.__name__} -> {e}'
-                )
-
-    @pyqtSlot()
-    def run(self) -> None:
-        try:
-            caminhoDiretorio: str = os.path.dirname(os.path.realpath(__file__))
-            cP = count()
-            contadorParciais: int = next(cP)
-
-            while not self.paradaPrograma:
-                if contadorParciais == 0:
-                    tempoEmSegundos = self.tempoConvertido
-                    self.saidaInfoInicio.emit(
-                        f'Inicio: --> {dataInstantanea()} <--'
-                    )
-                else:
-                    self.saidaInfoInicio.emit(
-                        f'Parcial {contadorParciais} -> {dataInstantanea()} <-'
-                    )
-
-                inicioParcial: str = dataInstantanea()
-
-                plotGrafico = PlotterGraficoPDF(
-                    inicioParcial, caminhoDiretorio
-                )
-
-                yDadosUmidade: list[float] = []
-                yDadosPressao: list[float] = []
-                yDadosTemperaturaInterna: list[float] = []
-                yDadosTemperaturaExterna: list[float] = []
-
-                cS = count()
-                contadorSegundos: int = next(cS)
-
-                while (
-                    contadorSegundos < tempoEmSegundos
-                ) and not self.paradaPrograma:
-                    inicioDelimitadorDeTempo: float = time.time()
-                    dadosCarregadosArduino: dict = {
-                        'u': '',
-                        'p': '',
-                        '1': '',
-                        '2': ''
-                    }
-
-                    tratamentoCarga: list = self.carregadorDados()
-                    if len(tratamentoCarga) > 4:
-                        for _ in range(len(tratamentoCarga) - 4):
-                            tratamentoCarga.pop()
-                    for dado in tratamentoCarga:
-                        dadosCarregadosArduino[dado[0]] = dado[2:]
-
-                    if float(dadosCarregadosArduino['u']) > 0:
-                        yDadosUmidade.append(
-                            float(dadosCarregadosArduino['u'])
-                        )
-                    if float(dadosCarregadosArduino['p']) > 0:
-                        yDadosPressao.append(
-                            float(dadosCarregadosArduino['p'])
-                        )
-                    if float(dadosCarregadosArduino['1']) > 0:
-                        yDadosTemperaturaInterna.append(
-                            float(dadosCarregadosArduino['1'])
-                        )
-                    if float(dadosCarregadosArduino['2']) > 0:
-                        yDadosTemperaturaExterna.append(
-                            float(dadosCarregadosArduino['2'])
-                        )
-
-                    self.registradorDadosArquivo(dadosCarregadosArduino)
-
-                    self.enviarDadosTempoRealParaLCD(dadosCarregadosArduino)
-
-                    contadorSegundos = next(cS)
-                    self.atualizarBarraProgresso(
-                        tempoEmSegundos, contadorSegundos
-                    )
-                    self.atualizarTempoRestante(
-                        tempoEmSegundos, contadorSegundos
-                    )
-
-                    terminoDelimitadorDeTempo: float = time.time()
-                    while (
-                        terminoDelimitadorDeTempo - inicioDelimitadorDeTempo
-                    ) < 1:
-                        terminoDelimitadorDeTempo = time.time()
-
-                contadorParciais = next(cP)
-                plotGrafico.plotadorPDF(
-                    yDadosUmidade, 'umi', 'umi'
-                )
-                plotGrafico.plotadorPDF(
-                    yDadosPressao, 'press', 'press'
-                )
-                plotGrafico.plotadorPDF(
-                    yDadosTemperaturaInterna, 'tempInt', 'temp'
-                )
-                plotGrafico.plotadorPDF(
-                    yDadosTemperaturaExterna, 'tempExt', 'temp'
-                    )
-
-                self.saidaDadosEmail.emit(
-                                inicioParcial,
-                                round(mean(yDadosUmidade), 2),
-                                round(mean(yDadosPressao), 2),
-                                round(mean(yDadosTemperaturaInterna), 2),
-                                round(mean(yDadosTemperaturaExterna), 2),
-                                maximos(yDadosTemperaturaInterna),
-                                minimos(yDadosTemperaturaInterna),
-                                maximos(yDadosTemperaturaExterna),
-                                minimos(yDadosTemperaturaExterna),
-                                maximos(yDadosUmidade),
-                                minimos(yDadosUmidade),
-                                maximos(yDadosPressao),
-                                minimos(yDadosPressao),
-                                dataInstantanea(),
-                                caminhoDiretorio)
-
-            self.saidaInfoInicio.emit('Programa Parado !!!')
-            self.barraProgresso.emit(0)
-            self.finalizar.emit()
-        except (ValueError, Exception) as e:
-            self.saidaInfoInicio.emit(f'{e.__class__.__name__}: {e}')
-            self.saidaInfoInicio.emit('Programa Parado !!!')
-            self.barraProgresso.emit(0)
-            self.finalizar.emit()
-
-
-class EntradaError(Exception):
-    ...
-
-
-class ConexaoUSB():
-    def __init__(self, caminhoPorta: str) -> None:
-        self.caminho: str = caminhoPorta
-        self.conexaoArduino: Serial = Serial(
-            self.caminho, 9600, timeout=1, bytesize=serial.EIGHTBITS
-        )
-
-    def conectPortaUSB(self) -> Serial:
-        try:
-            self.conexaoArduino.reset_input_buffer()
-            return self.conexaoArduino
-        except Exception as e:
-            raise e
-
-    def desconectarPortaUSB(self) -> None:
-        self.conexaoArduino.close()
-
-
-class InterfaceEstacao(QMainWindow, Ui_MainWindow):
-    def __init__(self, parent=None) -> None:
-        super().__init__(parent)
-        super().setupUi(self)
-        self.btnInciarEstacao.clicked.connect(self.executarMainEstacao)
-        self.btnPararEstacao.clicked.connect(self.pararWorker)
-        self.btnSalvarUsuarioSenha.clicked.connect(
-            self.adicionarEmailRemetenteSenha
-        )
-        self.btnAdicionarDestinatario.clicked.connect(
-            self.adicionarEmailDestinatarios
-        )
-        self.btnExcluirDestinatario.clicked.connect(
-            self.deletarEmailDestinatario
-        )
-        self.btnTesteConexao.clicked.connect(
-            self.executarEmailTeste
-        )
-        self.btnPararEstacao.setEnabled(False)
-        self.modeloInfo = QStandardItemModel()
-        self.saidaDetalhes.setModel(self.modeloInfo)
-        self.manipuladorRemetenteSenha()
-        self.manipuladorDestinatarios()
-
-    def mostrardorDisplayBarraProgresso(self, percent) -> None:
-        self.barraProgresso.setValue(percent)
-
-    def mostradorDisplayInfo(self, info) -> None:
-        self.modeloInfo.appendRow(QStandardItem(info))
-
-    def mostradorDisplayLCDTempoRestante(self, valor) -> None:
-        self.visorTempoRestante.display(valor)
-        self.visorTempoRestante_2.display(valor)
-
-    def mostradorDisplayLCDTempoDefinido(self, valor) -> None:
-        self.tempoDefinido.display(valor)
-        self.tempoDefinido_2.display(valor)
-
-    def mostradorDisplayLCDDados(self, dados: list) -> None:
-        self.dadoUmidade.display(dados[0])
-        self.dadoPressao.display(dados[1])
-        self.dadoTempInterna.display(dados[2])
-        self.dadoTempExterna.display(dados[3])
-
-    def mostradorLabelDataHora(self, dt_hr) -> None:
-        self.dadosHoraData.setText(dt_hr)
-
-    def retornarBotoesInicio(self) -> None:
-        self.btnInciarEstacao.setEnabled(True)
-        self.btnPararEstacao.setEnabled(False)
-
-    def executarMainEstacao(self) -> None:
-        self.btnInciarEstacao.setEnabled(False)
-        self.btnPararEstacao.setEnabled(True)
-        self.porta = self.portaArduino.text()
-        if self.porta == '':
-            self.mostradorDisplayInfo('Entre com uma porta válida.')
-            self.retornarBotoesInicio()
-            return
-        try:
-            self.receptorTempoGraficos = self.tempoGraficos.text()
-            t = TransSegundos(self.receptorTempoGraficos)
-            self.receptorTempoGraficos = t.conversorHorasSegundo()
-            self.mostradorDisplayLCDTempoDefinido(self.receptorTempoGraficos)
-            if self.receptorTempoGraficos <= 0:
-                self.retornarBotoesInicio()
-                raise EntradaError('Tempo não pode ser menor ou igual a Zero.')
-        except Exception as e:
-            self.mostradorDisplayInfo(f'{e.__class__.__name__}: {e}')
-            return
-        try:
-            portaArduino: ConexaoUSB = ConexaoUSB(self.porta)
-            pA: Serial = portaArduino.conectPortaUSB()
-            self.estacaoThread = QThread(parent=self)
-            self.estacaoWorker = WorkerEstacao(
-                portaArduino=pA, tempoGrafico=self.receptorTempoGraficos
-            )
-            self.estacaoWorker.moveToThread(self.estacaoThread)
-            self.estacaoWorker.finalizar.connect(
-                self.estacaoThread.quit
-            )
-            self.estacaoWorker.finalizar.connect(
-                self.estacaoWorker.deleteLater
-            )
-            self.estacaoWorker.finalizar.connect(
-                self.estacaoThread.deleteLater
-            )
-            self.estacaoWorker.finalizar.connect(
-                portaArduino.desconectarPortaUSB
-            )
-            self.estacaoThread.started.connect(self.estacaoWorker.run)
-            self.estacaoThread.start()
-            self.estacaoWorker.barraProgresso.connect(
-                self.mostrardorDisplayBarraProgresso
-            )
-            self.estacaoWorker.saidaInfoInicio.connect(
-                self.mostradorDisplayInfo
-            )
-            self.estacaoWorker.saidaDadosLCD.connect(
-                self.mostradorDisplayLCDDados
-            )
-            self.estacaoWorker.saidaData.connect(self.mostradorLabelDataHora)
-            self.estacaoWorker.saidaDadosEmail.connect(self.executarEmail)
-            self.estacaoWorker.mostradorTempoRestante.connect(
-                self.mostradorDisplayLCDTempoRestante
-            )
-            self.estacaoThread.finished.connect(
-                lambda: self.btnInciarEstacao.setEnabled(True)
-            )
-            self.portaArduino.setEnabled(False)
-            self.tempoGraficos.setEnabled(False)
-        except Exception as e:
-            self.mostradorDisplayInfo(f'{e.__class__.__name__}: {e}')
-            self.retornarBotoesInicio()
-            return
-
-    def pararWorker(self) -> None:
-        self.estacaoWorker.parar()
-        self.estacaoThread.quit()
-        self.estacaoThread.wait()
-        self.btnPararEstacao.setEnabled(False)
-        self.portaArduino.setEnabled(True)
-        self.tempoGraficos.setEnabled(True)
-
-    def executarEmail(self, inicio, umi, press, t1, t2, t1max,
-                      t1min, t2max, t2min, umimax, umimini,
-                      pressmax, pressmini, fim, path) -> None:
-        try:
-            self.emailThread = QThread(parent=None)
-            self.emailWorker = WorkerEmail(
-                inicio=inicio, umi=umi, press=press, t1=t1,
-                t2=t2, t1max=t1max, t1min=t1min, t2max=t2max,
-                t2min=t2min, umimax=umimax, umimini=umimini,
-                pressmax=pressmax, pressmini=pressmini,
-                fim=fim, path=path
-            )
-            self.emailWorker.moveToThread(self.emailThread)
-            self.emailThread.started.connect(self.emailWorker.run)
-            self.emailThread.start()
-            self.emailWorker.msgEnvio.connect(self.mostradorDisplayInfo)
-            self.emailWorker.termino.connect(self.emailThread.quit)
-            self.emailWorker.termino.connect(self.emailThread.wait)
-            self.emailWorker.termino.connect(self.emailThread.deleteLater)
-            self.emailWorker.termino.connect(self.emailWorker.deleteLater)
-        except Exception as e:
-            self.mostradorDisplayInfo(f'{e.__class__.__name__}: {e}')
-            return
-
-    def defineArquivoEmail(self, dadoUsuario: str) -> None:
-        with open('.EMAIL_USER_DATA.txt', 'w') as file:
-            file.write(dadoUsuario)
-
-    def defineArquivoSenha(self, dadoUsuario: str) -> None:
-        with open('.PASSWORD_USER_DATA.txt', 'w') as file:
-            file.write(dadoUsuario)
-
-    def defineArquivoDestinatarios(self, dadoUsuario: str) -> None:
-        with open('.RECIPIENTS_USER_DATA.txt', 'a') as file:
-            file.write(f'{dadoUsuario}\n')
-
-    def apagadorArquivo(self, caminhoArquivo: str) -> None:
-        with open(caminhoArquivo, 'w') as file:
-            file.write('')
-
-    def manipuladorRemetenteSenha(self) -> None:
-        try:
-            if len(meu_email()) == 1 and len(minha_senha()) == 1:
-                email = ''.join(meu_email())
-                senha = ''.join(minha_senha())
-                senhaOculta = "".join(
-                    [caractere.replace(caractere, "*") for caractere in senha]
-                )
-                self.statusRemetenteSenha.setText(
-                    f'Dados Atuais: Email: {email} | '
-                    f'Senha: {senhaOculta}'
-                )
-            else:
-                self.statusRemetenteSenha.setText('Os dados de e-mail e/ou a \
-                    senha do remetente não estão definidos')
-        except Exception as e:
-            self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
-
-    def adicionarEmailRemetenteSenha(self) -> None:
-        try:
-            self.statusOperacoes.setText('')
-            emailRemetente = self.emailUsuario.text()
-            senhaRemetente = self.senhaUsuario.text()
-            if emailRemetente == '' or senhaRemetente == '':
-                self.statusOperacoes.setText('Entre com o e-mail e senha ! ')
-                return None
-            else:
-                self.adicionarEmailRemetente(emailRemetente)
-                self.adicionarSenhaRemetente(senhaRemetente)
-                self.emailUsuario.clear()
-                self.senhaUsuario.clear()
-                self.manipuladorRemetenteSenha()
-        except Exception as e:
-            self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
-
-    def adicionarEmailRemetente(self, email: str) -> None:
-        try:
-            self.defineArquivoEmail(email)
-        except Exception as e:
-            self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
-
-    def adicionarSenhaRemetente(self, senha: str) -> None:
-        try:
-            self.defineArquivoSenha(senha)
-        except Exception as e:
-            self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
-
-    def manipuladorDestinatarios(self) -> None:
-        try:
-            emailDestinatarios = my_recipients()
-            self.tabelaDestinatarios.setRowCount(len(emailDestinatarios))
-            for linha, email in enumerate(emailDestinatarios):
-                self.tabelaDestinatarios.setItem(
-                    linha, 0, QTableWidgetItem(email)
-                )
-        except Exception:
-            self.statusOperacoes.setText('Defina as configurações de e-mail.')
-
-    def obterEmailDestinatario(self) -> str:
-        try:
-            emailSelecionado: str = self.tabelaDestinatarios.currentItem().text().strip()
-            return emailSelecionado
-        except Exception:
-            return ''
-
-    def deletarEmailDestinatario(self) -> None:
-        try:
-            emailDestinatarios: list = my_recipients()
-            emailDeletado = self.obterEmailDestinatario()
-            if emailDeletado:
-                emailDestinatarios.remove(emailDeletado)
-                self.apagadorArquivo('.RECIPIENTS_USER_DATA.txt')
-                for email in emailDestinatarios:
-                    self.defineArquivoDestinatarios(email)
-                self.manipuladorDestinatarios()
-            else:
-                if len(emailDestinatarios) == 0:
-                    self.statusOperacoes.setText('Não há itens para mostrar.')
-                else:
-                    self.statusOperacoes.setText(
-                        'Selecione um email na tabela.'
-                    )
-        except Exception as e:
-            self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
-
-    def adicionarEmailDestinatarios(self) -> None:
-        try:
-            emailDestinatario: str = self.adicionarDestinatario.text().strip()
-            if emailDestinatario:
-                self.defineArquivoDestinatarios(emailDestinatario)
-                self.statusOperacoes.setText(
-                    f'{emailDestinatario}: Dado gravado com sucesso.'
-                )
-                self.manipuladorDestinatarios()
-                self.adicionarDestinatario.clear()
-            else:
-                self.statusOperacoes.setText('Digite um e-mail')
-        except Exception as e:
-            self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
-
-    def executarEmailTeste(self) -> None:
-        try:
-            self.emailTesteThread = QThread(parent=None)
-            self.emailTesteWorker = WorkerEmailTesteConexao()
-            self.emailTesteWorker.moveToThread(self.emailTesteThread)
-            self.emailTesteThread.started.connect(self.emailTesteWorker.run)
-            self.emailTesteThread.start()
-            self.emailTesteWorker.msgEnvio.connect(
-                lambda msg: self.statusOperacoes.setText(msg)
-            )
-            self.emailTesteWorker.termino.connect(self.emailTesteThread.quit)
-            self.emailTesteWorker.termino.connect(self.emailTesteThread.wait)
-            self.emailTesteWorker.termino.connect(
-                self.emailTesteThread.deleteLater
-            )
-            self.emailTesteWorker.termino.connect(
-                self.emailTesteWorker.deleteLater
-            )
-        except Exception as e:
-            self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
-
-
-if __name__ == '__main__':
-    qt = QApplication(sys.argv)
-    iuEstacao = InterfaceEstacao()
-    iuEstacao.show()
-    qt.exec_()
+# -*- coding: utf-8 -*-
+
+################################################################################
+## Form generated from reading UI file 'interface.ui'
+##
+## Created by: Qt User Interface Compiler version 5.15.2
+##
+## WARNING! All changes made in this file will be lost when recompiling UI file!
+################################################################################
+
+from PySide2.QtCore import *
+from PySide2.QtGui import *
+from PySide2.QtWidgets import *
+
+import icons_rc
+
+class Ui_MainWindow(object):
+    def setupUi(self, MainWindow):
+        if not MainWindow.objectName():
+            MainWindow.setObjectName(u"MainWindow")
+        MainWindow.resize(686, 582)
+        sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(MainWindow.sizePolicy().hasHeightForWidth())
+        MainWindow.setSizePolicy(sizePolicy)
+        palette = QPalette()
+        brush = QBrush(QColor(255, 255, 255, 255))
+        brush.setStyle(Qt.SolidPattern)
+        palette.setBrush(QPalette.Active, QPalette.WindowText, brush)
+        brush1 = QBrush(QColor(36, 31, 49, 255))
+        brush1.setStyle(Qt.SolidPattern)
+        palette.setBrush(QPalette.Active, QPalette.Button, brush1)
+        brush2 = QBrush(QColor(54, 46, 73, 255))
+        brush2.setStyle(Qt.SolidPattern)
+        palette.setBrush(QPalette.Active, QPalette.Light, brush2)
+        brush3 = QBrush(QColor(45, 38, 61, 255))
+        brush3.setStyle(Qt.SolidPattern)
+        palette.setBrush(QPalette.Active, QPalette.Midlight, brush3)
+        brush4 = QBrush(QColor(18, 15, 24, 255))
+        brush4.setStyle(Qt.SolidPattern)
+        palette.setBrush(QPalette.Active, QPalette.Dark, brush4)
+        brush5 = QBrush(QColor(24, 21, 33, 255))
+        brush5.setStyle(Qt.SolidPattern)
+        palette.setBrush(QPalette.Active, QPalette.Mid, brush5)
+        palette.setBrush(QPalette.Active, QPalette.Text, brush)
+        palette.setBrush(QPalette.Active, QPalette.BrightText, brush)
+        palette.setBrush(QPalette.Active, QPalette.ButtonText, brush)
+        brush6 = QBrush(QColor(0, 0, 0, 255))
+        brush6.setStyle(Qt.SolidPattern)
+        palette.setBrush(QPalette.Active, QPalette.Base, brush6)
+        palette.setBrush(QPalette.Active, QPalette.Window, brush1)
+        palette.setBrush(QPalette.Active, QPalette.Shadow, brush6)
+        palette.setBrush(QPalette.Active, QPalette.AlternateBase, brush4)
+        brush7 = QBrush(QColor(255, 255, 220, 255))
+        brush7.setStyle(Qt.SolidPattern)
+        palette.setBrush(QPalette.Active, QPalette.ToolTipBase, brush7)
+        palette.setBrush(QPalette.Active, QPalette.ToolTipText, brush6)
+        brush8 = QBrush(QColor(255, 255, 255, 128))
+        brush8.setStyle(Qt.SolidPattern)
+#if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
+        palette.setBrush(QPalette.Active, QPalette.PlaceholderText, brush8)
+#endif
+        palette.setBrush(QPalette.Inactive, QPalette.WindowText, brush)
+        palette.setBrush(QPalette.Inactive, QPalette.Button, brush1)
+        palette.setBrush(QPalette.Inactive, QPalette.Light, brush2)
+        palette.setBrush(QPalette.Inactive, QPalette.Midlight, brush3)
+        palette.setBrush(QPalette.Inactive, QPalette.Dark, brush4)
+        palette.setBrush(QPalette.Inactive, QPalette.Mid, brush5)
+        palette.setBrush(QPalette.Inactive, QPalette.Text, brush)
+        palette.setBrush(QPalette.Inactive, QPalette.BrightText, brush)
+        palette.setBrush(QPalette.Inactive, QPalette.ButtonText, brush)
+        palette.setBrush(QPalette.Inactive, QPalette.Base, brush6)
+        palette.setBrush(QPalette.Inactive, QPalette.Window, brush1)
+        palette.setBrush(QPalette.Inactive, QPalette.Shadow, brush6)
+        palette.setBrush(QPalette.Inactive, QPalette.AlternateBase, brush4)
+        palette.setBrush(QPalette.Inactive, QPalette.ToolTipBase, brush7)
+        palette.setBrush(QPalette.Inactive, QPalette.ToolTipText, brush6)
+#if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
+        palette.setBrush(QPalette.Inactive, QPalette.PlaceholderText, brush8)
+#endif
+        palette.setBrush(QPalette.Disabled, QPalette.WindowText, brush4)
+        palette.setBrush(QPalette.Disabled, QPalette.Button, brush1)
+        palette.setBrush(QPalette.Disabled, QPalette.Light, brush2)
+        palette.setBrush(QPalette.Disabled, QPalette.Midlight, brush3)
+        palette.setBrush(QPalette.Disabled, QPalette.Dark, brush4)
+        palette.setBrush(QPalette.Disabled, QPalette.Mid, brush5)
+        palette.setBrush(QPalette.Disabled, QPalette.Text, brush4)
+        palette.setBrush(QPalette.Disabled, QPalette.BrightText, brush)
+        palette.setBrush(QPalette.Disabled, QPalette.ButtonText, brush4)
+        palette.setBrush(QPalette.Disabled, QPalette.Base, brush1)
+        palette.setBrush(QPalette.Disabled, QPalette.Window, brush1)
+        palette.setBrush(QPalette.Disabled, QPalette.Shadow, brush6)
+        palette.setBrush(QPalette.Disabled, QPalette.AlternateBase, brush1)
+        palette.setBrush(QPalette.Disabled, QPalette.ToolTipBase, brush7)
+        palette.setBrush(QPalette.Disabled, QPalette.ToolTipText, brush6)
+#if QT_VERSION >= QT_VERSION_CHECK(5, 12, 0)
+        palette.setBrush(QPalette.Disabled, QPalette.PlaceholderText, brush8)
+#endif
+        MainWindow.setPalette(palette)
+        MainWindow.setTabletTracking(False)
+        icon = QIcon()
+        iconThemeName = u"brainstorm"
+        if QIcon.hasThemeIcon(iconThemeName):
+            icon = QIcon.fromTheme(iconThemeName)
+        else:
+            icon.addFile(u"iconebrain.png", QSize(), QIcon.Normal, QIcon.Off)
+            icon.addFile(u"iconebrain.png", QSize(), QIcon.Normal, QIcon.On)
+            icon.addFile(u"iconebrain.png", QSize(), QIcon.Disabled, QIcon.Off)
+            icon.addFile(u"iconebrain.png", QSize(), QIcon.Disabled, QIcon.On)
+            icon.addFile(u"iconebrain.png", QSize(), QIcon.Active, QIcon.Off)
+            icon.addFile(u"iconebrain.png", QSize(), QIcon.Active, QIcon.On)
+            icon.addFile(u"iconebrain.png", QSize(), QIcon.Selected, QIcon.Off)
+            icon.addFile(u"iconebrain.png", QSize(), QIcon.Selected, QIcon.On)
+        
+        MainWindow.setWindowIcon(icon)
+        MainWindow.setLayoutDirection(Qt.LeftToRight)
+        self.centralwidget = QWidget(MainWindow)
+        self.centralwidget.setObjectName(u"centralwidget")
+        self.centralwidget.setLayoutDirection(Qt.LeftToRight)
+        self.verticalLayout_4 = QVBoxLayout(self.centralwidget)
+        self.verticalLayout_4.setObjectName(u"verticalLayout_4")
+        self.tabWidget = QTabWidget(self.centralwidget)
+        self.tabWidget.setObjectName(u"tabWidget")
+        sizePolicy.setHeightForWidth(self.tabWidget.sizePolicy().hasHeightForWidth())
+        self.tabWidget.setSizePolicy(sizePolicy)
+        self.tabWidget.setLayoutDirection(Qt.LeftToRight)
+        self.tabWidget.setTabPosition(QTabWidget.North)
+        self.tabWidget.setTabShape(QTabWidget.Rounded)
+        self.paginaApresentacao = QWidget()
+        self.paginaApresentacao.setObjectName(u"paginaApresentacao")
+        self.verticalLayout_59 = QVBoxLayout(self.paginaApresentacao)
+        self.verticalLayout_59.setObjectName(u"verticalLayout_59")
+        self.frameContainerPrincipal = QFrame(self.paginaApresentacao)
+        self.frameContainerPrincipal.setObjectName(u"frameContainerPrincipal")
+        self.frameContainerPrincipal.setFrameShape(QFrame.StyledPanel)
+        self.frameContainerPrincipal.setFrameShadow(QFrame.Raised)
+        self.verticalLayout_31 = QVBoxLayout(self.frameContainerPrincipal)
+        self.verticalLayout_31.setObjectName(u"verticalLayout_31")
+        self.home = QFrame(self.frameContainerPrincipal)
+        self.home.setObjectName(u"home")
+        self.home.setFrameShape(QFrame.Panel)
+        self.home.setFrameShadow(QFrame.Sunken)
+        self.home.setLineWidth(2)
+        self.verticalLayout_5 = QVBoxLayout(self.home)
+        self.verticalLayout_5.setObjectName(u"verticalLayout_5")
+        self.TituloCabecalho = QLabel(self.home)
+        self.TituloCabecalho.setObjectName(u"TituloCabecalho")
+        self.TituloCabecalho.setMaximumSize(QSize(16777215, 30))
+        font = QFont()
+        font.setPointSize(18)
+        font.setBold(False)
+        font.setWeight(50)
+        self.TituloCabecalho.setFont(font)
+        self.TituloCabecalho.setAlignment(Qt.AlignCenter)
+
+        self.verticalLayout_5.addWidget(self.TituloCabecalho)
+
+
+        self.verticalLayout_31.addWidget(self.home)
+
+        self.primeiraParteTexto = QLabel(self.frameContainerPrincipal)
+        self.primeiraParteTexto.setObjectName(u"primeiraParteTexto")
+        self.primeiraParteTexto.setMinimumSize(QSize(626, 0))
+        font1 = QFont()
+        font1.setPointSize(14)
+        self.primeiraParteTexto.setFont(font1)
+        self.primeiraParteTexto.setAlignment(Qt.AlignCenter)
+
+        self.verticalLayout_31.addWidget(self.primeiraParteTexto)
+
+        self.segundaParteTexto = QLabel(self.frameContainerPrincipal)
+        self.segundaParteTexto.setObjectName(u"segundaParteTexto")
+
+        self.verticalLayout_31.addWidget(self.segundaParteTexto)
+
+        self.rodaPe = QLabel(self.frameContainerPrincipal)
+        self.rodaPe.setObjectName(u"rodaPe")
+
+        self.verticalLayout_31.addWidget(self.rodaPe)
+
+
+        self.verticalLayout_59.addWidget(self.frameContainerPrincipal)
+
+        self.tabWidget.addTab(self.paginaApresentacao, "")
+        self.inicioEstacao = QWidget()
+        self.inicioEstacao.setObjectName(u"inicioEstacao")
+        self.gridLayout_5 = QGridLayout(self.inicioEstacao)
+        self.gridLayout_5.setObjectName(u"gridLayout_5")
+        self.frameContainerPincipal = QFrame(self.inicioEstacao)
+        self.frameContainerPincipal.setObjectName(u"frameContainerPincipal")
+        self.frameContainerPincipal.setFrameShape(QFrame.StyledPanel)
+        self.frameContainerPincipal.setFrameShadow(QFrame.Raised)
+        self.verticalLayout_3 = QVBoxLayout(self.frameContainerPincipal)
+        self.verticalLayout_3.setObjectName(u"verticalLayout_3")
+        self.frameCabecalhoInicio = QFrame(self.frameContainerPincipal)
+        self.frameCabecalhoInicio.setObjectName(u"frameCabecalhoInicio")
+        self.frameCabecalhoInicio.setFrameShape(QFrame.Panel)
+        self.frameCabecalhoInicio.setFrameShadow(QFrame.Sunken)
+        self.frameCabecalhoInicio.setLineWidth(2)
+        self.verticalLayout = QVBoxLayout(self.frameCabecalhoInicio)
+        self.verticalLayout.setObjectName(u"verticalLayout")
+        self.tituloCabecalho = QLabel(self.frameCabecalhoInicio)
+        self.tituloCabecalho.setObjectName(u"tituloCabecalho")
+        font2 = QFont()
+        font2.setPointSize(18)
+        self.tituloCabecalho.setFont(font2)
+        self.tituloCabecalho.setAlignment(Qt.AlignCenter)
+
+        self.verticalLayout.addWidget(self.tituloCabecalho)
+
+
+        self.verticalLayout_3.addWidget(self.frameCabecalhoInicio)
+
+        self.espacador1 = QSpacerItem(228, 37, QSizePolicy.Minimum, QSizePolicy.Fixed)
+
+        self.verticalLayout_3.addItem(self.espacador1)
+
+        self.frameEntradaEBotoes = QFrame(self.frameContainerPincipal)
+        self.frameEntradaEBotoes.setObjectName(u"frameEntradaEBotoes")
+        self.frameEntradaEBotoes.setFrameShape(QFrame.NoFrame)
+        self.frameEntradaEBotoes.setFrameShadow(QFrame.Raised)
+        self.gridLayout_4 = QGridLayout(self.frameEntradaEBotoes)
+        self.gridLayout_4.setObjectName(u"gridLayout_4")
+        self.tituloPortaUSB = QLabel(self.frameEntradaEBotoes)
+        self.tituloPortaUSB.setObjectName(u"tituloPortaUSB")
+
+        self.gridLayout_4.addWidget(self.tituloPortaUSB, 0, 0, 1, 1)
+
+        self.portaArduino = QLineEdit(self.frameEntradaEBotoes)
+        self.portaArduino.setObjectName(u"portaArduino")
+
+        self.gridLayout_4.addWidget(self.portaArduino, 0, 1, 1, 1)
+
+        self.tituloTempGrafico = QLabel(self.frameEntradaEBotoes)
+        self.tituloTempGrafico.setObjectName(u"tituloTempGrafico")
+
+        self.gridLayout_4.addWidget(self.tituloTempGrafico, 0, 2, 1, 1)
+
+        self.tempoGraficos = QTimeEdit(self.frameEntradaEBotoes)
+        self.tempoGraficos.setObjectName(u"tempoGraficos")
+        self.tempoGraficos.setMaximumTime(QTime(6, 0, 0))
+
+        self.gridLayout_4.addWidget(self.tempoGraficos, 0, 3, 1, 1)
+
+        self.btnInciarEstacao = QPushButton(self.frameEntradaEBotoes)
+        self.btnInciarEstacao.setObjectName(u"btnInciarEstacao")
+
+        self.gridLayout_4.addWidget(self.btnInciarEstacao, 1, 0, 1, 4)
+
+        self.btnPararEstacao = QPushButton(self.frameEntradaEBotoes)
+        self.btnPararEstacao.setObjectName(u"btnPararEstacao")
+
+        self.gridLayout_4.addWidget(self.btnPararEstacao, 2, 0, 1, 4)
+
+
+        self.verticalLayout_3.addWidget(self.frameEntradaEBotoes)
+
+        self.frameBarraELista = QFrame(self.frameContainerPincipal)
+        self.frameBarraELista.setObjectName(u"frameBarraELista")
+        self.frameBarraELista.setFrameShape(QFrame.NoFrame)
+        self.frameBarraELista.setFrameShadow(QFrame.Raised)
+        self.verticalLayout_8 = QVBoxLayout(self.frameBarraELista)
+        self.verticalLayout_8.setObjectName(u"verticalLayout_8")
+        self.frameContainerBarraProgresso = QFrame(self.frameBarraELista)
+        self.frameContainerBarraProgresso.setObjectName(u"frameContainerBarraProgresso")
+        self.frameContainerBarraProgresso.setFrameShape(QFrame.Panel)
+        self.frameContainerBarraProgresso.setFrameShadow(QFrame.Sunken)
+        self.frameContainerBarraProgresso.setLineWidth(2)
+        self.horizontalLayout_6 = QHBoxLayout(self.frameContainerBarraProgresso)
+        self.horizontalLayout_6.setObjectName(u"horizontalLayout_6")
+        self.barraProgresso = QProgressBar(self.frameContainerBarraProgresso)
+        self.barraProgresso.setObjectName(u"barraProgresso")
+        self.barraProgresso.setMaximumSize(QSize(16777215, 16777215))
+        self.barraProgresso.setValue(0)
+
+        self.horizontalLayout_6.addWidget(self.barraProgresso)
+
+        self.frameContadorRegressivo = QFrame(self.frameContainerBarraProgresso)
+        self.frameContadorRegressivo.setObjectName(u"frameContadorRegressivo")
+        self.frameContadorRegressivo.setFrameShape(QFrame.NoFrame)
+        self.frameContadorRegressivo.setFrameShadow(QFrame.Raised)
+        self.gridLayout_2 = QGridLayout(self.frameContadorRegressivo)
+        self.gridLayout_2.setObjectName(u"gridLayout_2")
+        self.visorTempoRestante_2 = QLCDNumber(self.frameContadorRegressivo)
+        self.visorTempoRestante_2.setObjectName(u"visorTempoRestante_2")
+        self.visorTempoRestante_2.setStyleSheet(u"color: rgb(246, 245, 244);")
+        self.visorTempoRestante_2.setFrameShape(QFrame.NoFrame)
+        self.visorTempoRestante_2.setDigitCount(5)
+
+        self.gridLayout_2.addWidget(self.visorTempoRestante_2, 0, 0, 1, 1)
+
+        self.barraSeparadora = QLabel(self.frameContadorRegressivo)
+        self.barraSeparadora.setObjectName(u"barraSeparadora")
+        font3 = QFont()
+        font3.setPointSize(15)
+        self.barraSeparadora.setFont(font3)
+        self.barraSeparadora.setAlignment(Qt.AlignCenter)
+
+        self.gridLayout_2.addWidget(self.barraSeparadora, 0, 1, 1, 1)
+
+        self.tempoDefinido_2 = QLCDNumber(self.frameContadorRegressivo)
+        self.tempoDefinido_2.setObjectName(u"tempoDefinido_2")
+        self.tempoDefinido_2.setStyleSheet(u"color: rgb(246, 245, 244);")
+        self.tempoDefinido_2.setFrameShape(QFrame.NoFrame)
+
+        self.gridLayout_2.addWidget(self.tempoDefinido_2, 0, 2, 1, 1)
+
+
+        self.horizontalLayout_6.addWidget(self.frameContadorRegressivo)
+
+
+        self.verticalLayout_8.addWidget(self.frameContainerBarraProgresso)
+
+        self.saidaDetalhes = QListView(self.frameBarraELista)
+        self.saidaDetalhes.setObjectName(u"saidaDetalhes")
+        sizePolicy.setHeightForWidth(self.saidaDetalhes.sizePolicy().hasHeightForWidth())
+        self.saidaDetalhes.setSizePolicy(sizePolicy)
+        self.saidaDetalhes.setAlternatingRowColors(True)
+
+        self.verticalLayout_8.addWidget(self.saidaDetalhes)
+
+
+        self.verticalLayout_3.addWidget(self.frameBarraELista)
+
+
+        self.gridLayout_5.addWidget(self.frameContainerPincipal, 0, 0, 1, 1)
+
+        self.tabWidget.addTab(self.inicioEstacao, "")
+        self.mostrarDadosTReal = QWidget()
+        self.mostrarDadosTReal.setObjectName(u"mostrarDadosTReal")
+        self.mostrarDadosTReal.setEnabled(True)
+        self.verticalLayout_2 = QVBoxLayout(self.mostrarDadosTReal)
+        self.verticalLayout_2.setObjectName(u"verticalLayout_2")
+        self.frameContainerPrincipalSemLayout = QFrame(self.mostrarDadosTReal)
+        self.frameContainerPrincipalSemLayout.setObjectName(u"frameContainerPrincipalSemLayout")
+        sizePolicy1 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        sizePolicy1.setHorizontalStretch(0)
+        sizePolicy1.setVerticalStretch(0)
+        sizePolicy1.setHeightForWidth(self.frameContainerPrincipalSemLayout.sizePolicy().hasHeightForWidth())
+        self.frameContainerPrincipalSemLayout.setSizePolicy(sizePolicy1)
+        self.frameContainerPrincipalSemLayout.setFrameShape(QFrame.StyledPanel)
+        self.frameContainerPrincipalSemLayout.setFrameShadow(QFrame.Raised)
+        self.verticalLayout_57 = QVBoxLayout(self.frameContainerPrincipalSemLayout)
+        self.verticalLayout_57.setObjectName(u"verticalLayout_57")
+        self.cabecalhoExibirDados = QFrame(self.frameContainerPrincipalSemLayout)
+        self.cabecalhoExibirDados.setObjectName(u"cabecalhoExibirDados")
+        sizePolicy.setHeightForWidth(self.cabecalhoExibirDados.sizePolicy().hasHeightForWidth())
+        self.cabecalhoExibirDados.setSizePolicy(sizePolicy)
+        self.cabecalhoExibirDados.setFrameShape(QFrame.Panel)
+        self.cabecalhoExibirDados.setFrameShadow(QFrame.Sunken)
+        self.cabecalhoExibirDados.setLineWidth(2)
+        self.verticalLayout_10 = QVBoxLayout(self.cabecalhoExibirDados)
+        self.verticalLayout_10.setObjectName(u"verticalLayout_10")
+        self.tituloCabecalho_2 = QLabel(self.cabecalhoExibirDados)
+        self.tituloCabecalho_2.setObjectName(u"tituloCabecalho_2")
+        self.tituloCabecalho_2.setFont(font2)
+        self.tituloCabecalho_2.setAlignment(Qt.AlignCenter)
+
+        self.verticalLayout_10.addWidget(self.tituloCabecalho_2)
+
+
+        self.verticalLayout_57.addWidget(self.cabecalhoExibirDados)
+
+        self.verticalSpacer = QSpacerItem(18, 4, QSizePolicy.Minimum, QSizePolicy.Fixed)
+
+        self.verticalLayout_57.addItem(self.verticalSpacer)
+
+        self.frameContainerDados = QFrame(self.frameContainerPrincipalSemLayout)
+        self.frameContainerDados.setObjectName(u"frameContainerDados")
+        self.frameContainerDados.setFrameShape(QFrame.NoFrame)
+        self.frameContainerDados.setFrameShadow(QFrame.Raised)
+        self.verticalLayout_11 = QVBoxLayout(self.frameContainerDados)
+        self.verticalLayout_11.setObjectName(u"verticalLayout_11")
+        self.frameUmidade = QFrame(self.frameContainerDados)
+        self.frameUmidade.setObjectName(u"frameUmidade")
+        self.frameUmidade.setFrameShape(QFrame.NoFrame)
+        self.frameUmidade.setFrameShadow(QFrame.Raised)
+        self.horizontalLayout_7 = QHBoxLayout(self.frameUmidade)
+        self.horizontalLayout_7.setObjectName(u"horizontalLayout_7")
+        self.frame_14 = QFrame(self.frameUmidade)
+        self.frame_14.setObjectName(u"frame_14")
+        self.frame_14.setFrameShape(QFrame.Panel)
+        self.frame_14.setFrameShadow(QFrame.Sunken)
+        self.frame_14.setLineWidth(2)
+        self.verticalLayout_9 = QVBoxLayout(self.frame_14)
+        self.verticalLayout_9.setObjectName(u"verticalLayout_9")
+        self.label_10 = QLabel(self.frame_14)
+        self.label_10.setObjectName(u"label_10")
+        self.label_10.setFont(font2)
+        self.label_10.setAlignment(Qt.AlignCenter)
+
+        self.verticalLayout_9.addWidget(self.label_10)
+
+
+        self.horizontalLayout_7.addWidget(self.frame_14)
+
+        self.frame_15 = QFrame(self.frameUmidade)
+        self.frame_15.setObjectName(u"frame_15")
+        self.frame_15.setFrameShape(QFrame.Panel)
+        self.frame_15.setFrameShadow(QFrame.Sunken)
+        self.frame_15.setLineWidth(2)
+        self.verticalLayout_16 = QVBoxLayout(self.frame_15)
+        self.verticalLayout_16.setObjectName(u"verticalLayout_16")
+        self.dadoUmidade = QLCDNumber(self.frame_15)
+        self.dadoUmidade.setObjectName(u"dadoUmidade")
+        sizePolicy.setHeightForWidth(self.dadoUmidade.sizePolicy().hasHeightForWidth())
+        self.dadoUmidade.setSizePolicy(sizePolicy)
+        self.dadoUmidade.setFrameShape(QFrame.NoFrame)
+        self.dadoUmidade.setSmallDecimalPoint(False)
+        self.dadoUmidade.setDigitCount(10)
+        self.dadoUmidade.setProperty("value", 0.000000000000000)
+
+        self.verticalLayout_16.addWidget(self.dadoUmidade)
+
+
+        self.horizontalLayout_7.addWidget(self.frame_15)
+
+        self.frame_16 = QFrame(self.frameUmidade)
+        self.frame_16.setObjectName(u"frame_16")
+        self.frame_16.setFrameShape(QFrame.Panel)
+        self.frame_16.setFrameShadow(QFrame.Sunken)
+        self.frame_16.setLineWidth(2)
+        self.verticalLayout_21 = QVBoxLayout(self.frame_16)
+        self.verticalLayout_21.setObjectName(u"verticalLayout_21")
+        self.label_15 = QLabel(self.frame_16)
+        self.label_15.setObjectName(u"label_15")
+        self.label_15.setAlignment(Qt.AlignCenter)
+
+        self.verticalLayout_21.addWidget(self.label_15)
+
+
+        self.horizontalLayout_7.addWidget(self.frame_16)
+
+
+        self.verticalLayout_11.addWidget(self.frameUmidade)
+
+        self.framePressao = QFrame(self.frameContainerDados)
+        self.framePressao.setObjectName(u"framePressao")
+        self.framePressao.setFrameShape(QFrame.NoFrame)
+        self.framePressao.setFrameShadow(QFrame.Raised)
+        self.horizontalLayout_3 = QHBoxLayout(self.framePressao)
+        self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
+        self.frame_19 = QFrame(self.framePressao)
+        self.frame_19.setObjectName(u"frame_19")
+        self.frame_19.setFrameShape(QFrame.Panel)
+        self.frame_19.setFrameShadow(QFrame.Sunken)
+        self.frame_19.setLineWidth(2)
+        self.horizontalLayout_5 = QHBoxLayout(self.frame_19)
+        self.horizontalLayout_5.setObjectName(u"horizontalLayout_5")
+        self.label_11 = QLabel(self.frame_19)
+        self.label_11.setObjectName(u"label_11")
+        self.label_11.setFont(font2)
+        self.label_11.setAlignment(Qt.AlignCenter)
+
+        self.horizontalLayout_5.addWidget(self.label_11)
+
+
+        self.horizontalLayout_3.addWidget(self.frame_19)
+
+        self.frame_18 = QFrame(self.framePressao)
+        self.frame_18.setObjectName(u"frame_18")
+        self.frame_18.setFrameShape(QFrame.Panel)
+        self.frame_18.setFrameShadow(QFrame.Sunken)
+        self.frame_18.setLineWidth(2)
+        self.verticalLayout_17 = QVBoxLayout(self.frame_18)
+        self.verticalLayout_17.setObjectName(u"verticalLayout_17")
+        self.dadoPressao = QLCDNumber(self.frame_18)
+        self.dadoPressao.setObjectName(u"dadoPressao")
+        sizePolicy.setHeightForWidth(self.dadoPressao.sizePolicy().hasHeightForWidth())
+        self.dadoPressao.setSizePolicy(sizePolicy)
+        self.dadoPressao.setFrameShape(QFrame.NoFrame)
+        self.dadoPressao.setDigitCount(10)
+
+        self.verticalLayout_17.addWidget(self.dadoPressao)
+
+
+        self.horizontalLayout_3.addWidget(self.frame_18)
+
+        self.frame_17 = QFrame(self.framePressao)
+        self.frame_17.setObjectName(u"frame_17")
+        self.frame_17.setFrameShape(QFrame.Panel)
+        self.frame_17.setFrameShadow(QFrame.Sunken)
+        self.frame_17.setLineWidth(2)
+        self.verticalLayout_22 = QVBoxLayout(self.frame_17)
+        self.verticalLayout_22.setObjectName(u"verticalLayout_22")
+        self.label_16 = QLabel(self.frame_17)
+        self.label_16.setObjectName(u"label_16")
+        self.label_16.setAlignment(Qt.AlignCenter)
+
+        self.verticalLayout_22.addWidget(self.label_16)
+
+
+        self.horizontalLayout_3.addWidget(self.frame_17)
+
+
+        self.verticalLayout_11.addWidget(self.framePressao)
+
+        self.frameTempInterna = QFrame(self.frameContainerDados)
+        self.frameTempInterna.setObjectName(u"frameTempInterna")
+        self.frameTempInterna.setFrameShape(QFrame.NoFrame)
+        self.frameTempInterna.setFrameShadow(QFrame.Raised)
+        self.horizontalLayout_2 = QHBoxLayout(self.frameTempInterna)
+        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
+        self.frame_22 = QFrame(self.frameTempInterna)
+        self.frame_22.setObjectName(u"frame_22")
+        self.frame_22.setFrameShape(QFrame.Panel)
+        self.frame_22.setFrameShadow(QFrame.Sunken)
+        self.frame_22.setLineWidth(2)
+        self.frame_22.setMidLineWidth(0)
+        self.verticalLayout_14 = QVBoxLayout(self.frame_22)
+        self.verticalLayout_14.setObjectName(u"verticalLayout_14")
+        self.label_12 = QLabel(self.frame_22)
+        self.label_12.setObjectName(u"label_12")
+        self.label_12.setFont(font2)
+        self.label_12.setAlignment(Qt.AlignCenter)
+
+        self.verticalLayout_14.addWidget(self.label_12)
+
+
+        self.horizontalLayout_2.addWidget(self.frame_22)
+
+        self.frame_21 = QFrame(self.frameTempInterna)
+        self.frame_21.setObjectName(u"frame_21")
+        self.frame_21.setFrameShape(QFrame.Panel)
+        self.frame_21.setFrameShadow(QFrame.Sunken)
+        self.frame_21.setLineWidth(2)
+        self.verticalLayout_18 = QVBoxLayout(self.frame_21)
+        self.verticalLayout_18.setObjectName(u"verticalLayout_18")
+        self.dadoTempInterna = QLCDNumber(self.frame_21)
+        self.dadoTempInterna.setObjectName(u"dadoTempInterna")
+        sizePolicy.setHeightForWidth(self.dadoTempInterna.sizePolicy().hasHeightForWidth())
+        self.dadoTempInterna.setSizePolicy(sizePolicy)
+        self.dadoTempInterna.setFrameShape(QFrame.NoFrame)
+        self.dadoTempInterna.setDigitCount(10)
+
+        self.verticalLayout_18.addWidget(self.dadoTempInterna)
+
+
+        self.horizontalLayout_2.addWidget(self.frame_21)
+
+        self.frame_20 = QFrame(self.frameTempInterna)
+        self.frame_20.setObjectName(u"frame_20")
+        self.frame_20.setFrameShape(QFrame.Panel)
+        self.frame_20.setFrameShadow(QFrame.Sunken)
+        self.frame_20.setLineWidth(2)
+        self.verticalLayout_23 = QVBoxLayout(self.frame_20)
+        self.verticalLayout_23.setObjectName(u"verticalLayout_23")
+        self.label_17 = QLabel(self.frame_20)
+        self.label_17.setObjectName(u"label_17")
+        self.label_17.setAlignment(Qt.AlignCenter)
+
+        self.verticalLayout_23.addWidget(self.label_17)
+
+
+        self.horizontalLayout_2.addWidget(self.frame_20)
+
+
+        self.verticalLayout_11.addWidget(self.frameTempInterna)
+
+        self.frameTempExterna = QFrame(self.frameContainerDados)
+        self.frameTempExterna.setObjectName(u"frameTempExterna")
+        self.frameTempExterna.setFrameShape(QFrame.NoFrame)
+        self.frameTempExterna.setFrameShadow(QFrame.Raised)
+        self.horizontalLayout = QHBoxLayout(self.frameTempExterna)
+        self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.frame_25 = QFrame(self.frameTempExterna)
+        self.frame_25.setObjectName(u"frame_25")
+        self.frame_25.setFrameShape(QFrame.Panel)
+        self.frame_25.setFrameShadow(QFrame.Sunken)
+        self.frame_25.setLineWidth(2)
+        self.verticalLayout_13 = QVBoxLayout(self.frame_25)
+        self.verticalLayout_13.setObjectName(u"verticalLayout_13")
+        self.label_13 = QLabel(self.frame_25)
+        self.label_13.setObjectName(u"label_13")
+        self.label_13.setFont(font2)
+        self.label_13.setAlignment(Qt.AlignCenter)
+
+        self.verticalLayout_13.addWidget(self.label_13)
+
+
+        self.horizontalLayout.addWidget(self.frame_25)
+
+        self.frame_24 = QFrame(self.frameTempExterna)
+        self.frame_24.setObjectName(u"frame_24")
+        self.frame_24.setFrameShape(QFrame.Panel)
+        self.frame_24.setFrameShadow(QFrame.Sunken)
+        self.frame_24.setLineWidth(2)
+        self.verticalLayout_19 = QVBoxLayout(self.frame_24)
+        self.verticalLayout_19.setObjectName(u"verticalLayout_19")
+        self.dadoTempExterna = QLCDNumber(self.frame_24)
+        self.dadoTempExterna.setObjectName(u"dadoTempExterna")
+        sizePolicy.setHeightForWidth(self.dadoTempExterna.sizePolicy().hasHeightForWidth())
+        self.dadoTempExterna.setSizePolicy(sizePolicy)
+        self.dadoTempExterna.setFrameShape(QFrame.NoFrame)
+        self.dadoTempExterna.setDigitCount(10)
+
+        self.verticalLayout_19.addWidget(self.dadoTempExterna)
+
+
+        self.horizontalLayout.addWidget(self.frame_24)
+
+        self.frame_23 = QFrame(self.frameTempExterna)
+        self.frame_23.setObjectName(u"frame_23")
+        self.frame_23.setFrameShape(QFrame.Panel)
+        self.frame_23.setFrameShadow(QFrame.Sunken)
+        self.frame_23.setLineWidth(2)
+        self.verticalLayout_24 = QVBoxLayout(self.frame_23)
+        self.verticalLayout_24.setObjectName(u"verticalLayout_24")
+        self.label_18 = QLabel(self.frame_23)
+        self.label_18.setObjectName(u"label_18")
+        self.label_18.setAlignment(Qt.AlignCenter)
+
+        self.verticalLayout_24.addWidget(self.label_18)
+
+
+        self.horizontalLayout.addWidget(self.frame_23)
+
+
+        self.verticalLayout_11.addWidget(self.frameTempExterna)
+
+
+        self.verticalLayout_57.addWidget(self.frameContainerDados)
+
+        self.frameInformativos = QFrame(self.frameContainerPrincipalSemLayout)
+        self.frameInformativos.setObjectName(u"frameInformativos")
+        self.frameInformativos.setFrameShape(QFrame.NoFrame)
+        self.frameInformativos.setFrameShadow(QFrame.Raised)
+        self.gridLayout = QGridLayout(self.frameInformativos)
+        self.gridLayout.setObjectName(u"gridLayout")
+        self.frameDataHora = QFrame(self.frameInformativos)
+        self.frameDataHora.setObjectName(u"frameDataHora")
+        self.frameDataHora.setFrameShape(QFrame.Panel)
+        self.frameDataHora.setFrameShadow(QFrame.Sunken)
+        self.frameDataHora.setLineWidth(2)
+        self.verticalLayout_28 = QVBoxLayout(self.frameDataHora)
+        self.verticalLayout_28.setObjectName(u"verticalLayout_28")
+        self.tituloDataHora = QLabel(self.frameDataHora)
+        self.tituloDataHora.setObjectName(u"tituloDataHora")
+
+        self.verticalLayout_28.addWidget(self.tituloDataHora)
+
+
+        self.gridLayout.addWidget(self.frameDataHora, 0, 0, 1, 1)
+
+        self.frameDataHoraCorrente = QFrame(self.frameInformativos)
+        self.frameDataHoraCorrente.setObjectName(u"frameDataHoraCorrente")
+        self.frameDataHoraCorrente.setFrameShape(QFrame.Panel)
+        self.frameDataHoraCorrente.setFrameShadow(QFrame.Sunken)
+        self.frameDataHoraCorrente.setLineWidth(2)
+        self.verticalLayout_26 = QVBoxLayout(self.frameDataHoraCorrente)
+        self.verticalLayout_26.setObjectName(u"verticalLayout_26")
+        self.dadosHoraData = QLabel(self.frameDataHoraCorrente)
+        self.dadosHoraData.setObjectName(u"dadosHoraData")
+        self.dadosHoraData.setAlignment(Qt.AlignCenter)
+
+        self.verticalLayout_26.addWidget(self.dadosHoraData)
+
+
+        self.gridLayout.addWidget(self.frameDataHoraCorrente, 0, 1, 1, 1)
+
+        self.frameNRegistros = QFrame(self.frameInformativos)
+        self.frameNRegistros.setObjectName(u"frameNRegistros")
+        self.frameNRegistros.setFrameShape(QFrame.Panel)
+        self.frameNRegistros.setFrameShadow(QFrame.Sunken)
+        self.frameNRegistros.setLineWidth(2)
+        self.verticalLayout_15 = QVBoxLayout(self.frameNRegistros)
+        self.verticalLayout_15.setObjectName(u"verticalLayout_15")
+        self.tituloNRegistrosRestante = QLabel(self.frameNRegistros)
+        self.tituloNRegistrosRestante.setObjectName(u"tituloNRegistrosRestante")
+
+        self.verticalLayout_15.addWidget(self.tituloNRegistrosRestante)
+
+
+        self.gridLayout.addWidget(self.frameNRegistros, 1, 0, 1, 1)
+
+        self.frameContadorRestante = QFrame(self.frameInformativos)
+        self.frameContadorRestante.setObjectName(u"frameContadorRestante")
+        self.frameContadorRestante.setFrameShape(QFrame.Panel)
+        self.frameContadorRestante.setFrameShadow(QFrame.Sunken)
+        self.frameContadorRestante.setLineWidth(2)
+        self.horizontalLayout_4 = QHBoxLayout(self.frameContadorRestante)
+        self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
+        self.visorTempoRestante = QLCDNumber(self.frameContadorRestante)
+        self.visorTempoRestante.setObjectName(u"visorTempoRestante")
+        sizePolicy.setHeightForWidth(self.visorTempoRestante.sizePolicy().hasHeightForWidth())
+        self.visorTempoRestante.setSizePolicy(sizePolicy)
+        self.visorTempoRestante.setStyleSheet(u"color: rgb(246, 245, 244);")
+        self.visorTempoRestante.setFrameShape(QFrame.NoFrame)
+        self.visorTempoRestante.setDigitCount(5)
+
+        self.horizontalLayout_4.addWidget(self.visorTempoRestante)
+
+        self.label_19 = QLabel(self.frameContadorRestante)
+        self.label_19.setObjectName(u"label_19")
+        self.label_19.setFont(font2)
+        self.label_19.setAlignment(Qt.AlignCenter)
+
+        self.horizontalLayout_4.addWidget(self.label_19)
+
+        self.tempoDefinido = QLCDNumber(self.frameContadorRestante)
+        self.tempoDefinido.setObjectName(u"tempoDefinido")
+        sizePolicy.setHeightForWidth(self.tempoDefinido.sizePolicy().hasHeightForWidth())
+        self.tempoDefinido.setSizePolicy(sizePolicy)
+        self.tempoDefinido.setStyleSheet(u"color: rgb(246, 245, 244);")
+        self.tempoDefinido.setFrameShape(QFrame.NoFrame)
+
+        self.horizontalLayout_4.addWidget(self.tempoDefinido)
+
+
+        self.gridLayout.addWidget(self.frameContadorRestante, 1, 1, 1, 1)
+
+
+        self.verticalLayout_57.addWidget(self.frameInformativos)
+
+
+        self.verticalLayout_2.addWidget(self.frameContainerPrincipalSemLayout)
+
+        self.tabWidget.addTab(self.mostrarDadosTReal, "")
+        self.emailUser = QWidget()
+        self.emailUser.setObjectName(u"emailUser")
+        self.verticalLayout_6 = QVBoxLayout(self.emailUser)
+        self.verticalLayout_6.setObjectName(u"verticalLayout_6")
+        self.frameContainerPrincipal_2 = QFrame(self.emailUser)
+        self.frameContainerPrincipal_2.setObjectName(u"frameContainerPrincipal_2")
+        self.frameContainerPrincipal_2.setFrameShape(QFrame.StyledPanel)
+        self.frameContainerPrincipal_2.setFrameShadow(QFrame.Raised)
+        self.verticalLayout_58 = QVBoxLayout(self.frameContainerPrincipal_2)
+        self.verticalLayout_58.setObjectName(u"verticalLayout_58")
+        self.frameCabecalho = QFrame(self.frameContainerPrincipal_2)
+        self.frameCabecalho.setObjectName(u"frameCabecalho")
+        self.frameCabecalho.setFrameShape(QFrame.Panel)
+        self.frameCabecalho.setFrameShadow(QFrame.Sunken)
+        self.frameCabecalho.setLineWidth(2)
+        self.verticalLayout_7 = QVBoxLayout(self.frameCabecalho)
+        self.verticalLayout_7.setObjectName(u"verticalLayout_7")
+        self.tituloCabecalho_3 = QLabel(self.frameCabecalho)
+        self.tituloCabecalho_3.setObjectName(u"tituloCabecalho_3")
+        self.tituloCabecalho_3.setMaximumSize(QSize(16777215, 30))
+        self.tituloCabecalho_3.setFont(font)
+        self.tituloCabecalho_3.setFrameShape(QFrame.NoFrame)
+        self.tituloCabecalho_3.setFrameShadow(QFrame.Plain)
+        self.tituloCabecalho_3.setLineWidth(1)
+        self.tituloCabecalho_3.setAlignment(Qt.AlignCenter)
+        self.tituloCabecalho_3.setIndent(0)
+
+        self.verticalLayout_7.addWidget(self.tituloCabecalho_3)
+
+
+        self.verticalLayout_58.addWidget(self.frameCabecalho)
+
+        self.frameContainerEmailRemetente = QFrame(self.frameContainerPrincipal_2)
+        self.frameContainerEmailRemetente.setObjectName(u"frameContainerEmailRemetente")
+        self.frameContainerEmailRemetente.setFrameShape(QFrame.NoFrame)
+        self.frameContainerEmailRemetente.setFrameShadow(QFrame.Plain)
+        self.gridLayout_3 = QGridLayout(self.frameContainerEmailRemetente)
+        self.gridLayout_3.setObjectName(u"gridLayout_3")
+        self.tituloSenha = QLabel(self.frameContainerEmailRemetente)
+        self.tituloSenha.setObjectName(u"tituloSenha")
+
+        self.gridLayout_3.addWidget(self.tituloSenha, 2, 0, 1, 2)
+
+        self.titiloEmailRemetente = QLabel(self.frameContainerEmailRemetente)
+        self.titiloEmailRemetente.setObjectName(u"titiloEmailRemetente")
+
+        self.gridLayout_3.addWidget(self.titiloEmailRemetente, 0, 0, 1, 2)
+
+        self.statusRemetenteSenha = QLabel(self.frameContainerEmailRemetente)
+        self.statusRemetenteSenha.setObjectName(u"statusRemetenteSenha")
+        self.statusRemetenteSenha.setFrameShape(QFrame.Panel)
+        self.statusRemetenteSenha.setFrameShadow(QFrame.Sunken)
+        self.statusRemetenteSenha.setAlignment(Qt.AlignLeading|Qt.AlignLeft|Qt.AlignVCenter)
+
+        self.gridLayout_3.addWidget(self.statusRemetenteSenha, 5, 0, 1, 2)
+
+        self.emailUsuario = QLineEdit(self.frameContainerEmailRemetente)
+        self.emailUsuario.setObjectName(u"emailUsuario")
+        sizePolicy.setHeightForWidth(self.emailUsuario.sizePolicy().hasHeightForWidth())
+        self.emailUsuario.setSizePolicy(sizePolicy)
+
+        self.gridLayout_3.addWidget(self.emailUsuario, 1, 0, 1, 2)
+
+        self.senhaUsuario = QLineEdit(self.frameContainerEmailRemetente)
+        self.senhaUsuario.setObjectName(u"senhaUsuario")
+        sizePolicy.setHeightForWidth(self.senhaUsuario.sizePolicy().hasHeightForWidth())
+        self.senhaUsuario.setSizePolicy(sizePolicy)
+        self.senhaUsuario.setEchoMode(QLineEdit.Password)
+
+        self.gridLayout_3.addWidget(self.senhaUsuario, 3, 0, 1, 2)
+
+        self.btnSalvarUsuarioSenha = QPushButton(self.frameContainerEmailRemetente)
+        self.btnSalvarUsuarioSenha.setObjectName(u"btnSalvarUsuarioSenha")
+        sizePolicy.setHeightForWidth(self.btnSalvarUsuarioSenha.sizePolicy().hasHeightForWidth())
+        self.btnSalvarUsuarioSenha.setSizePolicy(sizePolicy)
+
+        self.gridLayout_3.addWidget(self.btnSalvarUsuarioSenha, 4, 0, 1, 1)
+
+        self.btnTesteConexao = QPushButton(self.frameContainerEmailRemetente)
+        self.btnTesteConexao.setObjectName(u"btnTesteConexao")
+        sizePolicy.setHeightForWidth(self.btnTesteConexao.sizePolicy().hasHeightForWidth())
+        self.btnTesteConexao.setSizePolicy(sizePolicy)
+
+        self.gridLayout_3.addWidget(self.btnTesteConexao, 4, 1, 1, 1)
+
+
+        self.verticalLayout_58.addWidget(self.frameContainerEmailRemetente)
+
+        self.frameContainerDestinatarios = QFrame(self.frameContainerPrincipal_2)
+        self.frameContainerDestinatarios.setObjectName(u"frameContainerDestinatarios")
+        self.frameContainerDestinatarios.setFrameShape(QFrame.NoFrame)
+        self.frameContainerDestinatarios.setFrameShadow(QFrame.Raised)
+        self.verticalLayout_20 = QVBoxLayout(self.frameContainerDestinatarios)
+        self.verticalLayout_20.setObjectName(u"verticalLayout_20")
+        self.label_24 = QLabel(self.frameContainerDestinatarios)
+        self.label_24.setObjectName(u"label_24")
+
+        self.verticalLayout_20.addWidget(self.label_24)
+
+        self.adicionarDestinatario = QLineEdit(self.frameContainerDestinatarios)
+        self.adicionarDestinatario.setObjectName(u"adicionarDestinatario")
+        sizePolicy.setHeightForWidth(self.adicionarDestinatario.sizePolicy().hasHeightForWidth())
+        self.adicionarDestinatario.setSizePolicy(sizePolicy)
+
+        self.verticalLayout_20.addWidget(self.adicionarDestinatario)
+
+        self.btnAdicionarDestinatario = QPushButton(self.frameContainerDestinatarios)
+        self.btnAdicionarDestinatario.setObjectName(u"btnAdicionarDestinatario")
+        sizePolicy.setHeightForWidth(self.btnAdicionarDestinatario.sizePolicy().hasHeightForWidth())
+        self.btnAdicionarDestinatario.setSizePolicy(sizePolicy)
+
+        self.verticalLayout_20.addWidget(self.btnAdicionarDestinatario)
+
+
+        self.verticalLayout_58.addWidget(self.frameContainerDestinatarios)
+
+        self.frameTabela = QFrame(self.frameContainerPrincipal_2)
+        self.frameTabela.setObjectName(u"frameTabela")
+        self.frameTabela.setFrameShape(QFrame.NoFrame)
+        self.frameTabela.setFrameShadow(QFrame.Raised)
+        self.verticalLayout_12 = QVBoxLayout(self.frameTabela)
+        self.verticalLayout_12.setObjectName(u"verticalLayout_12")
+        self.tabelaDestinatarios = QTableWidget(self.frameTabela)
+        if (self.tabelaDestinatarios.columnCount() < 1):
+            self.tabelaDestinatarios.setColumnCount(1)
+        __qtablewidgetitem = QTableWidgetItem()
+        self.tabelaDestinatarios.setHorizontalHeaderItem(0, __qtablewidgetitem)
+        self.tabelaDestinatarios.setObjectName(u"tabelaDestinatarios")
+        sizePolicy.setHeightForWidth(self.tabelaDestinatarios.sizePolicy().hasHeightForWidth())
+        self.tabelaDestinatarios.setSizePolicy(sizePolicy)
+        self.tabelaDestinatarios.setSizeAdjustPolicy(QAbstractScrollArea.AdjustIgnored)
+        self.tabelaDestinatarios.setGridStyle(Qt.SolidLine)
+        self.tabelaDestinatarios.horizontalHeader().setProperty("showSortIndicator", False)
+        self.tabelaDestinatarios.horizontalHeader().setStretchLastSection(True)
+        self.tabelaDestinatarios.verticalHeader().setVisible(False)
+
+        self.verticalLayout_12.addWidget(self.tabelaDestinatarios)
+
+        self.btnExcluirDestinatario = QPushButton(self.frameTabela)
+        self.btnExcluirDestinatario.setObjectName(u"btnExcluirDestinatario")
+        sizePolicy.setHeightForWidth(self.btnExcluirDestinatario.sizePolicy().hasHeightForWidth())
+        self.btnExcluirDestinatario.setSizePolicy(sizePolicy)
+
+        self.verticalLayout_12.addWidget(self.btnExcluirDestinatario)
+
+
+        self.verticalLayout_58.addWidget(self.frameTabela)
+
+        self.statusOperacoes = QLabel(self.frameContainerPrincipal_2)
+        self.statusOperacoes.setObjectName(u"statusOperacoes")
+        self.statusOperacoes.setFrameShape(QFrame.Panel)
+        self.statusOperacoes.setFrameShadow(QFrame.Sunken)
+        self.statusOperacoes.setAlignment(Qt.AlignCenter)
+
+        self.verticalLayout_58.addWidget(self.statusOperacoes)
+
+
+        self.verticalLayout_6.addWidget(self.frameContainerPrincipal_2)
+
+        self.tabWidget.addTab(self.emailUser, "")
+
+        self.verticalLayout_4.addWidget(self.tabWidget)
+
+        MainWindow.setCentralWidget(self.centralwidget)
+
+        self.retranslateUi(MainWindow)
+
+        self.tabWidget.setCurrentIndex(0)
+
+
+        QMetaObject.connectSlotsByName(MainWindow)
+    # setupUi
+
+    def retranslateUi(self, MainWindow):
+        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Esta\u00e7\u00e3o Metereologica \u00a9BrainStorm Tecnologia", None))
+#if QT_CONFIG(statustip)
+        MainWindow.setStatusTip(QCoreApplication.translate("MainWindow", u"Esta\u00e7\u00e3o", None))
+#endif // QT_CONFIG(statustip)
+        self.TituloCabecalho.setText(QCoreApplication.translate("MainWindow", u"Esta\u00e7\u00e3o Metereologica \u00a9BrainStorm Tecnologia", None))
+        self.primeiraParteTexto.setText(QCoreApplication.translate("MainWindow", u"<html><head/><body><p align=\"center\">Esta\u00e7\u00e3o Metereologica que registra a umidade </p><p align=\"center\">relativa do ar, press\u00e3o atmosf\u00e9rica e 2 temperaturas,</p><p align=\"center\">uma interna e outra externa.</p><p align=\"center\">Usando uma plataforma de desenvolvimento baseada</p><p align=\"center\">em Ardu\u00edno, um sensor BME280 e outro </p><p align=\"center\">termistor 10k.</p></body></html>", None))
+        self.segundaParteTexto.setText(QCoreApplication.translate("MainWindow", u"<html><head/><body><p align=\"center\"><span style=\" font-size:14pt;\">Grava os dados em um arquivo CSV a cada</span></p><p align=\"center\"><span style=\" font-size:14pt;\">segundo e ap\u00f3s um tempo determinado pelo</span></p><p align=\"center\"><span style=\" font-size:14pt;\">operador, envia um email contendo uma </span></p><p align=\"center\"><span style=\" font-size:14pt;\">an\u00e1lise dos dados e gr\u00e1ficos.</span></p></body></html>", None))
+        self.rodaPe.setText(QCoreApplication.translate("MainWindow", u"<html><head/><body><p align=\"center\">Desenvolvido com Python e C++</p><p align=\"center\"><img src=\":/icons/imagens/pic.png\"/></p><p align=\"center\"><span style=\" font-family:'Droid Sans Mono','monospace','monospace'; font-size:16px; color:#fcfcfa;\">\u00a9</span>BrainStorm Tecnologia</p></body></html>", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.paginaApresentacao), QCoreApplication.translate("MainWindow", u"Home", None))
+        self.tituloCabecalho.setText(QCoreApplication.translate("MainWindow", u"Esta\u00e7\u00e3o Metereologica \u00a9BrainStorm Tecnologia", None))
+        self.tituloPortaUSB.setText(QCoreApplication.translate("MainWindow", u"Porta USB:", None))
+        self.portaArduino.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Porta Ardu\u00edno", None))
+        self.tituloTempGrafico.setText(QCoreApplication.translate("MainWindow", u"Gr\u00e1ficos(M\u00c1X 06:00Hs)", None))
+        self.tempoGraficos.setSpecialValueText("")
+        self.btnInciarEstacao.setText(QCoreApplication.translate("MainWindow", u"Iniciar Esta\u00e7\u00e3o", None))
+        self.btnPararEstacao.setText(QCoreApplication.translate("MainWindow", u"Parar Esta\u00e7\u00e3o", None))
+        self.barraSeparadora.setText(QCoreApplication.translate("MainWindow", u"/", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.inicioEstacao), QCoreApplication.translate("MainWindow", u"Iniciar Esta\u00e7\u00e3o", None))
+        self.tituloCabecalho_2.setText(QCoreApplication.translate("MainWindow", u"Dados Coletados Tempo Real", None))
+        self.label_10.setText(QCoreApplication.translate("MainWindow", u"Umidade", None))
+        self.label_15.setText(QCoreApplication.translate("MainWindow", u"%", None))
+        self.label_11.setText(QCoreApplication.translate("MainWindow", u"Press\u00e3o", None))
+        self.label_16.setText(QCoreApplication.translate("MainWindow", u"hPa", None))
+        self.label_12.setText(QCoreApplication.translate("MainWindow", u"Temp. Interna", None))
+        self.label_17.setText(QCoreApplication.translate("MainWindow", u"\u00b0C", None))
+        self.label_13.setText(QCoreApplication.translate("MainWindow", u"Temp. Externa", None))
+        self.label_18.setText(QCoreApplication.translate("MainWindow", u"\u00b0C", None))
+        self.tituloDataHora.setText(QCoreApplication.translate("MainWindow", u"Data/Hora da Coleta", None))
+        self.dadosHoraData.setText("")
+        self.tituloNRegistrosRestante.setText(QCoreApplication.translate("MainWindow", u"N\u00ba De Registros Restantes", None))
+        self.label_19.setText(QCoreApplication.translate("MainWindow", u"/", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.mostrarDadosTReal), QCoreApplication.translate("MainWindow", u"Exibir Dados", None))
+        self.tituloCabecalho_3.setText(QCoreApplication.translate("MainWindow", u"Configura\u00e7\u00e3o Para Envio Dos E-mails", None))
+        self.tituloSenha.setText(QCoreApplication.translate("MainWindow", u"Senha", None))
+        self.titiloEmailRemetente.setText(QCoreApplication.translate("MainWindow", u"E-mail Remetente", None))
+        self.statusRemetenteSenha.setText("")
+        self.emailUsuario.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Digite Seu E-mail (Somente Gmail)", None))
+        self.senhaUsuario.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Digite a Senha do E-mail", None))
+        self.btnSalvarUsuarioSenha.setText(QCoreApplication.translate("MainWindow", u"Salvar", None))
+        self.btnTesteConexao.setText(QCoreApplication.translate("MainWindow", u"Testar Conex\u00e3o", None))
+        self.label_24.setText(QCoreApplication.translate("MainWindow", u"Destinat\u00e1rios", None))
+        self.adicionarDestinatario.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Adicione os Destinat\u00e1rios Aqui", None))
+        self.btnAdicionarDestinatario.setText(QCoreApplication.translate("MainWindow", u"Adicionar", None))
+        ___qtablewidgetitem = self.tabelaDestinatarios.horizontalHeaderItem(0)
+        ___qtablewidgetitem.setText(QCoreApplication.translate("MainWindow", u"E-mail Destinat\u00e1rio", None));
+        self.btnExcluirDestinatario.setText(QCoreApplication.translate("MainWindow", u"Excluir", None))
+        self.statusOperacoes.setText("")
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.emailUser), QCoreApplication.translate("MainWindow", u"Definir config. E-mail", None))
+    # retranslateUi
+
