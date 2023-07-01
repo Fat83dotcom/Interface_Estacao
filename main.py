@@ -15,9 +15,9 @@ from interface import Ui_MainWindow
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
-from PyQt5.QtGui import QStandardItemModel, QStandardItem
-from PyQt5.QtWidgets import QMainWindow, QApplication, QTableWidgetItem
-from PyQt5.QtCore import QThread, QObject, pyqtSignal, QMutex, pyqtSlot
+from PySide2.QtGui import QStandardItemModel, QStandardItem
+from PySide2.QtWidgets import QMainWindow, QApplication, QTableWidgetItem
+from PySide2.QtCore import QThread, QObject, Signal, QMutex, Slot
 from manipuladoresArquivos import meu_email, minha_senha, my_recipients
 from funcoesGlobais import maximos, minimos, dataInstantanea, dataDoArquivo
 
@@ -93,8 +93,8 @@ class TransSegundos:
 
 
 class WorkerEmailTesteConexao(QObject):
-    termino = pyqtSignal()
-    msgEnvio = pyqtSignal(str)
+    termino = Signal()
+    msgEnvio = Signal(str)
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -133,8 +133,8 @@ class WorkerEmailTesteConexao(QObject):
 
 
 class WorkerEmail(QObject):
-    termino = pyqtSignal()
-    msgEnvio = pyqtSignal(str)
+    termino = Signal()
+    msgEnvio = Signal(str)
 
     def __init__(self, inicio, umi, press, t1, t2, t1max,
                  t1min, t2max, t2min, umimax, umimini,
@@ -179,7 +179,7 @@ class WorkerEmail(QObject):
             )
         return corpo_msg
 
-    @pyqtSlot()
+    @Slot()
     def run(self) -> None:
         msgSubject = 'Monitor Estação Metereologica ©BrainStorm Tecnologia'
         try:
@@ -231,13 +231,13 @@ class WorkerEmail(QObject):
 
 
 class WorkerEstacao(QObject):
-    finalizar = pyqtSignal()
-    saidaData = pyqtSignal(str)
-    saidaDadosLCD = pyqtSignal(list)
-    barraProgresso = pyqtSignal(int)
-    saidaInfoInicio = pyqtSignal(str)
-    mostradorTempoRestante = pyqtSignal(int)
-    saidaDadosEmail = pyqtSignal(
+    finalizar = Signal()
+    saidaData = Signal(str)
+    saidaDadosLCD = Signal(list)
+    barraProgresso = Signal(int)
+    saidaInfoInicio = Signal(str)
+    mostradorTempoRestante = Signal(int)
+    saidaDadosEmail = Signal(
         str, float, float, float, float, float, float,
         float, float, float, float, float, float, str, str
     )
@@ -256,7 +256,7 @@ class WorkerEstacao(QObject):
         porcentagem: float = voltaAtual * 100 / totalVoltas
         return int(porcentagem)
 
-    @pyqtSlot()
+    @Slot()
     def parar(self) -> None:
         self.mutex.lock()
         self.paradaPrograma = True
@@ -325,7 +325,7 @@ class WorkerEstacao(QObject):
                     f'ERRO: {e.__class__.__name__} -> {e}'
                 )
 
-    @pyqtSlot()
+    @Slot()
     def run(self) -> None:
         try:
             caminhoDiretorio: str = os.path.dirname(os.path.realpath(__file__))
