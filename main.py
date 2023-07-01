@@ -11,7 +11,7 @@ from serial import Serial
 from itertools import count
 from statistics import mean
 from string import Template
-from interface import Ui_MainWindow
+from mainInterface import Ui_MainWindow
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
