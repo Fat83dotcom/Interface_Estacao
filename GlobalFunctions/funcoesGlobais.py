@@ -1,7 +1,8 @@
 '''
-Este módulo comporta funções de uso geral, adaptadas às rotinas do programa, usadas em classes
-e métodos de classe, portanto, caso haja mudança das classes para outros módulos .py, é necessário
-importar este módulo em seus respectivos escopos.
+Este módulo comporta funções de uso geral, adaptadas às rotinas do programa,
+usadas em classes e métodos de classe, portanto, caso haja mudança das
+classes para outros módulos .py, é necessário importar este módulo em seus
+respectivos escopos.
 '''
 import time
 
