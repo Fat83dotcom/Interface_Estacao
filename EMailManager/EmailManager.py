@@ -1,5 +1,4 @@
 import smtplib
-from pathlib import Path
 from string import Template
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -10,9 +9,6 @@ from GlobalFunctions.funcoesGlobais import dataInstantanea
 from GlobalFunctions.manipuladoresArquivos import my_recipients
 from GlobalFunctions.manipuladoresArquivos import meu_email, minha_senha
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
-
 
 class WorkerEmailTesteConexao(QObject):
     termino = Signal()
@@ -20,7 +16,7 @@ class WorkerEmailTesteConexao(QObject):
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        self.pathTest = BASE_DIR / 'Templates/emailTeste.html'
+        self.pathTest = 'Templates/emailTeste.html'
 
     def run(self) -> None:
         try:
@@ -78,7 +74,7 @@ class WorkerEmail(QObject):
         self.pressmax = pressmax
         self.pressmini = pressmini
         self.fim = fim
-        self.pathTemplateHtml = BASE_DIR / 'Templates/template.html'
+        self.pathTemplateHtml = 'Templates/template.html'
         self.servicosArquivosPDF = PlotterGraficoPDF(self.inicio, self.path)
 
     def anexadorPdf(self, enderecoPdf, msg) -> MIMEApplication:
