@@ -123,10 +123,10 @@ class WorkerEmail(QObject):
                 ), 'html'
             )
             msg.attach(corpo)
-            msg.attach(self.anexadorPdf(umidade, msg))
-            msg.attach(self.anexadorPdf(pressao, msg))
-            msg.attach(self.anexadorPdf(tmp1, msg))
-            msg.attach(self.anexadorPdf(temp2, msg))
+            msg.attach(self.anexadorPdf(self.pdfDadosUmidade, msg))
+            msg.attach(self.anexadorPdf(self.pdfDadosPressao, msg))
+            msg.attach(self.anexadorPdf(self.pdfDadosTempInt, msg))
+            msg.attach(self.anexadorPdf(self.pdfDadostempExt, msg))
 
             with smtplib.SMTP(host='smtp.gmail.com', port=587) as smtp:
                 smtp.ehlo()
