@@ -1,4 +1,5 @@
 import smtplib
+from io import BytesIO
 from string import Template
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
