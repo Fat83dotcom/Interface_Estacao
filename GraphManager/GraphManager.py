@@ -7,9 +7,8 @@ import matplotlib.pyplot as plt
 
 
 class PlotterGraficoPDF:
-    def __init__(self, dataInicio: str, caminhoDiretorioPrograma: str) -> None:
+    def __init__(self, dataInicio: str) -> None:
         self.dtInicio = dataInicio
-        self.caminhoDiretorioPrograma = caminhoDiretorioPrograma
         self.tipoGrafico = {
             'umi': 'Umidade',
             'press': 'Pressao',
