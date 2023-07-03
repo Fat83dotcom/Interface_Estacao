@@ -58,10 +58,13 @@ class WorkerEmail(QObject):
 
     def __init__(self, inicio, umi, press, t1, t2, t1max,
                  t1min, t2max, t2min, umimax, umimini,
-                 pressmax, pressmini, fim, path, parent=None) -> None:
+                 pressmax, pressmini, fim,
+                 pdfDadosUmidade,
+                 pdfDadosPressao,
+                 pdfDadosTempInt,
+                 pdfDadostempExt, parent=None) -> None:
         super().__init__(parent)
         self.inicio = inicio
-        self.path = path
         self.umi = umi
         self.press = press
         self.t1 = t1
