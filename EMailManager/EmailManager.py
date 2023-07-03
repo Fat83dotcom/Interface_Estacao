@@ -78,8 +78,12 @@ class WorkerEmail(QObject):
         self.pressmax = pressmax
         self.pressmini = pressmini
         self.fim = fim
+        self.pdfDadosUmidade = pdfDadosUmidade
+        self.pdfDadosPressao = pdfDadosPressao
+        self.pdfDadosTempInt = pdfDadosTempInt
+        self.pdfDadostempExt = pdfDadostempExt
         self.pathTemplateHtml = 'Templates/template.html'
-        self.servicosArquivosPDF = PlotterGraficoPDF(self.inicio, self.path)
+        self.servicosArquivosPDF = PlotterGraficoPDF(self.inicio)
 
     def anexadorPdf(self, enderecoPdf, msg) -> MIMEApplication:
         with open(enderecoPdf, 'rb') as pdf:
