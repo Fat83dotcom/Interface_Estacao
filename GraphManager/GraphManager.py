@@ -21,14 +21,6 @@ class PlotterGraficoPDF:
             'umi': 'Umidade Relativa do Ar %',
         }
 
-    def geradorCaminhoArquivoPDF(self, tipoGrafico: str) -> str:
-        """
-            Argumentos que devem ser passados para cada situação:
-            Tipos de Gráfico -> 'umi', 'press', 'tempInt', 'tempExt'
-        """
-        arquivoPDF = f'{self.caminhoDiretorioPrograma}/{self.tipoGrafico[tipoGrafico]}{self.dtInicio}.pdf'
-        return arquivoPDF
-
     def plotadorPDF(
         self, dadosEixo_Y: list, tipoGrafico: str, grandezaEixo_Y: str
     ) -> None:
@@ -37,28 +29,19 @@ class PlotterGraficoPDF:
             tipoGrafico -> 'umi', 'press', 'tempInt', 'tempExt'
             Grandezas -> 'temp', 'press', 'umi'
         """
+        buffer = io.BytesIO()
         tituloGrafico1 = f'{self.tipoGrafico[tipoGrafico]}\n-> Inicio: {self.dtInicio} <-|-> Termino: {dataInstantanea()} '
         tituloGrafico2 = f' <-\nMáxima: {maximos(dadosEixo_Y)} --- Mínima: {minimos(dadosEixo_Y)}'
         try:
             tempoEixo_X = range(len(dadosEixo_Y))
-            arquivoPDF = self.geradorCaminhoArquivoPDF(tipoGrafico)
             plt.title(
                 f'{tituloGrafico1}{tituloGrafico2}'
             )
             plt.xlabel('Tempo em segundos.')
             plt.ylabel(self.grandeza[grandezaEixo_Y])
             plt.plot(tempoEixo_X, dadosEixo_Y)
-            plt.savefig(arquivoPDF)
+            plt.savefig(buffer, format='pdf')
             plt.clf()
+            return buffer
         except (ValueError, Exception) as e:
-            raise e
-
-    def apagadorArquivosPDF(self, tipoGrafico: str) -> None:
-        """
-            Argumentos que devem ser passados para cada situação:
-            Tipos de Gráfico -> 'umi', 'press', 'tempInt', 'tempExt'
-        """
-        try:
-            os.remove(self.geradorCaminhoArquivoPDF(tipoGrafico))
-        except Exception as e:
             raise e
