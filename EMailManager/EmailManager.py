@@ -137,9 +137,4 @@ class WorkerEmail(QObject):
         except Exception as e:
             self.msgEnvio.emit('Não foi possivel enviar o email.')
             self.msgEnvio.emit(f'Motivo: {e.__class__.__name__}: {e}')
-        finally:
-            self.servicosArquivosPDF.apagadorArquivosPDF('umi')
-            self.servicosArquivosPDF.apagadorArquivosPDF('press')
-            self.servicosArquivosPDF.apagadorArquivosPDF('tempInt')
-            self.servicosArquivosPDF.apagadorArquivosPDF('tempExt')
         self.termino.emit()
