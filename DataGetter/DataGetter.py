@@ -128,9 +128,7 @@ class WorkerEstacao(QObject):
 
                 inicioParcial: str = dataInstantanea()
 
-                plotGrafico = PlotterGraficoPDF(
-                    inicioParcial, caminhoDiretorio
-                )
+                plotGrafico = PlotterGraficoPDF(inicioParcial)
 
                 yDadosUmidade: list[float] = []
                 yDadosPressao: list[float] = []
@@ -194,16 +192,16 @@ class WorkerEstacao(QObject):
                         terminoDelimitadorDeTempo = time.time()
 
                 contadorParciais = next(cP)
-                plotGrafico.plotadorPDF(
+                pdfDadosUmidade = plotGrafico.plotadorPDF(
                     yDadosUmidade, 'umi', 'umi'
                 )
-                plotGrafico.plotadorPDF(
+                pdfDadosPressao = plotGrafico.plotadorPDF(
                     yDadosPressao, 'press', 'press'
                 )
-                plotGrafico.plotadorPDF(
+                pdfDadosTemperaturaInterna = plotGrafico.plotadorPDF(
                     yDadosTemperaturaInterna, 'tempInt', 'temp'
                 )
-                plotGrafico.plotadorPDF(
+                pdfDadosTemperaturaExterna = plotGrafico.plotadorPDF(
                     yDadosTemperaturaExterna, 'tempExt', 'temp'
                     )
 
@@ -222,7 +220,11 @@ class WorkerEstacao(QObject):
                                 maximos(yDadosPressao),
                                 minimos(yDadosPressao),
                                 dataInstantanea(),
-                                caminhoDiretorio)
+                                pdfDadosUmidade,
+                                pdfDadosPressao,
+                                pdfDadosTemperaturaInterna,
+                                pdfDadosTemperaturaExterna
+                            )
 
             self.saidaInfoInicio.emit('Programa Parado !!!')
             self.barraProgresso.emit(0)
