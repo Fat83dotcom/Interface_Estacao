@@ -110,18 +110,6 @@ class WorkerEmail(QObject):
     def run(self) -> None:
         msgSubject = 'Monitor Estação Metereologica ©BrainStorm Tecnologia'
         try:
-            umidade = self.servicosArquivosPDF.geradorCaminhoArquivoPDF(
-                'umi'
-            )
-            pressao = self.servicosArquivosPDF.geradorCaminhoArquivoPDF(
-                'press'
-            )
-            tmp1 = self.servicosArquivosPDF.geradorCaminhoArquivoPDF(
-                'tempInt'
-            )
-            temp2 = self.servicosArquivosPDF.geradorCaminhoArquivoPDF(
-                'tempExt'
-            )
             msg = MIMEMultipart()
             msg['from'] = ''.join(meu_email())
             msg['to'] = ','.join(my_recipients())
