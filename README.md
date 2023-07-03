@@ -1,6 +1,10 @@
 # PYTHON_INTERFACE_ESTACAO
 ## Interface gráfica para a estação metereologica
 
+#
+Versão 2.0.3:
+-> Implementação da manipulação dos arquivos pdf através de fluxo de bites.
+#
 Versão 2.0.2:
 -> Implementação de arquitetura cliente/servidor entre a comunicação serial do programa
 e o Arduíno, melhorando significativamente a performance e precisão na obtenção dos dados.
