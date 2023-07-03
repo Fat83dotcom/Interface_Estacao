@@ -85,10 +85,9 @@ class WorkerEmail(QObject):
         self.pathTemplateHtml = 'Templates/template.html'
         self.servicosArquivosPDF = PlotterGraficoPDF(self.inicio)
 
-    def anexadorPdf(self, enderecoPdf, msg) -> MIMEApplication:
-        with open(enderecoPdf, 'rb') as pdf:
-            anexo = MIMEApplication(pdf.read(), _subtype='pdf')
-            anexo.add_header('Conteudo', enderecoPdf)
+    def anexadorPdf(self, buffer: BytesIO, msg) -> MIMEApplication:
+        anexo = MIMEApplication(buffer.getvalue(), _subtype='pdf')
+        anexo.add_header('pdf', 'Conteudo')
         return anexo
 
     def renderizadorHtml(self, umidade, pressao, temp1, temp2, temp1max,
