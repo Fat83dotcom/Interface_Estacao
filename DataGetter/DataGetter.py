@@ -1,4 +1,5 @@
 import os
+from io import BytesIO
 import csv
 import time
 import serial
@@ -21,7 +22,8 @@ class WorkerEstacao(QObject):
     mostradorTempoRestante = Signal(int)
     saidaDadosEmail = Signal(
         str, float, float, float, float, float, float,
-        float, float, float, float, float, float, str, str
+        float, float, float, float, float, float, str,
+        BytesIO, BytesIO, BytesIO, BytesIO
     )
 
     def __init__(
