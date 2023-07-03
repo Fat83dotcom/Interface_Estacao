@@ -150,7 +150,12 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
 
     def executarEmail(self, inicio, umi, press, t1, t2, t1max,
                       t1min, t2max, t2min, umimax, umimini,
-                      pressmax, pressmini, fim, path) -> None:
+                      pressmax, pressmini, fim,
+                      pdfDadosUmidade,
+                      pdfDadosPressao,
+                      pdfDadosTempInt,
+                      pdfDadostempExt
+                      ) -> None:
         try:
             self.emailThread = QThread(parent=None)
             self.emailWorker = WorkerEmail(
@@ -158,7 +163,10 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
                 t2=t2, t1max=t1max, t1min=t1min, t2max=t2max,
                 t2min=t2min, umimax=umimax, umimini=umimini,
                 pressmax=pressmax, pressmini=pressmini,
-                fim=fim, path=path
+                fim=fim, pdfDadosUmidade=pdfDadosUmidade,
+                pdfDadosPressao=pdfDadosPressao,
+                pdfDadosTempInt=pdfDadosTempInt,
+                pdfDadostempExt=pdfDadostempExt
             )
             self.emailWorker.moveToThread(self.emailThread)
             self.emailThread.started.connect(self.emailWorker.run)
