@@ -112,7 +112,6 @@ class WorkerEstacao(QObject):
     @Slot()
     def run(self) -> None:
         try:
-            caminhoDiretorio: str = os.path.dirname(os.path.realpath(__file__))
             cP = count()
             contadorParciais: int = next(cP)
 
