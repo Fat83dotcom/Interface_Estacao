@@ -31,7 +31,6 @@ class WorkerEstacao(QObject):
             ) -> None:
         super().__init__(parent)
         self.mutex = QMutex()
-        self.porta = portaArduino
         self.paradaPrograma: bool = False
         self.tempoConvertido: int = tempGraf
         self.arduino = portaArduino
@@ -111,32 +110,29 @@ class WorkerEstacao(QObject):
 
     @Slot()
     def run(self) -> None:
+        yDadosUmidade: list[float] = []
+        yDadosPressao: list[float] = []
+        yDadosTemperaturaInterna: list[float] = []
+        yDadosTemperaturaExterna: list[float] = []
         try:
             cP = count()
             contadorParciais: int = next(cP)
 
             while not self.paradaPrograma:
+                inicioParcial: str = dataInstantanea()
+                plotGrafico = PlotterGraficoPDF(inicioParcial)
+                cS = count()
+                contadorSegundos: int = next(cS)
+
                 if contadorParciais == 0:
                     tempoEmSegundos = self.tempoConvertido
                     self.saidaInfoInicio.emit(
-                        f'Inicio: --> {dataInstantanea()} <--'
+                        f'Inicio: --> {inicioParcial} <--'
                     )
                 else:
                     self.saidaInfoInicio.emit(
-                        f'Parcial {contadorParciais} -> {dataInstantanea()} <-'
+                        f'Parcial {contadorParciais} -> {inicioParcial} <-'
                     )
-
-                inicioParcial: str = dataInstantanea()
-
-                plotGrafico = PlotterGraficoPDF(inicioParcial)
-
-                yDadosUmidade: list[float] = []
-                yDadosPressao: list[float] = []
-                yDadosTemperaturaInterna: list[float] = []
-                yDadosTemperaturaExterna: list[float] = []
-
-                cS = count()
-                contadorSegundos: int = next(cS)
 
                 while (
                     contadorSegundos < tempoEmSegundos
