@@ -118,6 +118,12 @@ class DataBase(ABC, LogErrorsMixin):
             methName = self.SQLUpdateGenerator.__name__
             self.registerErrors(className, methName, e)
 
+    def SQLDeleteGenerator(self) -> tuple | None:
+        pass
+
+    def SQLSelectGenerator(self) -> tuple | None:
+        pass
+
 
 class OperationDataBase(DataBase, LogErrorsMixin):
     '''Realiza as operações com o PostgreSQL'''
@@ -170,10 +176,13 @@ class OperationDataBase(DataBase, LogErrorsMixin):
             self.toExecute(query)
         except Exception as e:
             className = self.__class__.__name__
-            methName = self.insertCollumn.__name__
+            methName = self.insertTable.__name__
             self.registerErrors(className, methName, e)
 
-    def executeSelect(self, method):
+    def deleteOnTable(self) -> None:
+        pass
+
+    def selectOnTable(self, method):
         pass
 
 
@@ -201,6 +210,14 @@ class DataModel(LogErrorsMixin):
         raise NotImplementedError('Implemente o metodo em uma subclasse'
                                   ' relativa a tabela trabalhada.')
 
+    def execUpdateTable(self, table: str, iterable: list) -> None:
+        pass
+
+    def execDeleteOnTable(self, table: str, key: str) -> None:
+        pass
+
+    def execSelectOnTable(self, table: str) -> list:
+        pass
 
 if __name__ == '__main__':
     # m = ConverterMonths()
