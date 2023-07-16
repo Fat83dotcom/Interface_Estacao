@@ -301,23 +301,37 @@ class DadoHorario(DataModel):
         super().__init__(dB)
 
     def execCreateTable(self, tableName: str, schema='public', fk=0) -> None:
-        query: tuple = f"""
-        CREATE TABLE IF NOT EXISTS "{schema}"."{tableName}"
-        (codigo serial not null PRIMARY KEY,
-        codigo_d_d bigint not null DEFAULT {fk},
-        data_hora timestamp not null UNIQUE,
-        umidade double precision null,
-        pressao double precision null,
-        temp_int double precision null,
-        temp_ext double precision null,
-        FOREIGN KEY(codigo_d_d) REFERENCES dado_diario(codigo))""", ()
-        self.DBInstance.toExecute(query)
+        try:
+            query: tuple = f"""
+            CREATE TABLE IF NOT EXISTS "{schema}"."{tableName}"
+            (codigo serial not null PRIMARY KEY,
+            codigo_d_d bigint not null DEFAULT {fk},
+            data_hora timestamp not null UNIQUE,
+            umidade double precision null,
+            pressao double precision null,
+            temp_int double precision null,
+            temp_ext double precision null,
+            FOREIGN KEY(codigo_d_d) REFERENCES dado_diario(codigo))""", ()
+            self.DBInstance.toExecute(query)
+        except (Error, Exception) as e:
+            className = self.__class__.__name__
+            methName = self.execCreateTable.__name__
+            self.registerErrors(className, methName, e)
+            raise e
 
     def execInsertTable(self, table: str, iterable: list) -> None:
         pass
 
-    def execSelectOnTable(self, table: str, *args) -> list:
-        pass
+    def execSelectOnTable(self, table=None, *args) -> list:
+        try:
+            query = """select codigo from dado_diario
+                        order by codigo desc limit 1""", ()
+            return self.DBInstance.toExecuteSelect(query)
+        except (Error, Exception) as e:
+            className = self.__class__.__name__
+            methName = self.execSelectOnTable.__name__
+            self.registerErrors(className, methName, e)
+            raise e
 
 
 if __name__ == '__main__':
