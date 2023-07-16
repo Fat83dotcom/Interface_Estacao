@@ -224,8 +224,27 @@ class OperationDataBase(DataBase, LogErrorsMixin):
     def deleteOnTable(self) -> None:
         pass
 
-    def selectOnTable(self, method):
-        pass
+    def selectOnTable(
+        self, table: str,
+        collCodiction: str,
+        condiction: str,
+        schema='public',
+        collumns='*'
+    ) -> list:
+        try:
+            query = self.SQLSelectGenerator(
+                table=table,
+                collCodiction=collCodiction,
+                condiction=condiction,
+                schema=schema,
+                collumns=collumns
+            )
+            return self.toExecuteSelect(query)
+        except (Error, Exception) as e:
+            className = self.__class__.__name__
+            methName = self.SQLSelectGenerator.__name__
+            self.registerErrors(className, methName, e)
+            raise e
 
 
 class DataModel(LogErrorsMixin):
