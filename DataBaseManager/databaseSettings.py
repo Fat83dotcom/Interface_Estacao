@@ -1,6 +1,6 @@
-import DataBaseManager.confidentials
+import confidentials
 
 
 def dbCredentials(database: int) -> dict:
-    CONFIG = DataBaseManager.confidentials.bataBaseChoice(database)
+    CONFIG = confidentials.bataBaseChoice(database)
     return CONFIG
