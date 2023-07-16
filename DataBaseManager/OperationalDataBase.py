@@ -1,8 +1,9 @@
 import psycopg
 from abc import ABC
 from psycopg import sql
-from DataBaseManager.LogFiles import LogErrorsMixin
-from DataBaseManager.databaseSettings import dbCredentials
+from LogFiles import LogErrorsMixin
+from databaseSettings import dbCredentials
+from psycopg import Error
 
 
 class DataBase(ABC, LogErrorsMixin):
