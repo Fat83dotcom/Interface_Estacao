@@ -196,7 +196,7 @@ class DataModel(LogErrorsMixin):
 
     def execInsertTable(self, table: str, iterable: list) -> None:
         '''
-            Implementa a estrutura pra inserir dados em tabelas.
+            Implementa uma estrutura pra inserir dados em tabelas.
             Retorna -> None
         '''
         raise NotImplementedError('Implemente o metodo em uma subclasse'
@@ -204,20 +204,36 @@ class DataModel(LogErrorsMixin):
 
     def execCreateTable(self, tableName: str) -> None:
         '''
-            Implementa a estrutura para criar tabelas.
+            Implementa uma estrutura para criar tabelas.
             Retorna -> None
         '''
         raise NotImplementedError('Implemente o metodo em uma subclasse'
                                   ' relativa a tabela trabalhada.')
 
     def execUpdateTable(self, table: str, iterable: list) -> None:
-        pass
+        '''
+            Implementa uma estrutura para atualizar tabelas.
+            Retorna -> None
+        '''
+        raise NotImplementedError('Implemente o metodo em uma subclasse'
+                                  ' relativa a tabela trabalhada.')
 
     def execDeleteOnTable(self, table: str, key: str) -> None:
-        pass
+        '''
+            Implementa uma estrutura para deletar linhas em tabelas.
+            Retorna -> None
+        '''
+        raise NotImplementedError('Implemente o metodo em uma subclasse'
+                                  ' relativa a tabela trabalhada.')
 
-    def execSelectOnTable(self, table: str) -> list:
-        pass
+    def execSelectOnTable(self, table: str, *args) -> list:
+        '''
+            Implementa uma estrutura para criar buscar dados em tabelas.
+            Retorna -> None
+        '''
+        raise NotImplementedError('Implemente o metodo em uma subclasse'
+                                  ' relativa a tabela trabalhada.')
+
 
 if __name__ == '__main__':
     # m = ConverterMonths()
