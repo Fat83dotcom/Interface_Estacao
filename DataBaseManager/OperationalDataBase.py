@@ -16,9 +16,9 @@ class DataBase(ABC, LogErrorsMixin):
         self.user: str = dBConfig['user']
         self.password: str = dBConfig['password']
 
-    def toExecute(self, query):
+    def toExecute(self, query: tuple):
         '''
-            Abre e fecha conexões, executa transações de insert e update
+            Abre e fecha conexões, executa transações
             com segurança mesmo em casos de falha.
         '''
         try:
