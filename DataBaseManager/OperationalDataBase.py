@@ -127,8 +127,42 @@ class DataBase(ABC, LogErrorsMixin):
     def SQLDeleteGenerator(self) -> tuple | None:
         pass
 
-    def SQLSelectGenerator(self) -> tuple | None:
-        pass
+    def SQLSelectGenerator(
+        self,
+        table: str,
+        collCodiction: str,
+        condiction,
+        schema: str,
+        collumns: str,
+    ) -> tuple | None:
+        try:
+            if '*' in collumns:
+                query = sql.SQL(
+                    """SELECT * FROM {tab}
+                        WHERE {colCond}={cond}"""
+                ).format(
+                    col=sql.SQL(', ').join(map(sql.Identifier, collumns)),
+                    tab=sql.Identifier(schema, table),
+                    colCond=sql.Identifier(collCodiction),
+                    cond=sql.Literal(condiction)
+                ), ()
+                return query
+            else:
+                query = sql.SQL(
+                    """SELECT {col} FROM {tab}
+                        WHERE {colCond}={cond}"""
+                ).format(
+                    col=sql.SQL(', ').join(map(sql.Identifier, collumns)),
+                    tab=sql.Identifier(schema, table),
+                    colCond=sql.Identifier(collCodiction),
+                    cond=sql.Identifier(condiction)
+                ), ()
+                return query
+        except (Error, Exception) as e:
+            className = self.__class__.__name__
+            methName = self.SQLUpdateGenerator.__name__
+            self.registerErrors(className, methName, e)
+            raise e
 
 
 class OperationDataBase(DataBase, LogErrorsMixin):
