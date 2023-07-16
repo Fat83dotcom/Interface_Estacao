@@ -32,10 +32,11 @@ class DataBase(ABC, LogErrorsMixin):
                 with con.cursor() as cursor:
                     sQL, data = query
                     cursor.execute(sQL, data)
-        except Exception as e:
+        except (Error, Exception) as e:
             className = self.__class__.__name__
             methName = self.toExecute.__name__
             self.registerErrors(className, methName, e)
+            raise e
 
     def toExecuteSelect(self, query) -> list:
         '''
@@ -55,10 +56,11 @@ class DataBase(ABC, LogErrorsMixin):
                     cursor.execute(sQL, data)
                     dataRecovery: list = [x for x in cursor.fetchall()]
                     return dataRecovery
-        except Exception as e:
+        except (Error, Exception) as e:
             className = self.__class__.__name__
             methName = self.toExecute.__name__
             self.registerErrors(className, methName, e)
+            raise e
 
     def placeHolderSQLGenerator(self, values) -> str | None:
         try:
@@ -70,10 +72,11 @@ class DataBase(ABC, LogErrorsMixin):
                 else:
                     placeHolders += '%s, '
             return placeHolders
-        except Exception as e:
+        except (Error, Exception) as e:
             className = self.__class__.__name__
             methName = self.placeHolderSQLGenerator.__name__
             self.registerErrors(className, methName, e)
+            raise e
 
     def SQLInsertGenerator(
         self, *args,
@@ -91,10 +94,11 @@ class DataBase(ABC, LogErrorsMixin):
                 pHolders=sql.SQL(', ').join(sql.Placeholder() * len(collumn))
             ), values
             return query
-        except Exception as e:
+        except (Error, Exception) as e:
             className = self.__class__.__name__
             methName = self.SQLInsertGenerator.__name__
             self.registerErrors(className, methName, e)
+            raise e
 
     def SQLUpdateGenerator(
             self, *args,
@@ -114,10 +118,11 @@ class DataBase(ABC, LogErrorsMixin):
                 colCon=sql.Identifier(collumnCondicional)
             ), (update, conditionalValue)
             return query
-        except Exception as e:
+        except (Error, Exception) as e:
             className = self.__class__.__name__
             methName = self.SQLUpdateGenerator.__name__
             self.registerErrors(className, methName, e)
+            raise e
 
     def SQLDeleteGenerator(self) -> tuple | None:
         pass
@@ -156,10 +161,11 @@ class OperationDataBase(DataBase, LogErrorsMixin):
                 conditionalValue=conditionalValue
             )
             self.toExecute(query)
-        except Exception as e:
+        except (Error, Exception) as e:
             className = self.__class__.__name__
             methName = self.updateTable.__name__
             self.registerErrors(className, methName, e)
+            raise e
 
     def insertTable(
         self, *args, table: str, collumn: tuple, schema='public'
@@ -175,10 +181,11 @@ class OperationDataBase(DataBase, LogErrorsMixin):
                 *args, table=table, collumn=collumn, schema=schema
             )
             self.toExecute(query)
-        except Exception as e:
+        except (Error, Exception) as e:
             className = self.__class__.__name__
             methName = self.insertTable.__name__
             self.registerErrors(className, methName, e)
+            raise e
 
     def deleteOnTable(self) -> None:
         pass
