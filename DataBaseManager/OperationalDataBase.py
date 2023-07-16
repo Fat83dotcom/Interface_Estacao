@@ -235,6 +235,20 @@ class DataModel(LogErrorsMixin):
                                   ' relativa a tabela trabalhada.')
 
 
+class DadoHorario(DataModel):
+    def __init__(self, dB: OperationDataBase) -> None:
+        super().__init__(dB)
+
+    def execCreateTable(self, tableName: str) -> None:
+        pass
+
+    def execInsertTable(self, table: str, iterable: list) -> None:
+        pass
+
+    def execSelectOnTable(self, table: str, *args) -> list:
+        pass
+
+
 if __name__ == '__main__':
     # m = ConverterMonths()
     # print(m.getMonths('05'))
