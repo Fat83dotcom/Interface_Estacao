@@ -130,7 +130,7 @@ class OperationDataBase(DataBase, LogErrorsMixin):
     def __init__(self, dBConfig: dict) -> None:
         super().__init__(dBConfig)
 
-    def updateColumn(
+    def updateTable(
         self,
         table: str,
         collumnUpdate: str,
@@ -157,10 +157,10 @@ class OperationDataBase(DataBase, LogErrorsMixin):
             self.toExecute(query)
         except Exception as e:
             className = self.__class__.__name__
-            methName = self.updateColumn.__name__
+            methName = self.updateTable.__name__
             self.registerErrors(className, methName, e)
 
-    def insertCollumn(
+    def insertTable(
         self, *args, table: str, collumn: tuple, schema='public'
     ):
         '''
@@ -227,7 +227,7 @@ if __name__ == '__main__':
     # bd.insertCollumn(
     # ('J.Pereira porcalhus',), table='teste', collumn=('nome', )
     # )
-    bd.updateColumn(
+    bd.updateTable(
         table='teste',
         collumnUpdate='nome',
         collumnCondicional='codigo',
