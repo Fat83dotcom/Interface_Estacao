@@ -270,16 +270,26 @@ class DadoHorario(DataModel):
 if __name__ == '__main__':
     # m = ConverterMonths()
     # print(m.getMonths('05'))
-
-    bd = OperationDataBase(dbCredentials(4))
-    # bd.insertCollumn(
-    # ('J.Pereira porcalhus',), table='teste', collumn=('nome', )
-    # )
-    bd.updateTable(
-        table='teste',
-        collumnUpdate='nome',
-        collumnCondicional='codigo',
-        update='Jãozin',
-        conditionalValue='6'
-    )
-    data = bd.toExecuteSelect(('select * from teste', ()))
+    try:
+        bd = OperationDataBase(dbCredentials(4))
+        # bd.insertCollumn(
+        # ('J.Pereira porcalhus',), table='teste', collumn=('nome', )
+        # )
+        # bd.updateTable(
+        #     table='teste',
+        #     collumnUpdate='nome',
+        #     collumnCondicional='codigo',
+        #     update='Jãozin',
+        #     conditionalValue='6'
+        # )
+        # data = bd.toExecuteSelect(('select * from teste', ()))
+        f = bd.toExecuteSelect(
+            ('select codigo from dado_diario order by codigo desc limit 1', ())
+        )
+        dM = DadoHorario(bd)
+        dM.execCreateTable(
+            tableName='15-07-2023', schema='tabelas_horarias', fk=f[0][0]
+        )
+        print(f)
+    except (Error, Exception) as e:
+        print(e)
