@@ -287,7 +287,7 @@ class DataModel(LogErrorsMixin):
         raise NotImplementedError('Implemente o metodo em uma subclasse'
                                   ' relativa a tabela trabalhada.')
 
-    def execSelectOnTable(self, table: str, *args) -> list:
+    def execSelectOnTable(self, table=None, *args) -> list:
         '''
             Implementa uma estrutura para criar buscar dados em tabelas.
             Retorna -> None
