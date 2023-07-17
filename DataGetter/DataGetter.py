@@ -37,6 +37,8 @@ class WorkerEstacao(QObject):
         self.paradaPrograma: bool = False
         self.tempoConvertido: int = tempGraf
         self.arduino = portaArduino
+        self.dB = OperationDataBase(dbCredentials(4))
+        self.dDH = DadoHorario(self.dB)
 
     def porcentagem(self, totalVoltas: int, voltaAtual: int) -> int:
         porcentagem: float = voltaAtual * 100 / totalVoltas
