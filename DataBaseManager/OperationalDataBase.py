@@ -356,8 +356,22 @@ class DadoHorario(DataModel):
             self.registerErrors(className, methName, e)
             raise e
 
-    def execInsertTable(self, table: str, iterable: list) -> None:
-        pass
+    def execInsertTable(
+        self, *args, table: str, collumn: tuple, schema='public'
+    ) -> None:
+        data = (
+            args[0]['dt'],
+            args[0]['u'],
+            args[0]['p'],
+            args[0]['1'],
+            args[0]['2']
+        )
+        self.DBInstance.insertTable(
+            data,
+            table=table,
+            collumn=collumn,
+            schema=schema
+        )
 
     def execSelectOnTable(
         self,
