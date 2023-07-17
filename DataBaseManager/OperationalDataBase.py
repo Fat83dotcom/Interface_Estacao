@@ -134,30 +134,47 @@ class DataBase(ABC, LogErrorsMixin):
         condiction,
         schema: str,
         collumns: str,
+        conditionLiteral=None
     ) -> tuple | None:
         try:
-            if '*' in collumns:
-                query = sql.SQL(
-                    """SELECT * FROM {tab}
-                        WHERE {colCond}={cond}"""
-                ).format(
-                    col=sql.SQL(', ').join(map(sql.Identifier, collumns)),
-                    tab=sql.Identifier(schema, table),
-                    colCond=sql.Identifier(collCodiction),
-                    cond=sql.Literal(condiction)
-                ), ()
-                return query
+            if conditionLiteral is None:
+                if '*' in collumns:
+                    query = sql.SQL(
+                        """SELECT * FROM {tab}
+                            WHERE {colCond}={cond}"""
+                    ).format(
+                        tab=sql.Identifier(schema, table),
+                        colCond=sql.Identifier(collCodiction),
+                        cond=sql.Literal(condiction)
+                    ), ()
+                    return query
+                else:
+                    query = sql.SQL(
+                        """SELECT {col} FROM {tab}
+                            WHERE {colCond}={cond}"""
+                    ).format(
+                        col=sql.SQL(', ').join(map(sql.Identifier, collumns)),
+                        tab=sql.Identifier(schema, table),
+                        colCond=sql.Identifier(collCodiction),
+                        cond=sql.Identifier(condiction)
+                    ), ()
+                    return query
             else:
-                query = sql.SQL(
-                    """SELECT {col} FROM {tab}
-                        WHERE {colCond}={cond}"""
-                ).format(
-                    col=sql.SQL(', ').join(map(sql.Identifier, collumns)),
-                    tab=sql.Identifier(schema, table),
-                    colCond=sql.Identifier(collCodiction),
-                    cond=sql.Identifier(condiction)
-                ), ()
-                return query
+                if '*' in collumns:
+                    query = sql.SQL(
+                        "SELECT * FROM {tab}" + f" {conditionLiteral}"
+                    ).format(
+                        tab=sql.Identifier(schema, table)
+                    ), ()
+                    return query
+                else:
+                    query = sql.SQL(
+                        "SELECT {col} FROM {tab}" + f" {conditionLiteral}"
+                    ).format(
+                        col=sql.SQL(', ').join(map(sql.Identifier, collumns)),
+                        tab=sql.Identifier(schema, table),
+                    ), ()
+                    return query
         except (Error, Exception) as e:
             className = self.__class__.__name__
             methName = self.SQLUpdateGenerator.__name__
