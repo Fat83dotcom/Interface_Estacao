@@ -388,18 +388,20 @@ if __name__ == '__main__':
         #     conditionalValue='6'
         # )
         # data = bd.toExecuteSelect(('select * from teste', ()))
-        # dM = DadoHorario(bd)
-        # f = dM.execSelectOnTable(
-        #     ('select codigo from dado_diario order by codigo desc limit 1', ())
-        # )
-        # dM.execCreateTable(
-        #     tableName='15-07-2023', schema='tabelas_horarias', fk=f[0][0]
-        # )
-        f = bd.selectOnTable(
+        dM = DadoHorario(bd)
+        f = dM.execSelectOnTable(
             table='dado_diario',
-            collCodiction='codigo',
-            condiction=1212
+            collumns=('codigo', ),
+            conditionLiteral='order by codigo desc limit 1'
         )
+        dM.execCreateTable(
+            tableName='15-07-2023', schema='tabelas_horarias', fk=f[0][0]
+        )
+        # f = bd.selectOnTable(
+        #     table='dado_diario',
+        #     collumns=('codigo', ),
+        #     conditionLiteral='order by codigo desc limit 1'
+        # )
         print(f)
     except (Error, Exception) as e:
         print(e)
