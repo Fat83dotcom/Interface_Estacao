@@ -178,6 +178,7 @@ class WorkerEstacao(QObject):
                 ) and not self.paradaPrograma:
                     inicioDelimitadorDeTempo: float = time.time()
                     dadosCarregadosArduino: dict = {
+                        'dt': '',
                         'u': '',
                         'p': '',
                         '1': '',
