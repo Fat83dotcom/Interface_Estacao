@@ -421,6 +421,19 @@ if __name__ == '__main__':
         dM.execCreateTable(
             tableName='15-07-2023', schema='tabelas_horarias', fk=f[0][0]
         )
+        data = {
+            'dt': '15/07/2023 23:15:14',
+            'u': 50,
+            'p': 958,
+            '1': 26.8,
+            '2': 30.8
+        }
+        dM.execInsertTable(
+            data,
+            table='15-07-2023',
+            collumn=('data_hora', 'umidade', 'pressao', 'temp_int', 'temp_ext'),
+            schema='tabelas_horarias'
+        )
         # f = bd.selectOnTable(
         #     table='dado_diario',
         #     collumns=('codigo', ),
