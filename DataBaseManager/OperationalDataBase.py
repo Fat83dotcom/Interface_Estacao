@@ -274,7 +274,9 @@ class DataModel(LogErrorsMixin):
     def __init__(self, dB: OperationDataBase) -> None:
         self.DBInstance = dB
 
-    def execInsertTable(self, table: str, iterable: list) -> None:
+    def execInsertTable(
+        self, *args, table: str, collumn: tuple, schema='public'
+    ) -> None:
         '''
             Implementa uma estrutura pra inserir dados em tabelas.
             Retorna -> None
@@ -290,7 +292,15 @@ class DataModel(LogErrorsMixin):
         raise NotImplementedError('Implemente o metodo em uma subclasse'
                                   ' relativa a tabela trabalhada.')
 
-    def execUpdateTable(self, table: str, iterable: list) -> None:
+    def execUpdateTable(
+        self,
+        table: str,
+        collumnUpdate: str,
+        collumnCondicional: str,
+        update: str,
+        conditionalValue: str,
+        schema='public',
+    ) -> None:
         '''
             Implementa uma estrutura para atualizar tabelas.
             Retorna -> None
