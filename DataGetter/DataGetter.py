@@ -134,8 +134,18 @@ class WorkerEstacao(QObject):
         except Exception as e:
             raise e.__class__.__name__
 
-    def insertDataOnBD(self, data: dict) -> None:
-        pass
+    def insertDataOnBD(self, tableName: str, data: dict) -> None:
+        try:
+            self.dDH.execInsertTable(
+                data,
+                table=tableName,
+                collumn=(
+                    'data_hora', 'umidade', 'pressao', 'temp_int', 'temp_ext'
+                ),
+                schema='tabelas_horarias'
+            )
+        except Exception as e:
+            raise e.__class__.__name__
 
     @Slot()
     def run(self) -> None:
