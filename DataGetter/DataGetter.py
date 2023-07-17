@@ -39,6 +39,7 @@ class WorkerEstacao(QObject):
         self.arduino = portaArduino
         self.dB = OperationDataBase(dbCredentials(4))
         self.dDH = DadoHorario(self.dB)
+        self.executor = ThreadPoolExecutor(max_workers=10)
 
     def porcentagem(self, totalVoltas: int, voltaAtual: int) -> int:
         porcentagem: float = voltaAtual * 100 / totalVoltas
@@ -124,9 +125,8 @@ class WorkerEstacao(QObject):
         except Exception as e:
             raise e.__class__.__name__
 
-    def createDailyTable(self) -> None:
+    def createDailyTable(self, tableName: str) -> None:
         try:
-            tableName = datetime.now().strptime('%d-%m-%Y')
             fK = self.findLastPK()
             self.dDH.execCreateTable(
                 tableName=tableName, schema='tabelas_horarias', fk=fK
@@ -197,6 +197,21 @@ class WorkerEstacao(QObject):
                         yDadosTemperaturaExterna.append(
                             float(dadosCarregadosArduino['2'])
                         )
+
+                    dadosCarregadosArduino['dt'] = dataInstantanea()
+                    tableName = datetime.now().strftime('%d-%m-%Y')
+                    now = datetime.now()
+
+                    if now.hour == 0 and now.minute == 0:
+                        self.executor.submit(
+                            self.createDailyTable, (tableName, )
+                        )
+
+                    self.executor.submit(
+                        self.insertDataOnBD, (
+                            tableName, dadosCarregadosArduino
+                        )
+                    )
 
                     self.registradorDadosArquivo(dadosCarregadosArduino)
 
