@@ -242,11 +242,12 @@ class OperationDataBase(DataBase, LogErrorsMixin):
         pass
 
     def selectOnTable(
-        self, table: str,
-        collCodiction: str,
-        condiction: str,
+        self, table=None,
+        collCodiction=None,
+        condiction=None,
         schema='public',
-        collumns='*'
+        collumns='*',
+        conditionLiteral=None
     ) -> list:
         try:
             query = self.SQLSelectGenerator(
@@ -254,7 +255,8 @@ class OperationDataBase(DataBase, LogErrorsMixin):
                 collCodiction=collCodiction,
                 condiction=condiction,
                 schema=schema,
-                collumns=collumns
+                collumns=collumns,
+                conditionLiteral=conditionLiteral
             )
             return self.toExecuteSelect(query)
         except (Error, Exception) as e:
@@ -304,7 +306,15 @@ class DataModel(LogErrorsMixin):
         raise NotImplementedError('Implemente o metodo em uma subclasse'
                                   ' relativa a tabela trabalhada.')
 
-    def execSelectOnTable(self, table=None, *args) -> list:
+    def execSelectOnTable(
+        self,
+        table=None,
+        collCodiction=None,
+        condiction=None,
+        schema='public',
+        collumns='*',
+        conditionLiteral=None
+    ) -> list:
         '''
             Implementa uma estrutura para criar buscar dados em tabelas.
             Retorna -> None
@@ -339,11 +349,22 @@ class DadoHorario(DataModel):
     def execInsertTable(self, table: str, iterable: list) -> None:
         pass
 
-    def execSelectOnTable(self, table=None, *args) -> list:
+    def execSelectOnTable(
+        self,
+        table=None,
+        collCodiction=None,
+        condiction=None,
+        schema='public',
+        collumns='*',
+        conditionLiteral=None
+    ) -> list:
         try:
-            query = """select codigo from dado_diario
-                        order by codigo desc limit 1""", ()
-            return self.DBInstance.toExecuteSelect(query)
+            result = self.DBInstance.selectOnTable(
+                table=table,
+                collumns=collumns,
+                conditionLiteral=conditionLiteral
+            )
+            return result
         except (Error, Exception) as e:
             className = self.__class__.__name__
             methName = self.execSelectOnTable.__name__
