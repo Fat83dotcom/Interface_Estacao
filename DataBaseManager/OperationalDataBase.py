@@ -181,6 +181,35 @@ class DataBase(ABC, LogErrorsMixin):
             self.registerErrors(className, methName, e)
             raise e
 
+    def updateTable(
+        self,
+        table: str,
+        collumnUpdate: str,
+        collumnCondicional: str,
+        update: str,
+        conditionalValue: str,
+        schema='public',
+    ) -> None:
+        raise NotImplementedError('Implemente o metodo em uma subclasse'
+                                  ' relativa a tabela trabalhada.')
+
+    def insertTable(
+        self, *args, table: str, collumn: tuple, schema='public'
+    ) -> None:
+        raise NotImplementedError('Implemente o metodo em uma subclasse'
+                                  ' relativa a tabela trabalhada.')
+
+    def selectOnTable(
+        self, table=None,
+        collCodiction=None,
+        condiction=None,
+        schema='public',
+        collumns='*',
+        conditionLiteral=None
+    ) -> list:
+        raise NotImplementedError('Implemente o metodo em uma subclasse'
+                                  ' relativa a tabela trabalhada.')
+
 
 class OperationDataBase(DataBase, LogErrorsMixin):
     '''Realiza as operações com o PostgreSQL'''
@@ -195,7 +224,7 @@ class OperationDataBase(DataBase, LogErrorsMixin):
         update: str,
         conditionalValue: str,
         schema='public',
-    ):
+    ) -> None:
         '''
             Atualiza colunas.
             Parametros: collumn -> Nome da coluna
@@ -220,7 +249,7 @@ class OperationDataBase(DataBase, LogErrorsMixin):
 
     def insertTable(
         self, *args, table: str, collumn: tuple, schema='public'
-    ):
+    ) -> None:
         '''
             Insere dados na tabela.
             Parametros:
