@@ -223,9 +223,9 @@ class WorkerEstacao(QObject):
                         )
 
                     self.executor.submit(
-                        self.insertDataOnBD, (
-                            tableName, dadosCarregadosArduino
-                        )
+                        self.insertDataOnBD,
+                        tableName=tableName,
+                        data=dadosCarregadosArduino
                     )
 
                     self.registradorDadosArquivo(dadosCarregadosArduino)
