@@ -165,6 +165,10 @@ class WorkerEstacao(QObject):
 
                 if contadorParciais == 0:
                     tempoEmSegundos = self.tempoConvertido
+                    tableName = datetime.now().strftime('%d-%m-%Y')
+                    self.executor.submit(
+                        self.createDailyTable, tableName
+                    )
                     self.saidaInfoInicio.emit(
                         f'Inicio: --> {inicioParcial} <--'
                     )
