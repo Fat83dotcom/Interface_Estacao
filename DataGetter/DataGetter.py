@@ -114,22 +114,10 @@ class WorkerEstacao(QObject):
                     f'ERRO: {e.__class__.__name__} -> {e}'
                 )
 
-    def findLastPK(self) -> int:
-        try:
-            result = self.dDH.execSelectOnTable(
-                table='dado_diario',
-                collumns=('codigo', ),
-                conditionLiteral='order by codigo desc limit 1'
-            )
-            return result[0][0]
-        except Exception as e:
-            raise e.__class__.__name__
-
     def createDailyTable(self, tableName: str) -> None:
         try:
-            fK = self.findLastPK()
             self.dDH.execCreateTable(
-                tableName=tableName, schema='tabelas_horarias', fk=fK
+                tableName=tableName, schema='tabelas_horarias'
             )
         except Exception as e:
             raise e.__class__.__name__

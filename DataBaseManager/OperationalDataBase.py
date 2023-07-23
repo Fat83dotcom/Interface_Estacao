@@ -366,18 +366,16 @@ class DadoHorario(DataModel):
     def __init__(self, dB: OperationDataBase) -> None:
         super().__init__(dB)
 
-    def execCreateTable(self, tableName: str, schema='public', fk=0) -> None:
+    def execCreateTable(self, tableName: str, schema='public') -> None:
         try:
             query: tuple = f"""
             CREATE TABLE IF NOT EXISTS "{schema}"."{tableName}"
             (codigo serial not null PRIMARY KEY,
-            codigo_d_d bigint not null DEFAULT {fk},
             data_hora timestamp not null UNIQUE,
             umidade double precision null,
             pressao double precision null,
             temp_int double precision null,
-            temp_ext double precision null,
-            FOREIGN KEY(codigo_d_d) REFERENCES dado_diario(codigo))""", ()
+            temp_ext double precision null""", ()
             self.DBInstance.toExecute(query)
         except (Error, Exception) as e:
             className = self.__class__.__name__
