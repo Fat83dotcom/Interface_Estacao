@@ -8,8 +8,74 @@ from PySide2.QtCore import QObject, Signal, Slot
 from email.mime.application import MIMEApplication
 from GraphManager.GraphManager import PlotterGraficoPDF
 from GlobalFunctions.funcoesGlobais import dataInstantanea
+from GlobalFunctions.funcoesGlobais import maximos, minimos
 from GlobalFunctions.manipuladoresArquivos import my_recipients
 from GlobalFunctions.manipuladoresArquivos import meu_email, minha_senha
+
+
+class WorkerGraphEmail(QObject):
+    erro = Signal(str)
+    confirma = Signal(str)
+    termino = Signal()
+
+    def __init__(
+        self,
+        inicioParcial: str,
+        yDadosUmidade: list,
+        yDadosPressao: list,
+        yDadosTempInt: list,
+        yDadosTempExt: list,
+        parent=None,
+    ) -> None:
+        super().__init__(parent)
+        self.inicioParcial = inicioParcial
+        self.yDadosUmidade = yDadosUmidade
+        self.yDadosPressao = yDadosPressao
+        self.yDadosTempInt = yDadosTempInt
+        self.yDadosTempExt = yDadosTempExt
+        self.email = WorkerEmail()
+        self.plotGrafico = PlotterGraficoPDF(self.inicioParcial)
+
+    @Slot()
+    def run(self) -> None:
+        try:
+            pdfDadosUmidade = self.plotGrafico.plotadorPDF(
+                self.yDadosUmidade, 'umi', 'umi'
+            )
+            pdfDadosPressao = self.plotGrafico.plotadorPDF(
+                self.yDadosPressao, 'press', 'press'
+            )
+            pdfDadosTemperaturaInterna = self.plotGrafico.plotadorPDF(
+                self.yDadosTempInt, 'tempInt', 'temp'
+            )
+            pdfDadosTemperaturaExterna = self.plotGrafico.plotadorPDF(
+                self.yDadosTempExt, 'tempExt', 'temp'
+                )
+
+            self.email.run(
+                self.inicioParcial,
+                round(mean(self.yDadosUmidade), 2),
+                round(mean(self.yDadosPressao), 2),
+                round(mean(self.yDadosTempInt), 2),
+                round(mean(self.yDadosTempExt), 2),
+                maximos(self.yDadosTempInt),
+                minimos(self.yDadosTempInt),
+                maximos(self.yDadosTempExt),
+                minimos(self.yDadosTempExt),
+                maximos(self.yDadosUmidade),
+                minimos(self.yDadosUmidade),
+                maximos(self.yDadosPressao),
+                minimos(self.yDadosPressao),
+                dataInstantanea(),
+                pdfDadosUmidade,
+                pdfDadosPressao,
+                pdfDadosTemperaturaInterna,
+                pdfDadosTemperaturaExterna
+            )
+            self.confirma.emit('Email enviado com sucesso!')
+        except Exception as e:
+            self.erro.emit(f'Email não enviado: {e.__class__.__name__}')
+        self.termino.emit()
 
 
 class WorkerEmailTesteConexao(QObject):
