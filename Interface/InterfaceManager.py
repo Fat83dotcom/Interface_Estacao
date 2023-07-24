@@ -3,7 +3,7 @@ from Interface.mainInterface import Ui_MainWindow
 from DataGetter.DataGetter import WorkerEstacao, ConexaoUSB
 from GlobalFunctions.manipuladoresArquivos import my_recipients
 from GlobalFunctions.manipuladoresArquivos import meu_email, minha_senha
-from EMailManager.EmailManager import WorkerEmail, WorkerEmailTesteConexao
+from EMailManager.EmailManager import WorkerEmailTesteConexao, WorkerGraphEmail
 from PySide2.QtCore import QThread
 from PySide2.QtGui import QStandardItemModel, QStandardItem
 from PySide2.QtWidgets import QMainWindow, QTableWidgetItem
