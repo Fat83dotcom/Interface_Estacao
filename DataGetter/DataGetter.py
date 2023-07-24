@@ -148,7 +148,7 @@ class WorkerEstacao(QObject):
                     tempoEmSegundos = self.tempoConvertido
                     tableName = datetime.now().strftime('%d-%m-%Y')
                     self.executor.submit(
-                        self.createDailyTable, tableName
+                        self.createDailyTable, tableName, 'tabelas_horarias'
                     )
                     self.saidaInfoInicio.emit(
                         f'Inicio: --> {inicioParcial} <--'
