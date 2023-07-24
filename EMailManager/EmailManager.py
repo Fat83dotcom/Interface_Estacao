@@ -119,38 +119,9 @@ class WorkerEmailTesteConexao(QObject):
         self.termino.emit()
 
 
-class WorkerEmail(QObject):
-    termino = Signal()
-    msgEnvio = Signal(str)
-
-    def __init__(self, inicio, umi, press, t1, t2, t1max,
-                 t1min, t2max, t2min, umimax, umimini,
-                 pressmax, pressmini, fim,
-                 pdfDadosUmidade,
-                 pdfDadosPressao,
-                 pdfDadosTempInt,
-                 pdfDadostempExt, parent=None) -> None:
-        super().__init__(parent)
-        self.inicio = inicio
-        self.umi = umi
-        self.press = press
-        self.t1 = t1
-        self.t2 = t2
-        self.t1max = t1max
-        self.t1min = t1min
-        self.t2max = t2max
-        self.t2min = t2min
-        self.umimax = umimax
-        self.umimini = umimini
-        self.pressmax = pressmax
-        self.pressmini = pressmini
-        self.fim = fim
-        self.pdfDadosUmidade = pdfDadosUmidade
-        self.pdfDadosPressao = pdfDadosPressao
-        self.pdfDadosTempInt = pdfDadosTempInt
-        self.pdfDadostempExt = pdfDadostempExt
+class WorkerEmail:
+    def __init__(self) -> None:
         self.pathTemplateHtml = 'Templates/template.html'
-        self.servicosArquivosPDF = PlotterGraficoPDF(self.inicio)
 
     def anexadorPdf(self, buffer: BytesIO, msg) -> MIMEApplication:
         anexo = MIMEApplication(buffer.getvalue(), _subtype='pdf')
@@ -173,8 +144,16 @@ class WorkerEmail(QObject):
             )
         return corpo_msg
 
-    @Slot()
-    def run(self) -> None:
+    def run(
+        self,
+        inicio, umi, press, t1, t2, t1max,
+        t1min, t2max, t2min, umimax, umimini,
+        pressmax, pressmini, fim,
+        pdfDadosUmidade,
+        pdfDadosPressao,
+        pdfDadosTempInt,
+        pdfDadostempExt,
+    ) -> None:
         msgSubject = 'Monitor Estação Metereologica ©BrainStorm Tecnologia'
         try:
             msg = MIMEMultipart()
