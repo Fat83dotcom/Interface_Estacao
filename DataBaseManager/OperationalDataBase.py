@@ -458,8 +458,9 @@ if __name__ == '__main__':
         dM.execInsertTable(
             data,
             table='15-07-2023',
-            collumn=('data_hora', 'umidade', 'pressao', 'temp_int', 'temp_ext'),
-            schema='tabelas_horarias'
+            collumn=(
+                'data_hora', 'umidade', 'pressao', 'temp_int', 'temp_ext'
+            ), schema='tabelas_horarias'
         )
         # f = bd.selectOnTable(
         #     table='dado_diario',
