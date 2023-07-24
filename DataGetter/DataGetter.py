@@ -108,10 +108,10 @@ class WorkerEstacao(QObject):
                     f'ERRO: {e.__class__.__name__} -> {e}'
                 )
 
-    def createDailyTable(self, tableName: str) -> None:
+    def createDailyTable(self, tableName: str, schema: str) -> None:
         try:
             self.dDH.execCreateTable(
-                tableName=tableName, schema='tabelas_horarias'
+                tableName=tableName, schema=schema
             )
         except Exception as e:
             raise e.__class__.__name__
