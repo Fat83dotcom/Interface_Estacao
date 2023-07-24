@@ -1,19 +1,15 @@
-from io import BytesIO
 import csv
 import time
 import serial
 from time import sleep
-from datetime import datetime
 from serial import Serial
 from itertools import count
-from statistics import mean
+from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
-from GraphManager.GraphManager import PlotterGraficoPDF
 from PySide2.QtCore import QObject, Signal, QMutex, Slot
-from DataBaseManager.OperationalDataBase import DadoHorario, OperationDataBase
 from DataBaseManager.databaseSettings import dbCredentials
-from GlobalFunctions.funcoesGlobais import maximos, minimos
 from GlobalFunctions.funcoesGlobais import dataInstantanea, dataDoArquivo
+from DataBaseManager.OperationalDataBase import DadoHorario, OperationDataBase
 
 
 class WorkerEstacao(QObject):
