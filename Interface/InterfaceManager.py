@@ -148,34 +148,32 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         self.portaArduino.setEnabled(True)
         self.tempoGraficos.setEnabled(True)
 
-    def executarEmail(self, inicio, umi, press, t1, t2, t1max,
-                      t1min, t2max, t2min, umimax, umimini,
-                      pressmax, pressmini, fim,
-                      pdfDadosUmidade,
-                      pdfDadosPressao,
-                      pdfDadosTempInt,
-                      pdfDadostempExt
-                      ) -> None:
+    def executarEmail(
+        self,
+        inicioParcial,
+        yDadosUmidade,
+        yDadosPressao,
+        yDadosTempInt,
+        yDadosTempExt
+    ) -> None:
         try:
             self.emailThread = QThread(parent=None)
-            self.emailWorker = WorkerEmail(
-                inicio=inicio, umi=umi, press=press, t1=t1,
-                t2=t2, t1max=t1max, t1min=t1min, t2max=t2max,
-                t2min=t2min, umimax=umimax, umimini=umimini,
-                pressmax=pressmax, pressmini=pressmini,
-                fim=fim, pdfDadosUmidade=pdfDadosUmidade,
-                pdfDadosPressao=pdfDadosPressao,
-                pdfDadosTempInt=pdfDadosTempInt,
-                pdfDadostempExt=pdfDadostempExt
+            self.emailWorker = WorkerGraphEmail(
+                inicioParcial,
+                yDadosUmidade,
+                yDadosPressao,
+                yDadosTempInt,
+                yDadosTempExt
             )
             self.emailWorker.moveToThread(self.emailThread)
             self.emailThread.started.connect(self.emailWorker.run)
-            self.emailThread.start()
-            self.emailWorker.msgEnvio.connect(self.mostradorDisplayInfo)
             self.emailWorker.termino.connect(self.emailThread.quit)
             self.emailWorker.termino.connect(self.emailThread.wait)
             self.emailWorker.termino.connect(self.emailThread.deleteLater)
             self.emailWorker.termino.connect(self.emailWorker.deleteLater)
+            self.emailWorker.confirma.connect(self.mostradorDisplayInfo)
+            self.emailWorker.erro.connect(self.mostradorDisplayInfo)
+            self.emailThread.start()
         except Exception as e:
             self.mostradorDisplayInfo(f'{e.__class__.__name__}: {e}')
             return
