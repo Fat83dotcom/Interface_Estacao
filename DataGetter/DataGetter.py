@@ -200,7 +200,9 @@ class WorkerEstacao(QObject):
 
                     if now.hour == 0 and now.minute == 0 and now.second == 0:
                         self.executor.submit(
-                            self.createDailyTable, tableName
+                            self.createDailyTable,
+                            tableName,
+                            'tabelas_horarias'
                         )
 
                     self.executor.submit(
