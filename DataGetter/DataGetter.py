@@ -31,7 +31,7 @@ class WorkerEstacao(QObject):
         self.paradaPrograma: bool = False
         self.tempoConvertido: int = tempGraf
         self.arduino = portaArduino
-        self.dB = OperationDataBase(dbCredentials(4))
+        self.dB = OperationDataBase(dbCredentials(3))
         self.dDH = DadoHorario(self.dB)
         self.executor = ThreadPoolExecutor(max_workers=10)
 
