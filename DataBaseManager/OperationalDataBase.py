@@ -375,7 +375,7 @@ class DadoHorario(DataModel):
             umidade double precision null,
             pressao double precision null,
             temp_int double precision null,
-            temp_ext double precision null""", ()
+            temp_ext double precision null)""", ()
             self.DBInstance.toExecute(query)
         except (Error, Exception) as e:
             className = self.__class__.__name__
