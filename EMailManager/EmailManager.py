@@ -21,6 +21,7 @@ class WorkerGraphEmail(QObject):
     def __init__(
         self,
         inicioParcial: str,
+        terminoParcial: str,
         yDadosUmidade: list,
         yDadosPressao: list,
         yDadosTempInt: list,
@@ -29,12 +30,15 @@ class WorkerGraphEmail(QObject):
     ) -> None:
         super().__init__(parent)
         self.inicioParcial = inicioParcial
+        self.terminoParcial = terminoParcial
         self.yDadosUmidade = yDadosUmidade
         self.yDadosPressao = yDadosPressao
         self.yDadosTempInt = yDadosTempInt
         self.yDadosTempExt = yDadosTempExt
         self.email = WorkerEmail()
-        self.plotGrafico = PlotterGraficoPDF(self.inicioParcial)
+        self.plotGrafico = PlotterGraficoPDF(
+            self.inicioParcial, self.terminoParcial
+        )
 
     @Slot()
     def run(self) -> None:

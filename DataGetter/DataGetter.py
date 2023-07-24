@@ -20,7 +20,7 @@ class WorkerEstacao(QObject):
     saidaInfoInicio = Signal(str)
     mostradorTempoRestante = Signal(int)
     saidaDadosEmail = Signal(
-        str, list, list, list, list
+        str, str, list, list, list, list
     )
 
     def __init__(
@@ -230,8 +230,9 @@ class WorkerEstacao(QObject):
                         terminoDelimitadorDeTempo = time.time()
 
                 contadorParciais = next(cP)
+                terminoParcial: str = dataInstantanea()
                 self.saidaDadosEmail.emit(
-                    inicioParcial, yDadosUmidade,
+                    inicioParcial, terminoParcial, yDadosUmidade,
                     yDadosPressao, yDadosTempInt, yDadosTempExt
                 )
 

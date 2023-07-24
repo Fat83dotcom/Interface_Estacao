@@ -151,6 +151,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
     def executarEmail(
         self,
         inicioParcial,
+        terminoParcial,
         yDadosUmidade,
         yDadosPressao,
         yDadosTempInt,
@@ -160,6 +161,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             self.emailThread = QThread(parent=None)
             self.emailWorker = WorkerGraphEmail(
                 inicioParcial,
+                terminoParcial,
                 yDadosUmidade,
                 yDadosPressao,
                 yDadosTempInt,

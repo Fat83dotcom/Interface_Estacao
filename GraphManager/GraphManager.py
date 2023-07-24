@@ -7,8 +7,9 @@ import matplotlib.pyplot as plt
 
 
 class PlotterGraficoPDF:
-    def __init__(self, dataInicio: str) -> None:
+    def __init__(self, dataInicio: str, dataTermino: str) -> None:
         self.dtInicio = dataInicio
+        self.dtTermino = dataTermino
         self.tipoGrafico = {
             'umi': 'Umidade',
             'press': 'Pressao',
@@ -30,7 +31,7 @@ class PlotterGraficoPDF:
             Grandezas -> 'temp', 'press', 'umi'
         """
         buffer = io.BytesIO()
-        tituloGrafico1 = f'{self.tipoGrafico[tipoGrafico]}\n-> Inicio: {self.dtInicio} <-|-> Termino: {dataInstantanea()} '
+        tituloGrafico1 = f'{self.tipoGrafico[tipoGrafico]}\n-> Inicio: {self.dtInicio} <-|-> Termino: {self.dtTermino} '
         tituloGrafico2 = f' <-\nMáxima: {maximos(dadosEixo_Y)} --- Mínima: {minimos(dadosEixo_Y)}'
         try:
             tempoEixo_X = range(len(dadosEixo_Y))
