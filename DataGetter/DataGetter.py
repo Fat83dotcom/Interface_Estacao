@@ -186,11 +186,11 @@ class WorkerEstacao(QObject):
                             float(dadosCarregadosArduino['p'])
                         )
                     if float(dadosCarregadosArduino['1']) > 0:
-                        yDadosTemperaturaInterna.append(
+                        yDadosTempInt.append(
                             float(dadosCarregadosArduino['1'])
                         )
                     if float(dadosCarregadosArduino['2']) > 0:
-                        yDadosTemperaturaExterna.append(
+                        yDadosTempExt.append(
                             float(dadosCarregadosArduino['2'])
                         )
 
