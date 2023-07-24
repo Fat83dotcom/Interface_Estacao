@@ -20,9 +20,7 @@ class WorkerEstacao(QObject):
     saidaInfoInicio = Signal(str)
     mostradorTempoRestante = Signal(int)
     saidaDadosEmail = Signal(
-        str, float, float, float, float, float, float,
-        float, float, float, float, float, float, str,
-        BytesIO, BytesIO, BytesIO, BytesIO
+        str, list, list, list, list
     )
 
     def __init__(
@@ -231,39 +229,10 @@ class WorkerEstacao(QObject):
                         terminoDelimitadorDeTempo = time.time()
 
                 contadorParciais = next(cP)
-                pdfDadosUmidade = plotGrafico.plotadorPDF(
-                    yDadosUmidade, 'umi', 'umi'
-                )
-                pdfDadosPressao = plotGrafico.plotadorPDF(
-                    yDadosPressao, 'press', 'press'
-                )
-                pdfDadosTemperaturaInterna = plotGrafico.plotadorPDF(
-                    yDadosTemperaturaInterna, 'tempInt', 'temp'
-                )
-                pdfDadosTemperaturaExterna = plotGrafico.plotadorPDF(
-                    yDadosTemperaturaExterna, 'tempExt', 'temp'
-                    )
-
                 self.saidaDadosEmail.emit(
-                                inicioParcial,
-                                round(mean(yDadosUmidade), 2),
-                                round(mean(yDadosPressao), 2),
-                                round(mean(yDadosTemperaturaInterna), 2),
-                                round(mean(yDadosTemperaturaExterna), 2),
-                                maximos(yDadosTemperaturaInterna),
-                                minimos(yDadosTemperaturaInterna),
-                                maximos(yDadosTemperaturaExterna),
-                                minimos(yDadosTemperaturaExterna),
-                                maximos(yDadosUmidade),
-                                minimos(yDadosUmidade),
-                                maximos(yDadosPressao),
-                                minimos(yDadosPressao),
-                                dataInstantanea(),
-                                pdfDadosUmidade,
-                                pdfDadosPressao,
-                                pdfDadosTemperaturaInterna,
-                                pdfDadosTemperaturaExterna
-                            )
+                    inicioParcial, yDadosUmidade,
+                    yDadosPressao, yDadosTempInt, yDadosTempExt
+                )
 
             self.saidaInfoInicio.emit('Programa Parado !!!')
             self.barraProgresso.emit(0)
