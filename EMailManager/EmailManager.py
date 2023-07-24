@@ -162,25 +162,22 @@ class WorkerEmail:
             msg['subject'] = f'{msgSubject} {dataInstantanea()}'
             corpo = MIMEText(
                 self.renderizadorHtml(
-                    self.umi, self.press, self.t1, self.t2,
-                    self.t1max, self.t1min, self.t2max, self.t2min,
-                    self.umimax, self.umimini, self.pressmax, self.pressmini,
-                    self.inicio, self.fim, dataInstantanea()
+                    umi, press, t1, t2,
+                    t1max, t1min, t2max, t2min,
+                    umimax, umimini, pressmax, pressmini,
+                    inicio, fim, dataInstantanea()
                 ), 'html'
             )
             msg.attach(corpo)
-            msg.attach(self.anexadorPdf(self.pdfDadosUmidade, msg))
-            msg.attach(self.anexadorPdf(self.pdfDadosPressao, msg))
-            msg.attach(self.anexadorPdf(self.pdfDadosTempInt, msg))
-            msg.attach(self.anexadorPdf(self.pdfDadostempExt, msg))
+            msg.attach(self.anexadorPdf(pdfDadosUmidade, msg))
+            msg.attach(self.anexadorPdf(pdfDadosPressao, msg))
+            msg.attach(self.anexadorPdf(pdfDadosTempInt, msg))
+            msg.attach(self.anexadorPdf(pdfDadostempExt, msg))
 
             with smtplib.SMTP(host='smtp.gmail.com', port=587) as smtp:
                 smtp.ehlo()
                 smtp.starttls()
                 smtp.login(''.join(meu_email()), ''.join(minha_senha()))
                 smtp.send_message(msg)
-                self.msgEnvio.emit('Email enviado com sucesso.')
         except Exception as e:
-            self.msgEnvio.emit('Não foi possivel enviar o email.')
-            self.msgEnvio.emit(f'Motivo: {e.__class__.__name__}: {e}')
-        self.termino.emit()
+            raise e
