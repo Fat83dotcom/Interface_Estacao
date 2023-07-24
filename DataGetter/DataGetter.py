@@ -87,17 +87,17 @@ class WorkerEstacao(QObject):
     def atualizarTempoRestante(self, tempoTotal, tempoCorrente) -> None:
         self.mostradorTempoRestante.emit((tempoTotal - tempoCorrente))
 
-    def registradorDadosArquivo(self, dadosAGravar: dict) -> None:
+    def registradorDadosArquivo(self, dados: dict) -> None:
         with open(dataDoArquivo(), 'a+', newline='', encoding='utf-8') as log:
             try:
-                if float(dadosAGravar['u']) and float(dadosAGravar['p']) and \
-                     float(dadosAGravar['1']) and float(dadosAGravar['2']) != 0:
+                if float(dados['u']) and float(dados['p']) and \
+                     float(dados['1']) and float(dados['2']) != 0:
                     w = csv.writer(log)
                     w.writerow(
                         [
-                            dataInstantanea(), dadosAGravar['u'],
-                            dadosAGravar['p'], dadosAGravar['1'],
-                            dadosAGravar['2']
+                            dataInstantanea(), dados['u'],
+                            dados['p'], dados['1'],
+                            dados['2']
                         ]
                     )
             except (ValueError, Exception) as e:
