@@ -1,9 +1,9 @@
 import io
 import matplotlib.backends.backend_pdf
-from GlobalFunctions.funcoesGlobais import maximos, minimos, dataInstantanea
+from GlobalFunctions.funcoesGlobais import maximos, minimos
+import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('QtAgg')
-import matplotlib.pyplot as plt
 
 
 class PlotterGraficoPDF:
