@@ -35,7 +35,7 @@ class WorkerGraphEmail(QObject):
         self.yDadosPressao = yDadosPressao
         self.yDadosTempInt = yDadosTempInt
         self.yDadosTempExt = yDadosTempExt
-        self.email = WorkerEmail()
+        self.email = WorkerEmail(self.terminoParcial)
         self.plotGrafico = PlotterGraficoPDF(
             self.inicioParcial, self.terminoParcial
         )
@@ -54,7 +54,7 @@ class WorkerGraphEmail(QObject):
             )
             pdfDadosTemperaturaExterna = self.plotGrafico.plotadorPDF(
                 self.yDadosTempExt, 'tempExt', 'temp'
-                )
+            )
 
             self.email.run(
                 self.inicioParcial,
@@ -70,7 +70,7 @@ class WorkerGraphEmail(QObject):
                 minimos(self.yDadosUmidade),
                 maximos(self.yDadosPressao),
                 minimos(self.yDadosPressao),
-                dataInstantanea(),
+                self.terminoParcial,
                 pdfDadosUmidade,
                 pdfDadosPressao,
                 pdfDadosTemperaturaInterna,
@@ -124,8 +124,9 @@ class WorkerEmailTesteConexao(QObject):
 
 
 class WorkerEmail:
-    def __init__(self) -> None:
+    def __init__(self, dataTermino: str) -> None:
         self.pathTemplateHtml = 'Templates/template.html'
+        self.dtTermino = dataTermino
 
     def anexadorPdf(self, buffer: BytesIO, msg) -> MIMEApplication:
         anexo = MIMEApplication(buffer.getvalue(), _subtype='pdf')
@@ -163,13 +164,13 @@ class WorkerEmail:
             msg = MIMEMultipart()
             msg['from'] = ''.join(meu_email())
             msg['to'] = ','.join(my_recipients())
-            msg['subject'] = f'{msgSubject} {dataInstantanea()}'
+            msg['subject'] = f'{msgSubject} {self.dtTermino}'
             corpo = MIMEText(
                 self.renderizadorHtml(
                     umi, press, t1, t2,
                     t1max, t1min, t2max, t2min,
                     umimax, umimini, pressmax, pressmini,
-                    inicio, fim, dataInstantanea()
+                    inicio, fim, self.dtTermino
                 ), 'html'
             )
             msg.attach(corpo)
