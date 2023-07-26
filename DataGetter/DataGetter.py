@@ -131,15 +131,15 @@ class WorkerEstacao(QObject):
 
     @Slot()
     def run(self) -> None:
-        yDadosUmidade: list[float] = []
-        yDadosPressao: list[float] = []
-        yDadosTempInt: list[float] = []
-        yDadosTempExt: list[float] = []
         try:
             cP = count()
             contadorParciais: int = next(cP)
 
             while not self.paradaPrograma:
+                yDadosUmidade: list[float] = []
+                yDadosPressao: list[float] = []
+                yDadosTempInt: list[float] = []
+                yDadosTempExt: list[float] = []
                 inicioParcial: str = dataInstantanea()
                 cS = count()
                 contadorSegundos: int = next(cS)
