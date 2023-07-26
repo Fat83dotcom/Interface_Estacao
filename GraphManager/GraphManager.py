@@ -1,5 +1,7 @@
 import io
+from datetime import datetime
 import matplotlib.backends.backend_pdf
+from dateutil.relativedelta import relativedelta
 from GlobalFunctions.funcoesGlobais import maximos, minimos
 import matplotlib.pyplot as plt
 import matplotlib
@@ -22,6 +24,14 @@ class PlotterGraficoPDF:
             'umi': 'Umidade Relativa do Ar %',
         }
 
+    def manipuladorDatas(self, dataInicio: str) -> datetime:
+        formato = '%d %b %Y %H:%M:%S'
+        inicioSerie = datetime.strptime(dataInicio, formato)
+        novoFormato = '%H:%M:%S'
+        novaSerie = inicioSerie.strftime(novoFormato)
+        resultado = inicioSerie.strptime(novaSerie, novoFormato)
+        return resultado
+
     def plotadorPDF(
         self, dadosEixo_Y: list, tipoGrafico: str, grandezaEixo_Y: str
     ) -> None:
@@ -30,17 +40,28 @@ class PlotterGraficoPDF:
             tipoGrafico -> 'umi', 'press', 'tempInt', 'tempExt'
             Grandezas -> 'temp', 'press', 'umi'
         """
-        buffer = io.BytesIO()
-        tituloGrafico1 = f'{self.tipoGrafico[tipoGrafico]}\n-> Inicio: {self.dtInicio} <-|-> Termino: {self.dtTermino} '
+        tituloGrafico1 = f'-> Inicio: {self.dtInicio} | Termino: {self.dtTermino} '
         tituloGrafico2 = f' <-\nMáxima: {maximos(dadosEixo_Y)} --- Mínima: {minimos(dadosEixo_Y)}'
         try:
-            tempoEixo_X = range(len(dadosEixo_Y))
+            buffer = io.BytesIO()
+            inicioSerie = self.manipuladorDatas(self.dtInicio)
+            tempoEixo_X = [
+                inicioSerie + relativedelta(seconds=i) for i in range(
+                    len(dadosEixo_Y)
+                )
+            ]
             plt.title(
                 f'{tituloGrafico1}{tituloGrafico2}'
             )
-            plt.xlabel('Tempo em segundos.')
+            plt.xlabel('Hora.')
             plt.ylabel(self.grandeza[grandezaEixo_Y])
-            plt.plot(tempoEixo_X, dadosEixo_Y)
+            plt.plot(
+                tempoEixo_X, dadosEixo_Y,
+                marker='.', linestyle='--',
+                color='red', label=self.tipoGrafico[tipoGrafico]
+            )
+            plt.legend()
+            plt.grid(True)
             plt.savefig(buffer, format='pdf')
             plt.clf()
             return buffer
