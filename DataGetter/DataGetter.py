@@ -222,7 +222,7 @@ class WorkerEstacao(QObject):
                     terminoDelimitadorDeTempo: float = time.time()
                     while (
                         terminoDelimitadorDeTempo - inicioDelimitadorDeTempo
-                    ) < 1:
+                    ) < 1.0:
                         terminoDelimitadorDeTempo = time.time()
 
                 contadorParciais = next(cP)
