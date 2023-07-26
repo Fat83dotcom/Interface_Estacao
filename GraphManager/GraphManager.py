@@ -26,10 +26,7 @@ class PlotterGraficoPDF:
 
     def manipuladorDatas(self, dataInicio: str) -> datetime:
         formato = '%d %b %Y %H:%M:%S'
-        inicioSerie = datetime.strptime(dataInicio, formato)
-        novoFormato = '%H:%M:%S'
-        novaSerie = inicioSerie.strftime(novoFormato)
-        resultado = inicioSerie.strptime(novaSerie, novoFormato)
+        resultado: datetime = datetime.strptime(dataInicio, formato)
         return resultado
 
     def plotadorPDF(
@@ -50,6 +47,7 @@ class PlotterGraficoPDF:
                     len(dadosEixo_Y)
                 )
             ]
+            plt.figure(figsize=(10, 6))
             plt.title(
                 f'{tituloGrafico1}{tituloGrafico2}'
             )
@@ -62,6 +60,8 @@ class PlotterGraficoPDF:
             )
             plt.legend()
             plt.grid(True)
+            plt.grid(color='gray', linestyle='dashed', linewidth=0.5)
+            plt.xticks(rotation=40)
             plt.savefig(buffer, format='pdf')
             plt.clf()
             return buffer
