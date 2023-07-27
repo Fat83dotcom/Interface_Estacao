@@ -96,11 +96,22 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         self.btnTesteConexao.clicked.connect(
             self.executarEmailTeste
         )
+        self.btnCadastrarBD.clicked.connect(
+            self.cadastrarBD
+        )
+        self.btnDeletarBD.clicked.connect(
+            self.deletarBDCadastrado
+        )
+        self.selecionarBDDelete.activated.connect(self.selecionarBDDeletar)
+        self.setarComboBox(self.escolherBD)
+        self.setarComboBox(self.selecionarBDDelete)
         self.btnPararEstacao.setEnabled(False)
         self.modeloInfo = QStandardItemModel()
         self.saidaDetalhes.setModel(self.modeloInfo)
         self.manipuladorRemetenteSenha()
         self.manipuladorDestinatarios()
+        self.bdDelete = None
+        self.bdEscolha = None
 
     def mostrardorDisplayBarraProgresso(self, percent) -> None:
         self.barraProgresso.setValue(percent)
@@ -370,3 +381,66 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             )
         except Exception as e:
             self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
+
+    def cadastrarBD(self) -> None:
+        try:
+            bd = DBInterfaceConfig('Sqlite3.db')
+            bd.createTableDataBase()
+            nomeCadastro: str = self.nomeCadastroBD.text()
+            db_name = self.db_name.text()
+            user = self.user.text()
+            host = self.host.text()
+            port = self.port.text()
+            password = self.password.text()
+            if nomeCadastro != '' and db_name != '' and user != ''\
+               and host != '' and port != '' and password != '':
+                sql = '''INSERT INTO data_base
+                (nome_cadastro, db_name, user, host, port, password)
+                VALUES (?, ?, ?, ?, ?, ?)'''
+                data: tuple = (
+                    nomeCadastro, db_name, user, host, port, password
+                )
+                bd.executeSQL(sql, data)
+                self.setarComboBox(self.escolherBD)
+                self.setarComboBox(self.selecionarBDDelete)
+                self.statusCadastroBD.setText(
+                    'Banco cadastrado com sucesso !'
+                )
+            else:
+                self.statusCadastroBD.setText(
+                    'Verifique suas entradas !'
+                )
+        except Exception as e:
+            self.mostradorDisplayInfo(f'{e.__class__.__name__}: {e}')
+            return
+
+    def setarComboBox(self, comboBox) -> None:
+        try:
+            bd = DBInterfaceConfig('Sqlite3.db')
+            sql = 'SELECT nome_cadastro FROM data_base'
+            bdCadastrados: list = bd.select(sql)
+            comboBox.clear()
+            for tupla in bdCadastrados:
+                for b in tupla:
+                    comboBox.addItem(b)
+        except Exception as e:
+            self.mostradorDisplayInfo(f'{e.__class__.__name__}: {e}')
+            return
+
+    def deletarBDCadastrado(self) -> None:
+        if self.bdDelete is not None:
+            bd = DBInterfaceConfig('Sqlite3.db')
+            bd.delete('data_base', 'nome_cadastro', self.bdDelete)
+            self.setarComboBox(self.escolherBD)
+            self.setarComboBox(self.selecionarBDDelete)
+            self.statusCadastroBD.setText(
+                'Banco deletar com sucesso !'
+            )
+            self.bdDelete = None
+        else:
+            self.statusCadastroBD.setText(
+                'Selecione um Banco de Dados !'
+            )
+
+    def selecionarBDDeletar(self) -> None:
+        self.bdDelete = self.selecionarBDDelete.currentText()
