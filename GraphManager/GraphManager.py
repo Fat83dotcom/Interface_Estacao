@@ -31,7 +31,7 @@ class PlotterGraficoPDF:
 
     def plotadorPDF(
         self, dadosEixo_Y: list, tipoGrafico: str, grandezaEixo_Y: str
-    ) -> None:
+    ) -> io.BytesIO:
         """
             Argumentos que devem ser passados para cada situação:
             tipoGrafico -> 'umi', 'press', 'tempInt', 'tempExt'
