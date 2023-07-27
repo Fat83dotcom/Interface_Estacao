@@ -1,4 +1,5 @@
 from serial import Serial
+import sqlite3
 from Interface.mainInterface import Ui_MainWindow
 from DataGetter.DataGetter import WorkerEstacao, ConexaoUSB
 from GlobalFunctions.manipuladoresArquivos import my_recipients
@@ -22,6 +23,59 @@ class TransSegundos:
         minutos = self.horas[3:]
         segundos = int(int(horas) * 3600 + int(minutos) * 60)
         return segundos
+
+
+class DBInterfaceConfig:
+    def __init__(self, dbName: str) -> None:
+        self.dbName = dbName
+
+    def executeSQL(self, sql: str, *args) -> None:
+        data = args
+        con = sqlite3.connect(self.dbName)
+        try:
+            with con:
+                con.execute(sql, *data)
+        except Exception as e:
+            raise e
+        finally:
+            con.close()
+
+    def createTableDataBase(self) -> None:
+        sql = """
+            CREATE TABLE IF NOT EXISTS data_base
+            (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome_cadastro TEXT NOT NULL,
+            db_name TEXT NOT NULL,
+            user TEXT NOT NULL,
+            host TEXT NOT NULL,
+            port TEXT NOT NULL,
+            password TEXT NOT NULL
+            )"""
+        self.executeSQL(sql)
+
+    def select(self, sql) -> list:
+        con = sqlite3.connect(self.dbName)
+        try:
+            with con:
+                result: list = con.execute(sql)
+                return list(result)
+        except Exception as e:
+            raise e
+        finally:
+            con.close()
+
+    def delete(self, table: str, collumn: str, *args) -> None:
+        sql = f'DELETE FROM {table} WHERE {collumn}=?'
+        data = args
+        con = sqlite3.connect(self.dbName)
+        try:
+            with con:
+                con.execute(sql, data)
+        except Exception as e:
+            raise e
+        finally:
+            con.close()
 
 
 class InterfaceEstacao(QMainWindow, Ui_MainWindow):
