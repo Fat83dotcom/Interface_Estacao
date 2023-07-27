@@ -2,4 +2,5 @@
     "python.analysis.completeFunctionParens": true,
     "python.linting.flake8Enabled": true,
     "liveServer.settings.port": 5501,
+    "python.analysis.typeCheckingMode": "basic",
 }
