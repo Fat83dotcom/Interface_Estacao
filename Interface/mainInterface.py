@@ -12,7 +12,7 @@ from PySide2.QtCore import *
 from PySide2.QtGui import *
 from PySide2.QtWidgets import *
 
-import Interface.icons_rc as icons_rc
+from Interface import icons_rc
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -118,8 +118,8 @@ class Ui_MainWindow(object):
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.centralwidget.setLayoutDirection(Qt.LeftToRight)
-        self.verticalLayout_4 = QVBoxLayout(self.centralwidget)
-        self.verticalLayout_4.setObjectName(u"verticalLayout_4")
+        self.horizontalLayout_8 = QHBoxLayout(self.centralwidget)
+        self.horizontalLayout_8.setObjectName(u"horizontalLayout_8")
         self.tabWidget = QTabWidget(self.centralwidget)
         self.tabWidget.setObjectName(u"tabWidget")
         sizePolicy.setHeightForWidth(self.tabWidget.sizePolicy().hasHeightForWidth())
@@ -232,29 +232,39 @@ class Ui_MainWindow(object):
 
         self.gridLayout_4.addWidget(self.portaArduino, 0, 1, 1, 1)
 
-        self.tituloTempGrafico = QLabel(self.frameEntradaEBotoes)
-        self.tituloTempGrafico.setObjectName(u"tituloTempGrafico")
-
-        self.gridLayout_4.addWidget(self.tituloTempGrafico, 0, 2, 1, 1)
-
         self.tempoGraficos = QTimeEdit(self.frameEntradaEBotoes)
         self.tempoGraficos.setObjectName(u"tempoGraficos")
         self.tempoGraficos.setMaximumTime(QTime(6, 0, 0))
 
         self.gridLayout_4.addWidget(self.tempoGraficos, 0, 3, 1, 1)
 
-        self.btnInciarEstacao = QPushButton(self.frameEntradaEBotoes)
-        self.btnInciarEstacao.setObjectName(u"btnInciarEstacao")
+        self.tituloTempGrafico = QLabel(self.frameEntradaEBotoes)
+        self.tituloTempGrafico.setObjectName(u"tituloTempGrafico")
 
-        self.gridLayout_4.addWidget(self.btnInciarEstacao, 1, 0, 1, 4)
+        self.gridLayout_4.addWidget(self.tituloTempGrafico, 0, 2, 1, 1)
 
-        self.btnPararEstacao = QPushButton(self.frameEntradaEBotoes)
-        self.btnPararEstacao.setObjectName(u"btnPararEstacao")
+        self.escolherBD = QComboBox(self.frameEntradaEBotoes)
+        self.escolherBD.setObjectName(u"escolherBD")
 
-        self.gridLayout_4.addWidget(self.btnPararEstacao, 2, 0, 1, 4)
+        self.gridLayout_4.addWidget(self.escolherBD, 5, 1, 1, 3)
+
+        self.label_8 = QLabel(self.frameEntradaEBotoes)
+        self.label_8.setObjectName(u"label_8")
+
+        self.gridLayout_4.addWidget(self.label_8, 5, 0, 1, 1)
 
 
         self.verticalLayout_3.addWidget(self.frameEntradaEBotoes)
+
+        self.btnInciarEstacao = QPushButton(self.frameContainerPincipal)
+        self.btnInciarEstacao.setObjectName(u"btnInciarEstacao")
+
+        self.verticalLayout_3.addWidget(self.btnInciarEstacao)
+
+        self.btnPararEstacao = QPushButton(self.frameContainerPincipal)
+        self.btnPararEstacao.setObjectName(u"btnPararEstacao")
+
+        self.verticalLayout_3.addWidget(self.btnPararEstacao)
 
         self.frameBarraELista = QFrame(self.frameContainerPincipal)
         self.frameBarraELista.setObjectName(u"frameBarraELista")
@@ -877,14 +887,139 @@ class Ui_MainWindow(object):
         self.verticalLayout_6.addWidget(self.frameContainerPrincipal_2)
 
         self.tabWidget.addTab(self.emailUser, "")
+        self.BDManager = QWidget()
+        self.BDManager.setObjectName(u"BDManager")
+        self.frameBancoDados = QFrame(self.BDManager)
+        self.frameBancoDados.setObjectName(u"frameBancoDados")
+        self.frameBancoDados.setGeometry(QRect(9, 9, 641, 521))
+        self.frameBancoDados.setFrameShape(QFrame.StyledPanel)
+        self.frameBancoDados.setFrameShadow(QFrame.Raised)
+        self.verticalLayout_4 = QVBoxLayout(self.frameBancoDados)
+        self.verticalLayout_4.setObjectName(u"verticalLayout_4")
+        self.frameCadastroBD = QFrame(self.frameBancoDados)
+        self.frameCadastroBD.setObjectName(u"frameCadastroBD")
+        self.frameCadastroBD.setFrameShape(QFrame.StyledPanel)
+        self.frameCadastroBD.setFrameShadow(QFrame.Raised)
+        self.frame_3 = QFrame(self.frameCadastroBD)
+        self.frame_3.setObjectName(u"frame_3")
+        self.frame_3.setGeometry(QRect(10, 10, 601, 37))
+        self.frame_3.setFrameShape(QFrame.StyledPanel)
+        self.frame_3.setFrameShadow(QFrame.Raised)
+        self.verticalLayout_25 = QVBoxLayout(self.frame_3)
+        self.verticalLayout_25.setObjectName(u"verticalLayout_25")
+        self.label_6 = QLabel(self.frame_3)
+        self.label_6.setObjectName(u"label_6")
+        self.label_6.setAlignment(Qt.AlignCenter)
 
-        self.verticalLayout_4.addWidget(self.tabWidget)
+        self.verticalLayout_25.addWidget(self.label_6)
+
+        self.frame_2 = QFrame(self.frameCadastroBD)
+        self.frame_2.setObjectName(u"frame_2")
+        self.frame_2.setGeometry(QRect(9, 69, 601, 381))
+        self.frame_2.setFrameShape(QFrame.StyledPanel)
+        self.frame_2.setFrameShadow(QFrame.Raised)
+        self.gridLayout_6 = QGridLayout(self.frame_2)
+        self.gridLayout_6.setObjectName(u"gridLayout_6")
+        self.label_7 = QLabel(self.frame_2)
+        self.label_7.setObjectName(u"label_7")
+
+        self.gridLayout_6.addWidget(self.label_7, 5, 0, 1, 1)
+
+        self.label_4 = QLabel(self.frame_2)
+        self.label_4.setObjectName(u"label_4")
+
+        self.gridLayout_6.addWidget(self.label_4, 3, 0, 1, 1)
+
+        self.btnCadastrarBD = QPushButton(self.frame_2)
+        self.btnCadastrarBD.setObjectName(u"btnCadastrarBD")
+
+        self.gridLayout_6.addWidget(self.btnCadastrarBD, 6, 0, 1, 2)
+
+        self.label_9 = QLabel(self.frame_2)
+        self.label_9.setObjectName(u"label_9")
+
+        self.gridLayout_6.addWidget(self.label_9, 7, 0, 1, 1)
+
+        self.host = QLineEdit(self.frame_2)
+        self.host.setObjectName(u"host")
+
+        self.gridLayout_6.addWidget(self.host, 3, 1, 1, 1)
+
+        self.password = QLineEdit(self.frame_2)
+        self.password.setObjectName(u"password")
+        self.password.setEchoMode(QLineEdit.Password)
+
+        self.gridLayout_6.addWidget(self.password, 5, 1, 1, 1)
+
+        self.db_name = QLineEdit(self.frame_2)
+        self.db_name.setObjectName(u"db_name")
+        self.db_name.setClearButtonEnabled(False)
+
+        self.gridLayout_6.addWidget(self.db_name, 1, 1, 1, 1)
+
+        self.label = QLabel(self.frame_2)
+        self.label.setObjectName(u"label")
+
+        self.gridLayout_6.addWidget(self.label, 0, 0, 1, 1)
+
+        self.label_2 = QLabel(self.frame_2)
+        self.label_2.setObjectName(u"label_2")
+
+        self.gridLayout_6.addWidget(self.label_2, 1, 0, 1, 1)
+
+        self.nomeCadastroBD = QLineEdit(self.frame_2)
+        self.nomeCadastroBD.setObjectName(u"nomeCadastroBD")
+
+        self.gridLayout_6.addWidget(self.nomeCadastroBD, 0, 1, 1, 1)
+
+        self.user = QLineEdit(self.frame_2)
+        self.user.setObjectName(u"user")
+
+        self.gridLayout_6.addWidget(self.user, 2, 1, 1, 1)
+
+        self.selecionarBDDelete = QComboBox(self.frame_2)
+        self.selecionarBDDelete.setObjectName(u"selecionarBDDelete")
+
+        self.gridLayout_6.addWidget(self.selecionarBDDelete, 7, 1, 1, 1)
+
+        self.label_5 = QLabel(self.frame_2)
+        self.label_5.setObjectName(u"label_5")
+
+        self.gridLayout_6.addWidget(self.label_5, 4, 0, 1, 1)
+
+        self.port = QLineEdit(self.frame_2)
+        self.port.setObjectName(u"port")
+
+        self.gridLayout_6.addWidget(self.port, 4, 1, 1, 1)
+
+        self.label_3 = QLabel(self.frame_2)
+        self.label_3.setObjectName(u"label_3")
+
+        self.gridLayout_6.addWidget(self.label_3, 2, 0, 1, 1)
+
+        self.btnDeletarBD = QPushButton(self.frame_2)
+        self.btnDeletarBD.setObjectName(u"btnDeletarBD")
+
+        self.gridLayout_6.addWidget(self.btnDeletarBD, 8, 0, 1, 2)
+
+        self.statusCadastroBD = QLabel(self.frameCadastroBD)
+        self.statusCadastroBD.setObjectName(u"statusCadastroBD")
+        self.statusCadastroBD.setGeometry(QRect(16, 460, 591, 20))
+        self.statusCadastroBD.setFrameShape(QFrame.Panel)
+        self.statusCadastroBD.setFrameShadow(QFrame.Sunken)
+        self.statusCadastroBD.setAlignment(Qt.AlignCenter)
+
+        self.verticalLayout_4.addWidget(self.frameCadastroBD)
+
+        self.tabWidget.addTab(self.BDManager, "")
+
+        self.horizontalLayout_8.addWidget(self.tabWidget)
 
         MainWindow.setCentralWidget(self.centralwidget)
 
         self.retranslateUi(MainWindow)
 
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(4)
 
 
         QMetaObject.connectSlotsByName(MainWindow)
@@ -903,8 +1038,9 @@ class Ui_MainWindow(object):
         self.tituloCabecalho.setText(QCoreApplication.translate("MainWindow", u"Esta\u00e7\u00e3o Metereologica \u00a9BrainStorm Tecnologia", None))
         self.tituloPortaUSB.setText(QCoreApplication.translate("MainWindow", u"Porta USB:", None))
         self.portaArduino.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Porta Ardu\u00edno", None))
-        self.tituloTempGrafico.setText(QCoreApplication.translate("MainWindow", u"Gr\u00e1ficos(M\u00c1X 06:00Hs)", None))
         self.tempoGraficos.setSpecialValueText("")
+        self.tituloTempGrafico.setText(QCoreApplication.translate("MainWindow", u"Gr\u00e1ficos(M\u00c1X 06:00Hs)", None))
+        self.label_8.setText(QCoreApplication.translate("MainWindow", u"Definir BD", None))
         self.btnInciarEstacao.setText(QCoreApplication.translate("MainWindow", u"Iniciar Esta\u00e7\u00e3o", None))
         self.btnPararEstacao.setText(QCoreApplication.translate("MainWindow", u"Parar Esta\u00e7\u00e3o", None))
         self.barraSeparadora.setText(QCoreApplication.translate("MainWindow", u"/", None))
@@ -939,5 +1075,17 @@ class Ui_MainWindow(object):
         self.btnExcluirDestinatario.setText(QCoreApplication.translate("MainWindow", u"Excluir", None))
         self.statusOperacoes.setText("")
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.emailUser), QCoreApplication.translate("MainWindow", u"Definir config. E-mail", None))
+        self.label_6.setText(QCoreApplication.translate("MainWindow", u"Cadastrar Banco de Dados PostgreSQL", None))
+        self.label_7.setText(QCoreApplication.translate("MainWindow", u"password", None))
+        self.label_4.setText(QCoreApplication.translate("MainWindow", u"host", None))
+        self.btnCadastrarBD.setText(QCoreApplication.translate("MainWindow", u"Cadastrar", None))
+        self.label_9.setText(QCoreApplication.translate("MainWindow", u"Selecione o Banco", None))
+        self.label.setText(QCoreApplication.translate("MainWindow", u"Nome Cadastro", None))
+        self.label_2.setText(QCoreApplication.translate("MainWindow", u"db_name", None))
+        self.label_5.setText(QCoreApplication.translate("MainWindow", u"port", None))
+        self.label_3.setText(QCoreApplication.translate("MainWindow", u"user", None))
+        self.btnDeletarBD.setText(QCoreApplication.translate("MainWindow", u"Deletar", None))
+        self.statusCadastroBD.setText("")
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.BDManager), QCoreApplication.translate("MainWindow", u"Definir conf. BD", None))
     # retranslateUi
 
