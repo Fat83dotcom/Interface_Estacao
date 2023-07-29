@@ -417,3 +417,6 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
 
     def selecionarBDDeletar(self) -> None:
         self.bdDelete = self.selecionarBDDelete.currentText()
+
+    def iniciarBD(self) -> None:
+        self.bdEscolha = self.escolherBD.currentText()
