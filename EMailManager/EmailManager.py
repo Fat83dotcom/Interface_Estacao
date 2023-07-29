@@ -30,16 +30,19 @@ class WorkerGraphEmail(QObject):
         parent=None,
     ) -> None:
         super().__init__(parent)
-        self.inicioParcial = inicioParcial
-        self.terminoParcial = terminoParcial
-        self.yDadosUmidade = yDadosUmidade
-        self.yDadosPressao = yDadosPressao
-        self.yDadosTempInt = yDadosTempInt
-        self.yDadosTempExt = yDadosTempExt
-        self.email = WorkerEmail(self.terminoParcial)
-        self.plotGrafico = PlotterGraficoPDF(
-            self.inicioParcial, self.terminoParcial
-        )
+        try:
+            self.inicioParcial = inicioParcial
+            self.terminoParcial = terminoParcial
+            self.yDadosUmidade = yDadosUmidade
+            self.yDadosPressao = yDadosPressao
+            self.yDadosTempInt = yDadosTempInt
+            self.yDadosTempExt = yDadosTempExt
+            self.email = WorkerEmail(self.terminoParcial)
+            self.plotGrafico = PlotterGraficoPDF(
+                self.inicioParcial, self.terminoParcial
+            )
+        except Exception as e:
+            raise e
 
     @Slot()
     def run(self) -> None:
@@ -90,11 +93,16 @@ class WorkerEmailTesteConexao(QObject):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.pathTest = 'Templates/emailTeste.html'
+        try:
+            db = DBInterfaceConfig('Sqlite3.db')
+            self.bdRemet = ManipuladorDadosEmailRemetDest(db)
+        except Exception as e:
+            raise e
 
     def run(self) -> None:
+        msgErro = 'Não foi possivel enviar o email. Motivo:'
         try:
-            msgErro = 'Não foi possivel enviar o email. Motivo:'
-            usuario = ''.join(meu_email())
+            usuario = ''.join(self.bdRemet.meu_email())
             msg = MIMEMultipart()
             msg['from'] = usuario
             msg['to'] = usuario
@@ -109,7 +117,7 @@ class WorkerEmailTesteConexao(QObject):
                 with smtplib.SMTP(host='smtp.gmail.com', port=587) as smtp:
                     smtp.ehlo()
                     smtp.starttls()
-                    smtp.login(usuario, ''.join(minha_senha()))
+                    smtp.login(usuario, ''.join(self.bdRemet.minha_senha()))
                     smtp.send_message(msg)
                     self.msgEnvio.emit('Email enviado com sucesso.')
             except Exception as e:
@@ -128,6 +136,12 @@ class WorkerEmail:
     def __init__(self, dataTermino: str) -> None:
         self.pathTemplateHtml = 'Templates/template.html'
         self.dtTermino = dataTermino
+        try:
+            db = DBInterfaceConfig('Sqlite3.db')
+            self.bdRemet = ManipuladorDadosEmailRemetDest(db)
+            self.bdDest = ManipuladorEmailDestinatario(db)
+        except Exception as e:
+            raise e
 
     def anexadorPdf(self, buffer: BytesIO, msg) -> MIMEApplication:
         anexo = MIMEApplication(buffer.getvalue(), _subtype='pdf')
@@ -162,9 +176,10 @@ class WorkerEmail:
     ) -> None:
         msgSubject = 'Monitor Estação Metereologica ©BrainStorm Tecnologia'
         try:
+            usuario: str = ''.join(self.bdRemet.meu_email())
             msg = MIMEMultipart()
-            msg['from'] = ''.join(meu_email())
-            msg['to'] = ','.join(my_recipients())
+            msg['from'] = usuario
+            msg['to'] = ','.join(self.bdDest.my_recipients())
             msg['subject'] = f'{msgSubject} {self.dtTermino}'
             corpo = MIMEText(
                 self.renderizadorHtml(
@@ -183,7 +198,10 @@ class WorkerEmail:
             with smtplib.SMTP(host='smtp.gmail.com', port=587) as smtp:
                 smtp.ehlo()
                 smtp.starttls()
-                smtp.login(''.join(meu_email()), ''.join(minha_senha()))
+                smtp.login(
+                    usuario,
+                    ''.join(self.bdRemet.minha_senha())
+                )
                 smtp.send_message(msg)
         except Exception as e:
             raise e
