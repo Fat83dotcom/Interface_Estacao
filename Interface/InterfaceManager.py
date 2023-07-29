@@ -278,7 +278,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
 
     def manipuladorDestinatarios(self) -> None:
         try:
-            emailDestinatarios = my_recipients()
+            emailDestinatarios = self.bdDest.my_recipients()
             self.tabelaDestinatarios.setRowCount(len(emailDestinatarios))
             for linha, email in enumerate(emailDestinatarios):
                 self.tabelaDestinatarios.setItem(
@@ -296,13 +296,14 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
 
     def deletarEmailDestinatario(self) -> None:
         try:
-            emailDestinatarios: list = my_recipients()
+            emailDestinatarios: list = self.bdDest.my_recipients()
             emailDeletado = self.obterEmailDestinatario()
             if emailDeletado:
                 emailDestinatarios.remove(emailDeletado)
-                self.apagadorArquivo('.RECIPIENTS_USER_DATA.txt')
-                for email in emailDestinatarios:
-                    self.defineArquivoDestinatarios(email)
+                self.bd.delete(
+                    'email_destinatario', 'email_destinatario', emailDeletado
+                )
+                self.statusOperacoes.setText('E-mail deletado com sucesso.')
                 self.manipuladorDestinatarios()
             else:
                 if len(emailDestinatarios) == 0:
@@ -318,12 +319,12 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         try:
             emailDestinatario: str = self.adicionarDestinatario.text().strip()
             if emailDestinatario:
-                self.defineArquivoDestinatarios(emailDestinatario)
+                self.gravarDestinatarioBD(emailDestinatario)
+                self.adicionarDestinatario.clear()
                 self.statusOperacoes.setText(
                     f'{emailDestinatario}: Dado gravado com sucesso.'
                 )
                 self.manipuladorDestinatarios()
-                self.adicionarDestinatario.clear()
             else:
                 self.statusOperacoes.setText('Digite um e-mail')
         except Exception as e:
