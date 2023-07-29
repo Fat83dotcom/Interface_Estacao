@@ -49,16 +49,27 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         self.btnDeletarBD.clicked.connect(
             self.deletarBDCadastrado
         )
-        self.selecionarBDDelete.activated.connect(self.selecionarBDDeletar)
-        self.setarComboBox(self.escolherBD)
-        self.setarComboBox(self.selecionarBDDelete)
         self.btnPararEstacao.setEnabled(False)
         self.modeloInfo = QStandardItemModel()
         self.saidaDetalhes.setModel(self.modeloInfo)
-        self.manipuladorRemetenteSenha()
-        self.manipuladorDestinatarios()
-        self.bdDelete = None
-        self.bdEscolha = None
+        try:
+            baseDados = 'Sqlite3.db'
+            self.bd = DBInterfaceConfig(baseDados)
+            self.bd.createTableDataBase()
+            self.bd.createTableEmailRemetente()
+            self.bd.createTableEmailDestinatario()
+            self.bdRemet = ManipuladorDadosEmailRemetDest(self.bd)
+            self.bdDest = ManipuladorEmailDestinatario(self.bd)
+            self.selecionarBDDelete.activated.connect(self.selecionarBDDeletar)
+            self.escolherBD.activated.connect(self.iniciarBD)
+            self.setarComboBox(self.escolherBD)
+            self.setarComboBox(self.selecionarBDDelete)
+            self.manipuladorRemetenteSenha()
+            self.manipuladorDestinatarios()
+            self.bdDelete = None
+            self.bdEscolha = None
+        except Exception as e:
+            raise e
 
     def mostrardorDisplayBarraProgresso(self, percent) -> None:
         self.barraProgresso.setValue(percent)
