@@ -353,8 +353,6 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
 
     def cadastrarBD(self) -> None:
         try:
-            bd = DBInterfaceConfig('Sqlite3.db')
-            bd.createTableDataBase()
             nomeCadastro: str = self.nomeCadastroBD.text()
             db_name = self.db_name.text()
             user = self.user.text()
@@ -369,12 +367,18 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
                 data: tuple = (
                     nomeCadastro, db_name, user, host, port, password
                 )
-                bd.executeSQL(sql, data)
+                self.bd.executeSQL(sql, data)
                 self.setarComboBox(self.escolherBD)
                 self.setarComboBox(self.selecionarBDDelete)
                 self.statusCadastroBD.setText(
                     'Banco cadastrado com sucesso !'
                 )
+                self.nomeCadastroBD.clear()
+                self.db_name.clear()
+                self.user.clear()
+                self.host.clear()
+                self.port.clear()
+                self.password.clear()
             else:
                 self.statusCadastroBD.setText(
                     'Verifique suas entradas !'
@@ -385,9 +389,9 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
 
     def setarComboBox(self, comboBox) -> None:
         try:
-            bd = DBInterfaceConfig('Sqlite3.db')
+            self.bd = DBInterfaceConfig('Sqlite3.db')
             sql = 'SELECT nome_cadastro FROM data_base'
-            bdCadastrados: list = bd.select(sql)
+            bdCadastrados: list = self.bd.select(sql)
             comboBox.clear()
             for tupla in bdCadastrados:
                 for b in tupla:
@@ -398,8 +402,8 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
 
     def deletarBDCadastrado(self) -> None:
         if self.bdDelete is not None:
-            bd = DBInterfaceConfig('Sqlite3.db')
-            bd.delete('data_base', 'nome_cadastro', self.bdDelete)
+            self.bd = DBInterfaceConfig('Sqlite3.db')
+            self.bd.delete('data_base', 'nome_cadastro', self.bdDelete)
             self.setarComboBox(self.escolherBD)
             self.setarComboBox(self.selecionarBDDelete)
             self.statusCadastroBD.setText(
