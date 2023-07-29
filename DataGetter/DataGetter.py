@@ -7,8 +7,7 @@ from itertools import count
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 from PySide2.QtCore import QObject, Signal, QMutex, Slot
-from DataBaseManager.databaseSettings import dbCredentials
-from GlobalFunctions.funcoesGlobais import dataInstantanea, dataDoArquivo
+from GlobalFunctions.GlobalFunctions import dataInstantanea, dataDoArquivo
 from DataBaseManager.OperationalDataBase import DadoHorario, OperationDataBase
 
 
@@ -24,14 +23,15 @@ class WorkerEstacao(QObject):
     )
 
     def __init__(
-                self, portaArduino: Serial, tempGraf: int, parent=None
-            ) -> None:
+        self, portaArduino: Serial, tempGraf: int, dadosBD: dict, parent=None
+    ) -> None:
         super().__init__(parent)
         self.mutex = QMutex()
         self.paradaPrograma: bool = False
         self.tempoConvertido: int = tempGraf
         self.arduino = portaArduino
-        self.dB = OperationDataBase(dbCredentials(3))
+        self.dadosBD = dadosBD
+        self.dB = OperationDataBase(self.dadosBD)
         self.dDH = DadoHorario(self.dB)
         self.executor = ThreadPoolExecutor(max_workers=10)
 
