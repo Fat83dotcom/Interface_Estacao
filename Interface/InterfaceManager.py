@@ -101,14 +101,14 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         self.portaArduino.setEnabled(True)
         self.tempoGraficos.setEnabled(True)
 
-    def executarMainEstacao(self) -> None:
+    def desativarBotoesInicio(self) -> None:
         self.btnInciarEstacao.setEnabled(False)
         self.btnPararEstacao.setEnabled(True)
-        self.porta = self.portaArduino.text()
-        if self.porta == '':
-            self.mostradorDisplayInfo('Entre com uma porta válida.')
-            self.retornarBotoesInicio()
-            return
+        self.portaArduino.setEnabled(False)
+        self.tempoGraficos.setEnabled(False)
+        self.escolherBD.setEnabled(False)
+
+    def executarMainEstacao(self) -> None:
         try:
             self.receptorTempoGraficos = self.tempoGraficos.text()
             t = TransSegundos(self.receptorTempoGraficos)
