@@ -110,6 +110,11 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
 
     def executarMainEstacao(self) -> None:
         try:
+            dadosBD: dict = {}
+            self.porta = self.portaArduino.text()
+            if self.porta == '':
+                self.retornarBotoesInicio()
+                raise EntradaError('Entre com uma porta válida.')
             self.receptorTempoGraficos = self.tempoGraficos.text()
             t = TransSegundos(self.receptorTempoGraficos)
             self.receptorTempoGraficos = t.conversorHorasSegundo()
@@ -117,7 +122,17 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             if self.receptorTempoGraficos <= 0:
                 self.retornarBotoesInicio()
                 raise EntradaError('Tempo não pode ser menor ou igual a Zero.')
+            if self.bdEscolha is not None:
+                colunas = '"db_name", "user", "host", "port", "password"'
+                sql = f'SELECT {colunas} FROM data_base WHERE nome_cadastro="{self.bdEscolha}"'
+                bdEscolhido: list = self.bd.select(sql)
+                chaves: list = ["dbname", "user", "host", "port", "password"]
+                dados: list = [dado for lista in bdEscolhido for dado in lista]
+                dadosBD: dict = dict(zip(chaves, dados))
+            else:
+                raise EntradaError('Escolha um banco de dados !')
         except Exception as e:
+            self.retornarBotoesInicio()
             self.mostradorDisplayInfo(f'{e.__class__.__name__}: {e}')
             return
         try:
@@ -125,7 +140,9 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             pA: Serial = portaArduino.conectPortaUSB()
             self.estacaoThread = QThread(parent=self)
             self.estacaoWorker = WorkerEstacao(
-                portaArduino=pA, tempGraf=self.receptorTempoGraficos
+                portaArduino=pA,
+                tempGraf=self.receptorTempoGraficos,
+                dadosBD=dadosBD
             )
             self.estacaoWorker.moveToThread(self.estacaoThread)
             self.estacaoWorker.finalizar.connect(
