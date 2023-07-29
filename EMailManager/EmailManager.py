@@ -7,10 +7,11 @@ from email.mime.multipart import MIMEMultipart
 from PySide2.QtCore import QObject, Signal, Slot
 from email.mime.application import MIMEApplication
 from GraphManager.GraphManager import PlotterGraficoPDF
-from GlobalFunctions.funcoesGlobais import dataInstantanea
-from GlobalFunctions.funcoesGlobais import maximos, minimos
-from GlobalFunctions.manipuladoresArquivos import my_recipients
-from GlobalFunctions.manipuladoresArquivos import meu_email, minha_senha
+from GlobalFunctions.GlobalFunctions import dataInstantanea
+from GlobalFunctions.GlobalFunctions import maximos, minimos
+from GlobalFunctions.UserEmailHandler import ManipuladorDadosEmailRemetDest
+from GlobalFunctions.UserEmailHandler import ManipuladorEmailDestinatario
+from Interface.InterfaceManager import DBInterfaceConfig
 
 
 class WorkerGraphEmail(QObject):
