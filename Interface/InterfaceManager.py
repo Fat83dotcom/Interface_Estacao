@@ -1,9 +1,10 @@
 from serial import Serial
 from Interface.mainInterface import Ui_MainWindow
 from DataGetter.DataGetter import WorkerEstacao, ConexaoUSB
-from GlobalFunctions.manipuladoresArquivos import my_recipients
-from GlobalFunctions.manipuladoresArquivos import meu_email, minha_senha
-from EMailManager.EmailManager import WorkerEmail, WorkerEmailTesteConexao
+from GlobalFunctions.UserEmailHandler import ManipuladorDadosEmailRemetDest
+from GlobalFunctions.UserEmailHandler import ManipuladorEmailDestinatario
+from GlobalFunctions.UserEmailHandler import DBInterfaceConfig
+from EMailManager.EmailManager import WorkerEmailTesteConexao, WorkerGraphEmail
 from PySide2.QtCore import QThread
 from PySide2.QtGui import QStandardItemModel, QStandardItem
 from PySide2.QtWidgets import QMainWindow, QTableWidgetItem
@@ -42,11 +43,33 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         self.btnTesteConexao.clicked.connect(
             self.executarEmailTeste
         )
+        self.btnCadastrarBD.clicked.connect(
+            self.cadastrarBD
+        )
+        self.btnDeletarBD.clicked.connect(
+            self.deletarBDCadastrado
+        )
         self.btnPararEstacao.setEnabled(False)
         self.modeloInfo = QStandardItemModel()
         self.saidaDetalhes.setModel(self.modeloInfo)
-        self.manipuladorRemetenteSenha()
-        self.manipuladorDestinatarios()
+        try:
+            baseDados = 'Sqlite3.db'
+            self.bd = DBInterfaceConfig(baseDados)
+            self.bd.createTableDataBase()
+            self.bd.createTableEmailRemetente()
+            self.bd.createTableEmailDestinatario()
+            self.bdRemet = ManipuladorDadosEmailRemetDest(self.bd)
+            self.bdDest = ManipuladorEmailDestinatario(self.bd)
+            self.selecionarBDDelete.activated.connect(self.selecionarBDDeletar)
+            self.escolherBD.activated.connect(self.iniciarBD)
+            self.setarComboBox(self.escolherBD)
+            self.setarComboBox(self.selecionarBDDelete)
+            self.manipuladorRemetenteSenha()
+            self.manipuladorDestinatarios()
+            self.bdDelete = None
+            self.bdEscolha = None
+        except Exception as e:
+            raise e
 
     def mostrardorDisplayBarraProgresso(self, percent) -> None:
         self.barraProgresso.setValue(percent)
@@ -74,16 +97,24 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
     def retornarBotoesInicio(self) -> None:
         self.btnInciarEstacao.setEnabled(True)
         self.btnPararEstacao.setEnabled(False)
+        self.escolherBD.setEnabled(True)
+        self.portaArduino.setEnabled(True)
+        self.tempoGraficos.setEnabled(True)
 
-    def executarMainEstacao(self) -> None:
+    def desativarBotoesInicio(self) -> None:
         self.btnInciarEstacao.setEnabled(False)
         self.btnPararEstacao.setEnabled(True)
-        self.porta = self.portaArduino.text()
-        if self.porta == '':
-            self.mostradorDisplayInfo('Entre com uma porta válida.')
-            self.retornarBotoesInicio()
-            return
+        self.portaArduino.setEnabled(False)
+        self.tempoGraficos.setEnabled(False)
+        self.escolherBD.setEnabled(False)
+
+    def executarMainEstacao(self) -> None:
         try:
+            dadosBD: dict = {}
+            self.porta = self.portaArduino.text()
+            if self.porta == '':
+                self.retornarBotoesInicio()
+                raise EntradaError('Entre com uma porta válida.')
             self.receptorTempoGraficos = self.tempoGraficos.text()
             t = TransSegundos(self.receptorTempoGraficos)
             self.receptorTempoGraficos = t.conversorHorasSegundo()
@@ -91,7 +122,17 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             if self.receptorTempoGraficos <= 0:
                 self.retornarBotoesInicio()
                 raise EntradaError('Tempo não pode ser menor ou igual a Zero.')
+            if self.bdEscolha is not None:
+                colunas = '"db_name", "user", "host", "port", "password"'
+                sql = f'SELECT {colunas} FROM data_base WHERE nome_cadastro="{self.bdEscolha}"'
+                bdEscolhido: list = self.bd.select(sql)
+                chaves: list = ["dbname", "user", "host", "port", "password"]
+                dados: list = [dado for lista in bdEscolhido for dado in lista]
+                dadosBD: dict = dict(zip(chaves, dados))
+            else:
+                raise EntradaError('Escolha um banco de dados !')
         except Exception as e:
+            self.retornarBotoesInicio()
             self.mostradorDisplayInfo(f'{e.__class__.__name__}: {e}')
             return
         try:
@@ -99,7 +140,9 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             pA: Serial = portaArduino.conectPortaUSB()
             self.estacaoThread = QThread(parent=self)
             self.estacaoWorker = WorkerEstacao(
-                portaArduino=pA, tempGraf=self.receptorTempoGraficos
+                portaArduino=pA,
+                tempGraf=self.receptorTempoGraficos,
+                dadosBD=dadosBD
             )
             self.estacaoWorker.moveToThread(self.estacaoThread)
             self.estacaoWorker.finalizar.connect(
@@ -133,74 +176,57 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             self.estacaoThread.finished.connect(
                 lambda: self.btnInciarEstacao.setEnabled(True)
             )
-            self.portaArduino.setEnabled(False)
-            self.tempoGraficos.setEnabled(False)
+            self.desativarBotoesInicio()
         except Exception as e:
-            self.mostradorDisplayInfo(f'{e.__class__.__name__}: {e}')
             self.retornarBotoesInicio()
+            self.mostradorDisplayInfo(f'{e.__class__.__name__}: {e}')
             return
 
     def pararWorker(self) -> None:
         self.estacaoWorker.parar()
         self.estacaoThread.quit()
         self.estacaoThread.wait()
-        self.btnPararEstacao.setEnabled(False)
-        self.portaArduino.setEnabled(True)
-        self.tempoGraficos.setEnabled(True)
+        self.retornarBotoesInicio()
 
-    def executarEmail(self, inicio, umi, press, t1, t2, t1max,
-                      t1min, t2max, t2min, umimax, umimini,
-                      pressmax, pressmini, fim,
-                      pdfDadosUmidade,
-                      pdfDadosPressao,
-                      pdfDadosTempInt,
-                      pdfDadostempExt
-                      ) -> None:
+    def executarEmail(
+        self,
+        inicioParcial,
+        terminoParcial,
+        yDadosUmidade,
+        yDadosPressao,
+        yDadosTempInt,
+        yDadosTempExt
+    ) -> None:
         try:
             self.emailThread = QThread(parent=None)
-            self.emailWorker = WorkerEmail(
-                inicio=inicio, umi=umi, press=press, t1=t1,
-                t2=t2, t1max=t1max, t1min=t1min, t2max=t2max,
-                t2min=t2min, umimax=umimax, umimini=umimini,
-                pressmax=pressmax, pressmini=pressmini,
-                fim=fim, pdfDadosUmidade=pdfDadosUmidade,
-                pdfDadosPressao=pdfDadosPressao,
-                pdfDadosTempInt=pdfDadosTempInt,
-                pdfDadostempExt=pdfDadostempExt
+            self.emailWorker = WorkerGraphEmail(
+                inicioParcial,
+                terminoParcial,
+                yDadosUmidade,
+                yDadosPressao,
+                yDadosTempInt,
+                yDadosTempExt
             )
             self.emailWorker.moveToThread(self.emailThread)
             self.emailThread.started.connect(self.emailWorker.run)
-            self.emailThread.start()
-            self.emailWorker.msgEnvio.connect(self.mostradorDisplayInfo)
             self.emailWorker.termino.connect(self.emailThread.quit)
             self.emailWorker.termino.connect(self.emailThread.wait)
             self.emailWorker.termino.connect(self.emailThread.deleteLater)
             self.emailWorker.termino.connect(self.emailWorker.deleteLater)
+            self.emailWorker.confirma.connect(self.mostradorDisplayInfo)
+            self.emailWorker.erro.connect(self.mostradorDisplayInfo)
+            self.emailThread.start()
         except Exception as e:
             self.mostradorDisplayInfo(f'{e.__class__.__name__}: {e}')
             return
 
-    def defineArquivoEmail(self, dadoUsuario: str) -> None:
-        with open('.EMAIL_USER_DATA.txt', 'w') as file:
-            file.write(dadoUsuario)
-
-    def defineArquivoSenha(self, dadoUsuario: str) -> None:
-        with open('.PASSWORD_USER_DATA.txt', 'w') as file:
-            file.write(dadoUsuario)
-
-    def defineArquivoDestinatarios(self, dadoUsuario: str) -> None:
-        with open('.RECIPIENTS_USER_DATA.txt', 'a') as file:
-            file.write(f'{dadoUsuario}\n')
-
-    def apagadorArquivo(self, caminhoArquivo: str) -> None:
-        with open(caminhoArquivo, 'w') as file:
-            file.write('')
-
     def manipuladorRemetenteSenha(self) -> None:
         try:
-            if len(meu_email()) == 1 and len(minha_senha()) == 1:
-                email = ''.join(meu_email())
-                senha = ''.join(minha_senha())
+            emailRemet: list = self.bdRemet.meu_email()
+            senhaRemet: list = self.bdRemet.minha_senha()
+            if len(emailRemet) == 1 and len(senhaRemet) == 1:
+                email = ''.join(emailRemet)
+                senha = ''.join(senhaRemet)
                 senhaOculta = "".join(
                     [caractere.replace(caractere, "*") for caractere in senha]
                 )
@@ -214,6 +240,26 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         except Exception as e:
             self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
 
+    def gravarRemetenteBD(self, emailRemet: str, senhaRement: str) -> None:
+        try:
+            sql = 'DELETE FROM email_remetente'
+            self.bd.executeSQL(sql)
+            sql = '''
+        INSERT INTO email_remetente (email_remetente, senha) VALUES (?, ?)'''
+            dados: tuple = (emailRemet, senhaRement)
+            self.bd.executeSQL(sql, dados)
+        except Exception as e:
+            self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
+
+    def gravarDestinatarioBD(self, emailDest: str) -> None:
+        try:
+            sql = '''
+        INSERT INTO email_destinatario (email_destinatario) VALUES (?)'''
+            dados: tuple = (emailDest, )
+            self.bd.executeSQL(sql, dados)
+        except Exception as e:
+            self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
+
     def adicionarEmailRemetenteSenha(self) -> None:
         try:
             self.statusOperacoes.setText('')
@@ -223,29 +269,16 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
                 self.statusOperacoes.setText('Entre com o e-mail e senha ! ')
                 return None
             else:
-                self.adicionarEmailRemetente(emailRemetente)
-                self.adicionarSenhaRemetente(senhaRemetente)
+                self.gravarRemetenteBD(emailRemetente, senhaRemetente)
                 self.emailUsuario.clear()
                 self.senhaUsuario.clear()
                 self.manipuladorRemetenteSenha()
         except Exception as e:
             self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
 
-    def adicionarEmailRemetente(self, email: str) -> None:
-        try:
-            self.defineArquivoEmail(email)
-        except Exception as e:
-            self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
-
-    def adicionarSenhaRemetente(self, senha: str) -> None:
-        try:
-            self.defineArquivoSenha(senha)
-        except Exception as e:
-            self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
-
     def manipuladorDestinatarios(self) -> None:
         try:
-            emailDestinatarios = my_recipients()
+            emailDestinatarios = self.bdDest.my_recipients()
             self.tabelaDestinatarios.setRowCount(len(emailDestinatarios))
             for linha, email in enumerate(emailDestinatarios):
                 self.tabelaDestinatarios.setItem(
@@ -263,13 +296,14 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
 
     def deletarEmailDestinatario(self) -> None:
         try:
-            emailDestinatarios: list = my_recipients()
+            emailDestinatarios: list = self.bdDest.my_recipients()
             emailDeletado = self.obterEmailDestinatario()
             if emailDeletado:
                 emailDestinatarios.remove(emailDeletado)
-                self.apagadorArquivo('.RECIPIENTS_USER_DATA.txt')
-                for email in emailDestinatarios:
-                    self.defineArquivoDestinatarios(email)
+                self.bd.delete(
+                    'email_destinatario', 'email_destinatario', emailDeletado
+                )
+                self.statusOperacoes.setText('E-mail deletado com sucesso.')
                 self.manipuladorDestinatarios()
             else:
                 if len(emailDestinatarios) == 0:
@@ -285,12 +319,12 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         try:
             emailDestinatario: str = self.adicionarDestinatario.text().strip()
             if emailDestinatario:
-                self.defineArquivoDestinatarios(emailDestinatario)
+                self.gravarDestinatarioBD(emailDestinatario)
+                self.adicionarDestinatario.clear()
                 self.statusOperacoes.setText(
                     f'{emailDestinatario}: Dado gravado com sucesso.'
                 )
                 self.manipuladorDestinatarios()
-                self.adicionarDestinatario.clear()
             else:
                 self.statusOperacoes.setText('Digite um e-mail')
         except Exception as e:
@@ -316,3 +350,73 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             )
         except Exception as e:
             self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
+
+    def cadastrarBD(self) -> None:
+        try:
+            nomeCadastro: str = self.nomeCadastroBD.text()
+            db_name = self.db_name.text()
+            user = self.user.text()
+            host = self.host.text()
+            port = self.port.text()
+            password = self.password.text()
+            if nomeCadastro != '' and db_name != '' and user != ''\
+               and host != '' and port != '' and password != '':
+                sql = '''INSERT INTO data_base
+                (nome_cadastro, db_name, user, host, port, password)
+                VALUES (?, ?, ?, ?, ?, ?)'''
+                data: tuple = (
+                    nomeCadastro, db_name, user, host, port, password
+                )
+                self.bd.executeSQL(sql, data)
+                self.setarComboBox(self.escolherBD)
+                self.setarComboBox(self.selecionarBDDelete)
+                self.statusCadastroBD.setText(
+                    'Banco cadastrado com sucesso !'
+                )
+                self.nomeCadastroBD.clear()
+                self.db_name.clear()
+                self.user.clear()
+                self.host.clear()
+                self.port.clear()
+                self.password.clear()
+            else:
+                self.statusCadastroBD.setText(
+                    'Verifique suas entradas !'
+                )
+        except Exception as e:
+            self.mostradorDisplayInfo(f'{e.__class__.__name__}: {e}')
+            return
+
+    def setarComboBox(self, comboBox) -> None:
+        try:
+            self.bd = DBInterfaceConfig('Sqlite3.db')
+            sql = 'SELECT nome_cadastro FROM data_base'
+            bdCadastrados: list = self.bd.select(sql)
+            comboBox.clear()
+            for tupla in bdCadastrados:
+                for b in tupla:
+                    comboBox.addItem(b)
+        except Exception as e:
+            self.mostradorDisplayInfo(f'{e.__class__.__name__}: {e}')
+            return
+
+    def deletarBDCadastrado(self) -> None:
+        if self.bdDelete is not None:
+            self.bd = DBInterfaceConfig('Sqlite3.db')
+            self.bd.delete('data_base', 'nome_cadastro', self.bdDelete)
+            self.setarComboBox(self.escolherBD)
+            self.setarComboBox(self.selecionarBDDelete)
+            self.statusCadastroBD.setText(
+                'Banco deletar com sucesso !'
+            )
+            self.bdDelete = None
+        else:
+            self.statusCadastroBD.setText(
+                'Selecione um Banco de Dados !'
+            )
+
+    def selecionarBDDeletar(self) -> None:
+        self.bdDelete = self.selecionarBDDelete.currentText()
+
+    def iniciarBD(self) -> None:
+        self.bdEscolha = self.escolherBD.currentText()

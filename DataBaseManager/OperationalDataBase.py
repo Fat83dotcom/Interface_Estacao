@@ -1,8 +1,8 @@
 import psycopg
 from abc import ABC
 from psycopg import sql
+from psycopg import Error
 from DataBaseManager.LogFiles import LogErrorsMixin
-from DataBaseManager.databaseSettings import dbCredentials
 
 
 class DataBase(ABC, LogErrorsMixin):
@@ -15,9 +15,9 @@ class DataBase(ABC, LogErrorsMixin):
         self.user: str = dBConfig['user']
         self.password: str = dBConfig['password']
 
-    def toExecute(self, query):
+    def toExecute(self, query: tuple):
         '''
-            Abre e fecha conexões, executa transações de insert e update
+            Abre e fecha conexões, executa transações
             com segurança mesmo em casos de falha.
         '''
         try:
@@ -31,10 +31,11 @@ class DataBase(ABC, LogErrorsMixin):
                 with con.cursor() as cursor:
                     sQL, data = query
                     cursor.execute(sQL, data)
-        except Exception as e:
+        except (Error, Exception) as e:
             className = self.__class__.__name__
             methName = self.toExecute.__name__
             self.registerErrors(className, methName, e)
+            raise e
 
     def toExecuteSelect(self, query) -> list:
         '''
@@ -54,10 +55,11 @@ class DataBase(ABC, LogErrorsMixin):
                     cursor.execute(sQL, data)
                     dataRecovery: list = [x for x in cursor.fetchall()]
                     return dataRecovery
-        except Exception as e:
+        except (Error, Exception) as e:
             className = self.__class__.__name__
             methName = self.toExecute.__name__
             self.registerErrors(className, methName, e)
+            raise e
 
     def placeHolderSQLGenerator(self, values) -> str | None:
         try:
@@ -69,10 +71,11 @@ class DataBase(ABC, LogErrorsMixin):
                 else:
                     placeHolders += '%s, '
             return placeHolders
-        except Exception as e:
+        except (Error, Exception) as e:
             className = self.__class__.__name__
             methName = self.placeHolderSQLGenerator.__name__
             self.registerErrors(className, methName, e)
+            raise e
 
     def SQLInsertGenerator(
         self, *args,
@@ -90,10 +93,11 @@ class DataBase(ABC, LogErrorsMixin):
                 pHolders=sql.SQL(', ').join(sql.Placeholder() * len(collumn))
             ), values
             return query
-        except Exception as e:
+        except (Error, Exception) as e:
             className = self.__class__.__name__
             methName = self.SQLInsertGenerator.__name__
             self.registerErrors(className, methName, e)
+            raise e
 
     def SQLUpdateGenerator(
             self, *args,
@@ -113,16 +117,97 @@ class DataBase(ABC, LogErrorsMixin):
                 colCon=sql.Identifier(collumnCondicional)
             ), (update, conditionalValue)
             return query
-        except Exception as e:
+        except (Error, Exception) as e:
             className = self.__class__.__name__
             methName = self.SQLUpdateGenerator.__name__
             self.registerErrors(className, methName, e)
+            raise e
 
     def SQLDeleteGenerator(self) -> tuple | None:
         pass
 
-    def SQLSelectGenerator(self) -> tuple | None:
-        pass
+    def SQLSelectGenerator(
+        self,
+        table: str,
+        collCodiction: str,
+        condiction,
+        schema: str,
+        collumns: str,
+        conditionLiteral=None
+    ) -> tuple | None:
+        try:
+            if conditionLiteral is None:
+                if '*' in collumns:
+                    query = sql.SQL(
+                        """SELECT * FROM {tab}
+                            WHERE {colCond}={cond}"""
+                    ).format(
+                        tab=sql.Identifier(schema, table),
+                        colCond=sql.Identifier(collCodiction),
+                        cond=sql.Literal(condiction)
+                    ), ()
+                    return query
+                else:
+                    query = sql.SQL(
+                        """SELECT {col} FROM {tab}
+                            WHERE {colCond}={cond}"""
+                    ).format(
+                        col=sql.SQL(', ').join(map(sql.Identifier, collumns)),
+                        tab=sql.Identifier(schema, table),
+                        colCond=sql.Identifier(collCodiction),
+                        cond=sql.Identifier(condiction)
+                    ), ()
+                    return query
+            else:
+                if '*' in collumns:
+                    query = sql.SQL(
+                        "SELECT * FROM {tab}" + f" {conditionLiteral}"
+                    ).format(
+                        tab=sql.Identifier(schema, table)
+                    ), ()
+                    return query
+                else:
+                    query = sql.SQL(
+                        "SELECT {col} FROM {tab}" + f" {conditionLiteral}"
+                    ).format(
+                        col=sql.SQL(', ').join(map(sql.Identifier, collumns)),
+                        tab=sql.Identifier(schema, table),
+                    ), ()
+                    return query
+        except (Error, Exception) as e:
+            className = self.__class__.__name__
+            methName = self.SQLUpdateGenerator.__name__
+            self.registerErrors(className, methName, e)
+            raise e
+
+    def updateTable(
+        self,
+        table: str,
+        collumnUpdate: str,
+        collumnCondicional: str,
+        update: str,
+        conditionalValue: str,
+        schema='public',
+    ) -> None:
+        raise NotImplementedError('Implemente o metodo em uma subclasse'
+                                  ' relativa a tabela trabalhada.')
+
+    def insertTable(
+        self, *args, table: str, collumn: tuple, schema='public'
+    ) -> None:
+        raise NotImplementedError('Implemente o metodo em uma subclasse'
+                                  ' relativa a tabela trabalhada.')
+
+    def selectOnTable(
+        self, table=None,
+        collCodiction=None,
+        condiction=None,
+        schema='public',
+        collumns='*',
+        conditionLiteral=None
+    ) -> list:
+        raise NotImplementedError('Implemente o metodo em uma subclasse'
+                                  ' relativa a tabela trabalhada.')
 
 
 class OperationDataBase(DataBase, LogErrorsMixin):
@@ -138,7 +223,7 @@ class OperationDataBase(DataBase, LogErrorsMixin):
         update: str,
         conditionalValue: str,
         schema='public',
-    ):
+    ) -> None:
         '''
             Atualiza colunas.
             Parametros: collumn -> Nome da coluna
@@ -155,14 +240,15 @@ class OperationDataBase(DataBase, LogErrorsMixin):
                 conditionalValue=conditionalValue
             )
             self.toExecute(query)
-        except Exception as e:
+        except (Error, Exception) as e:
             className = self.__class__.__name__
             methName = self.updateTable.__name__
             self.registerErrors(className, methName, e)
+            raise e
 
     def insertTable(
         self, *args, table: str, collumn: tuple, schema='public'
-    ):
+    ) -> None:
         '''
             Insere dados na tabela.
             Parametros:
@@ -174,16 +260,38 @@ class OperationDataBase(DataBase, LogErrorsMixin):
                 *args, table=table, collumn=collumn, schema=schema
             )
             self.toExecute(query)
-        except Exception as e:
+        except (Error, Exception) as e:
             className = self.__class__.__name__
             methName = self.insertTable.__name__
             self.registerErrors(className, methName, e)
+            raise e
 
     def deleteOnTable(self) -> None:
         pass
 
-    def selectOnTable(self, method):
-        pass
+    def selectOnTable(
+        self, table=None,
+        collCodiction=None,
+        condiction=None,
+        schema='public',
+        collumns='*',
+        conditionLiteral=None
+    ) -> list:
+        try:
+            query = self.SQLSelectGenerator(
+                table=table,
+                collCodiction=collCodiction,
+                condiction=condiction,
+                schema=schema,
+                collumns=collumns,
+                conditionLiteral=conditionLiteral
+            )
+            return self.toExecuteSelect(query)
+        except (Error, Exception) as e:
+            className = self.__class__.__name__
+            methName = self.SQLSelectGenerator.__name__
+            self.registerErrors(className, methName, e)
+            raise e
 
 
 class DataModel(LogErrorsMixin):
@@ -194,7 +302,9 @@ class DataModel(LogErrorsMixin):
     def __init__(self, dB: OperationDataBase) -> None:
         self.DBInstance = dB
 
-    def execInsertTable(self, table: str, iterable: list) -> None:
+    def execInsertTable(
+        self, *args, table: str, collumn: tuple, schema='public'
+    ) -> None:
         '''
             Implementa uma estrutura pra inserir dados em tabelas.
             Retorna -> None
@@ -210,7 +320,15 @@ class DataModel(LogErrorsMixin):
         raise NotImplementedError('Implemente o metodo em uma subclasse'
                                   ' relativa a tabela trabalhada.')
 
-    def execUpdateTable(self, table: str, iterable: list) -> None:
+    def execUpdateTable(
+        self,
+        table: str,
+        collumnUpdate: str,
+        collumnCondicional: str,
+        update: str,
+        conditionalValue: str,
+        schema='public',
+    ) -> None:
         '''
             Implementa uma estrutura para atualizar tabelas.
             Retorna -> None
@@ -226,7 +344,15 @@ class DataModel(LogErrorsMixin):
         raise NotImplementedError('Implemente o metodo em uma subclasse'
                                   ' relativa a tabela trabalhada.')
 
-    def execSelectOnTable(self, table: str, *args) -> list:
+    def execSelectOnTable(
+        self,
+        table=None,
+        collCodiction=None,
+        condiction=None,
+        schema='public',
+        collumns='*',
+        conditionLiteral=None
+    ) -> list:
         '''
             Implementa uma estrutura para criar buscar dados em tabelas.
             Retorna -> None
@@ -239,29 +365,107 @@ class DadoHorario(DataModel):
     def __init__(self, dB: OperationDataBase) -> None:
         super().__init__(dB)
 
-    def execCreateTable(self, tableName: str) -> None:
-        pass
+    def execCreateTable(self, tableName: str, schema='public') -> None:
+        try:
+            query: tuple = f"""
+            CREATE TABLE IF NOT EXISTS "{schema}"."{tableName}"
+            (codigo serial not null PRIMARY KEY,
+            data_hora timestamp not null UNIQUE,
+            umidade double precision null,
+            pressao double precision null,
+            temp_int double precision null,
+            temp_ext double precision null)""", ()
+            self.DBInstance.toExecute(query)
+        except (Error, Exception) as e:
+            className = self.__class__.__name__
+            methName = self.execCreateTable.__name__
+            self.registerErrors(className, methName, e)
+            raise e
 
-    def execInsertTable(self, table: str, iterable: list) -> None:
-        pass
+    def execInsertTable(
+        self, *args, table: str, collumn: tuple, schema='public'
+    ) -> None:
+        data = (
+            args[0]['dt'],
+            args[0]['u'],
+            args[0]['p'],
+            args[0]['1'],
+            args[0]['2']
+        )
+        self.DBInstance.insertTable(
+            data,
+            table=table,
+            collumn=collumn,
+            schema=schema
+        )
 
-    def execSelectOnTable(self, table: str, *args) -> list:
-        pass
+    def execSelectOnTable(
+        self,
+        table=None,
+        collCodiction=None,
+        condiction=None,
+        schema='public',
+        collumns='*',
+        conditionLiteral=None
+    ) -> list:
+        try:
+            result = self.DBInstance.selectOnTable(
+                table=table,
+                collumns=collumns,
+                conditionLiteral=conditionLiteral
+            )
+            return result
+        except (Error, Exception) as e:
+            className = self.__class__.__name__
+            methName = self.execSelectOnTable.__name__
+            self.registerErrors(className, methName, e)
+            raise e
 
 
 if __name__ == '__main__':
     # m = ConverterMonths()
     # print(m.getMonths('05'))
-
-    bd = OperationDataBase(dbCredentials(4))
-    # bd.insertCollumn(
-    # ('J.Pereira porcalhus',), table='teste', collumn=('nome', )
-    # )
-    bd.updateTable(
-        table='teste',
-        collumnUpdate='nome',
-        collumnCondicional='codigo',
-        update='Jãozin',
-        conditionalValue='6'
-    )
-    data = bd.toExecuteSelect(('select * from teste', ()))
+    try:
+        bd = OperationDataBase(dbCredentials(4))
+        # bd.insertCollumn(
+        # ('J.Pereira porcalhus',), table='teste', collumn=('nome', )
+        # )
+        # bd.updateTable(
+        #     table='teste',
+        #     collumnUpdate='nome',
+        #     collumnCondicional='codigo',
+        #     update='Jãozin',
+        #     conditionalValue='6'
+        # )
+        # data = bd.toExecuteSelect(('select * from teste', ()))
+        dM = DadoHorario(bd)
+        f = dM.execSelectOnTable(
+            table='dado_diario',
+            collumns=('codigo', ),
+            conditionLiteral='order by codigo desc limit 1'
+        )
+        dM.execCreateTable(
+            tableName='15-07-2023', schema='tabelas_horarias', fk=f[0][0]
+        )
+        data = {
+            'dt': '15/07/2023 23:15:14',
+            'u': 50,
+            'p': 958,
+            '1': 26.8,
+            '2': 30.8
+        }
+        dM.execInsertTable(
+            data,
+            table='15-07-2023',
+            collumn=(
+                'data_hora', 'umidade', 'pressao', 'temp_int', 'temp_ext'
+            ), schema='tabelas_horarias'
+        )
+        # f = bd.selectOnTable(
+        #     table='dado_diario',
+        #     collumns=('codigo', ),
+        #     conditionLiteral='order by codigo desc limit 1'
+        # )
+        print(f)
+    except (Error, Exception) as e:
+        print(e)

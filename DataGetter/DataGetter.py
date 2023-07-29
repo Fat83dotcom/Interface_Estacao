@@ -1,15 +1,14 @@
-from io import BytesIO
 import csv
 import time
 import serial
-from serial import Serial
 from time import sleep
+from serial import Serial
 from itertools import count
-from statistics import mean
-from GraphManager.GraphManager import PlotterGraficoPDF
+from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
 from PySide2.QtCore import QObject, Signal, QMutex, Slot
-from GlobalFunctions.funcoesGlobais import maximos, minimos
-from GlobalFunctions.funcoesGlobais import dataInstantanea, dataDoArquivo
+from GlobalFunctions.GlobalFunctions import dataInstantanea, dataDoArquivo
+from DataBaseManager.OperationalDataBase import DadoHorario, OperationDataBase
 
 
 class WorkerEstacao(QObject):
@@ -20,19 +19,21 @@ class WorkerEstacao(QObject):
     saidaInfoInicio = Signal(str)
     mostradorTempoRestante = Signal(int)
     saidaDadosEmail = Signal(
-        str, float, float, float, float, float, float,
-        float, float, float, float, float, float, str,
-        BytesIO, BytesIO, BytesIO, BytesIO
+        str, str, list, list, list, list
     )
 
     def __init__(
-                self, portaArduino: Serial, tempGraf: int, parent=None
-            ) -> None:
+        self, portaArduino: Serial, tempGraf: int, dadosBD: dict, parent=None
+    ) -> None:
         super().__init__(parent)
         self.mutex = QMutex()
         self.paradaPrograma: bool = False
         self.tempoConvertido: int = tempGraf
         self.arduino = portaArduino
+        self.dadosBD = dadosBD
+        self.dB = OperationDataBase(self.dadosBD)
+        self.dDH = DadoHorario(self.dB)
+        self.executor = ThreadPoolExecutor(max_workers=10)
 
     def porcentagem(self, totalVoltas: int, voltaAtual: int) -> int:
         porcentagem: float = voltaAtual * 100 / totalVoltas
@@ -86,17 +87,17 @@ class WorkerEstacao(QObject):
     def atualizarTempoRestante(self, tempoTotal, tempoCorrente) -> None:
         self.mostradorTempoRestante.emit((tempoTotal - tempoCorrente))
 
-    def registradorDadosArquivo(self, dadosAGravar: dict) -> None:
+    def registradorDadosArquivo(self, dados: dict) -> None:
         with open(dataDoArquivo(), 'a+', newline='', encoding='utf-8') as log:
             try:
-                if float(dadosAGravar['u']) and float(dadosAGravar['p']) and \
-                     float(dadosAGravar['1']) and float(dadosAGravar['2']) != 0:
+                if float(dados['u']) and float(dados['p']) and \
+                     float(dados['1']) and float(dados['2']) != 0:
                     w = csv.writer(log)
                     w.writerow(
                         [
-                            dataInstantanea(), dadosAGravar['u'],
-                            dadosAGravar['p'], dadosAGravar['1'],
-                            dadosAGravar['2']
+                            dataInstantanea(), dados['u'],
+                            dados['p'], dados['1'],
+                            dados['2']
                         ]
                     )
             except (ValueError, Exception) as e:
@@ -107,24 +108,48 @@ class WorkerEstacao(QObject):
                     f'ERRO: {e.__class__.__name__} -> {e}'
                 )
 
+    def createDailyTable(self, tableName: str, schema: str) -> None:
+        try:
+            self.dDH.execCreateTable(
+                tableName=tableName, schema=schema
+            )
+        except Exception as e:
+            raise e.__class__.__name__
+
+    def insertDataOnBD(self, tableName: str, data: dict) -> None:
+        try:
+            self.dDH.execInsertTable(
+                data,
+                table=tableName,
+                collumn=(
+                    'data_hora', 'umidade', 'pressao', 'temp_int', 'temp_ext'
+                ),
+                schema='tabelas_horarias'
+            )
+        except Exception as e:
+            raise e.__class__.__name__
+
     @Slot()
     def run(self) -> None:
-        yDadosUmidade: list[float] = []
-        yDadosPressao: list[float] = []
-        yDadosTemperaturaInterna: list[float] = []
-        yDadosTemperaturaExterna: list[float] = []
         try:
             cP = count()
             contadorParciais: int = next(cP)
 
             while not self.paradaPrograma:
+                yDadosUmidade: list[float] = []
+                yDadosPressao: list[float] = []
+                yDadosTempInt: list[float] = []
+                yDadosTempExt: list[float] = []
                 inicioParcial: str = dataInstantanea()
-                plotGrafico = PlotterGraficoPDF(inicioParcial)
                 cS = count()
                 contadorSegundos: int = next(cS)
 
                 if contadorParciais == 0:
                     tempoEmSegundos = self.tempoConvertido
+                    tableName = datetime.now().strftime('%d-%m-%Y')
+                    self.executor.submit(
+                        self.createDailyTable, tableName, 'tabelas_horarias'
+                    )
                     self.saidaInfoInicio.emit(
                         f'Inicio: --> {inicioParcial} <--'
                     )
@@ -138,6 +163,7 @@ class WorkerEstacao(QObject):
                 ) and not self.paradaPrograma:
                     inicioDelimitadorDeTempo: float = time.time()
                     dadosCarregadosArduino: dict = {
+                        'dt': '',
                         'u': '',
                         'p': '',
                         '1': '',
@@ -160,13 +186,26 @@ class WorkerEstacao(QObject):
                             float(dadosCarregadosArduino['p'])
                         )
                     if float(dadosCarregadosArduino['1']) > 0:
-                        yDadosTemperaturaInterna.append(
+                        yDadosTempInt.append(
                             float(dadosCarregadosArduino['1'])
                         )
                     if float(dadosCarregadosArduino['2']) > 0:
-                        yDadosTemperaturaExterna.append(
+                        yDadosTempExt.append(
                             float(dadosCarregadosArduino['2'])
                         )
+
+                    dadosCarregadosArduino['dt'] = dataInstantanea()
+                    tableName = datetime.now().strftime('%d-%m-%Y')
+                    now = datetime.now()
+
+                    if now.hour == 0 and now.minute == 0 and now.second == 0:
+                        self.createDailyTable(tableName, 'tabelas_horarias')
+
+                    self.executor.submit(
+                        self.insertDataOnBD,
+                        tableName=tableName,
+                        data=dadosCarregadosArduino
+                    )
 
                     self.registradorDadosArquivo(dadosCarregadosArduino)
 
@@ -183,43 +222,15 @@ class WorkerEstacao(QObject):
                     terminoDelimitadorDeTempo: float = time.time()
                     while (
                         terminoDelimitadorDeTempo - inicioDelimitadorDeTempo
-                    ) < 1:
+                    ) < 1.0:
                         terminoDelimitadorDeTempo = time.time()
 
                 contadorParciais = next(cP)
-                pdfDadosUmidade = plotGrafico.plotadorPDF(
-                    yDadosUmidade, 'umi', 'umi'
-                )
-                pdfDadosPressao = plotGrafico.plotadorPDF(
-                    yDadosPressao, 'press', 'press'
-                )
-                pdfDadosTemperaturaInterna = plotGrafico.plotadorPDF(
-                    yDadosTemperaturaInterna, 'tempInt', 'temp'
-                )
-                pdfDadosTemperaturaExterna = plotGrafico.plotadorPDF(
-                    yDadosTemperaturaExterna, 'tempExt', 'temp'
-                    )
-
+                terminoParcial: str = dataInstantanea()
                 self.saidaDadosEmail.emit(
-                                inicioParcial,
-                                round(mean(yDadosUmidade), 2),
-                                round(mean(yDadosPressao), 2),
-                                round(mean(yDadosTemperaturaInterna), 2),
-                                round(mean(yDadosTemperaturaExterna), 2),
-                                maximos(yDadosTemperaturaInterna),
-                                minimos(yDadosTemperaturaInterna),
-                                maximos(yDadosTemperaturaExterna),
-                                minimos(yDadosTemperaturaExterna),
-                                maximos(yDadosUmidade),
-                                minimos(yDadosUmidade),
-                                maximos(yDadosPressao),
-                                minimos(yDadosPressao),
-                                dataInstantanea(),
-                                pdfDadosUmidade,
-                                pdfDadosPressao,
-                                pdfDadosTemperaturaInterna,
-                                pdfDadosTemperaturaExterna
-                            )
+                    inicioParcial, terminoParcial, yDadosUmidade,
+                    yDadosPressao, yDadosTempInt, yDadosTempExt
+                )
 
             self.saidaInfoInicio.emit('Programa Parado !!!')
             self.barraProgresso.emit(0)

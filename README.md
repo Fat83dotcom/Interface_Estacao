@@ -1,6 +1,9 @@
 # PYTHON_INTERFACE_ESTACAO
 ## Interface gráfica para a estação metereologica
-
+#
+Versão 2.1:
+-> Implementação, em fase de testes, de uma estrutura de gravação dos dados em BD, em tabelas separadas por dia.
+-> O envio de e-mails e a geração de gráficos executadas em uma mesma thread, eliminando qualquer defasagem de tempo, garantindo que todos os segundos serão registrados.
 #
 Versão 2.0.3:
 -> Implementação da manipulação dos arquivos pdf através de fluxo de bites.

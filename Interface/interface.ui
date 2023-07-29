@@ -485,7 +485,7 @@
    <property name="layoutDirection">
     <enum>Qt::LeftToRight</enum>
    </property>
-   <layout class="QVBoxLayout" name="verticalLayout_4">
+   <layout class="QHBoxLayout" name="horizontalLayout_8">
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="sizePolicy">
@@ -681,13 +681,6 @@
                 </property>
                </widget>
               </item>
-              <item row="0" column="2">
-               <widget class="QLabel" name="tituloTempGrafico">
-                <property name="text">
-                 <string>Gráficos(MÁX 06:00Hs)</string>
-                </property>
-               </widget>
-              </item>
               <item row="0" column="3">
                <widget class="QTimeEdit" name="tempoGraficos">
                 <property name="specialValueText">
@@ -702,21 +695,38 @@
                 </property>
                </widget>
               </item>
-              <item row="1" column="0" colspan="4">
-               <widget class="QPushButton" name="btnInciarEstacao">
+              <item row="0" column="2">
+               <widget class="QLabel" name="tituloTempGrafico">
                 <property name="text">
-                 <string>Iniciar Estação</string>
+                 <string>Gráficos(MÁX 06:00Hs)</string>
                 </property>
                </widget>
               </item>
-              <item row="2" column="0" colspan="4">
-               <widget class="QPushButton" name="btnPararEstacao">
+              <item row="5" column="1" colspan="3">
+               <widget class="QComboBox" name="escolherBD"/>
+              </item>
+              <item row="5" column="0">
+               <widget class="QLabel" name="label_8">
                 <property name="text">
-                 <string>Parar Estação</string>
+                 <string>Definir BD</string>
                 </property>
                </widget>
               </item>
              </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="btnInciarEstacao">
+             <property name="text">
+              <string>Iniciar Estação</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="btnPararEstacao">
+             <property name="text">
+              <string>Parar Estação</string>
+             </property>
             </widget>
            </item>
            <item>
@@ -1747,6 +1757,199 @@
          </widget>
         </item>
        </layout>
+      </widget>
+      <widget class="QWidget" name="BDManager">
+       <attribute name="title">
+        <string>Definir conf. BD</string>
+       </attribute>
+       <widget class="QFrame" name="frameBancoDados">
+        <property name="geometry">
+         <rect>
+          <x>9</x>
+          <y>9</y>
+          <width>641</width>
+          <height>521</height>
+         </rect>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Raised</enum>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_4">
+         <item>
+          <widget class="QFrame" name="frameCadastroBD">
+           <property name="frameShape">
+            <enum>QFrame::StyledPanel</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Raised</enum>
+           </property>
+           <widget class="QFrame" name="frame_3">
+            <property name="geometry">
+             <rect>
+              <x>10</x>
+              <y>10</y>
+              <width>601</width>
+              <height>37</height>
+             </rect>
+            </property>
+            <property name="frameShape">
+             <enum>QFrame::StyledPanel</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Raised</enum>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout_25">
+             <item>
+              <widget class="QLabel" name="label_6">
+               <property name="text">
+                <string>Cadastrar Banco de Dados PostgreSQL</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignCenter</set>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+           <widget class="QFrame" name="frame_2">
+            <property name="geometry">
+             <rect>
+              <x>9</x>
+              <y>69</y>
+              <width>601</width>
+              <height>381</height>
+             </rect>
+            </property>
+            <property name="frameShape">
+             <enum>QFrame::StyledPanel</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Raised</enum>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_6">
+             <item row="5" column="0">
+              <widget class="QLabel" name="label_7">
+               <property name="text">
+                <string>password</string>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="0">
+              <widget class="QLabel" name="label_4">
+               <property name="text">
+                <string>host</string>
+               </property>
+              </widget>
+             </item>
+             <item row="6" column="0" colspan="2">
+              <widget class="QPushButton" name="btnCadastrarBD">
+               <property name="text">
+                <string>Cadastrar</string>
+               </property>
+              </widget>
+             </item>
+             <item row="7" column="0">
+              <widget class="QLabel" name="label_9">
+               <property name="text">
+                <string>Selecione o Banco</string>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="1">
+              <widget class="QLineEdit" name="host"/>
+             </item>
+             <item row="5" column="1">
+              <widget class="QLineEdit" name="password">
+               <property name="echoMode">
+                <enum>QLineEdit::Password</enum>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QLineEdit" name="db_name">
+               <property name="clearButtonEnabled">
+                <bool>false</bool>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="0">
+              <widget class="QLabel" name="label">
+               <property name="text">
+                <string>Nome Cadastro</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_2">
+               <property name="text">
+                <string>db_name</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QLineEdit" name="nomeCadastroBD"/>
+             </item>
+             <item row="2" column="1">
+              <widget class="QLineEdit" name="user"/>
+             </item>
+             <item row="7" column="1">
+              <widget class="QComboBox" name="selecionarBDDelete"/>
+             </item>
+             <item row="4" column="0">
+              <widget class="QLabel" name="label_5">
+               <property name="text">
+                <string>port</string>
+               </property>
+              </widget>
+             </item>
+             <item row="4" column="1">
+              <widget class="QLineEdit" name="port"/>
+             </item>
+             <item row="2" column="0">
+              <widget class="QLabel" name="label_3">
+               <property name="text">
+                <string>user</string>
+               </property>
+              </widget>
+             </item>
+             <item row="8" column="0" colspan="2">
+              <widget class="QPushButton" name="btnDeletarBD">
+               <property name="text">
+                <string>Deletar</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+           <widget class="QLabel" name="statusCadastroBD">
+            <property name="geometry">
+             <rect>
+              <x>16</x>
+              <y>460</y>
+              <width>591</width>
+              <height>20</height>
+             </rect>
+            </property>
+            <property name="frameShape">
+             <enum>QFrame::Panel</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Sunken</enum>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+          </widget>
+         </item>
+        </layout>
+       </widget>
       </widget>
      </widget>
     </item>

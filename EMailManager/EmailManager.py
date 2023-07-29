@@ -1,14 +1,89 @@
 import smtplib
 from io import BytesIO
+from statistics import mean
 from string import Template
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from PySide2.QtCore import QObject, Signal, Slot
 from email.mime.application import MIMEApplication
 from GraphManager.GraphManager import PlotterGraficoPDF
-from GlobalFunctions.funcoesGlobais import dataInstantanea
-from GlobalFunctions.manipuladoresArquivos import my_recipients
-from GlobalFunctions.manipuladoresArquivos import meu_email, minha_senha
+from GlobalFunctions.GlobalFunctions import dataInstantanea
+from GlobalFunctions.GlobalFunctions import maximos, minimos
+from GlobalFunctions.UserEmailHandler import ManipuladorDadosEmailRemetDest
+from GlobalFunctions.UserEmailHandler import ManipuladorEmailDestinatario
+from Interface.InterfaceManager import DBInterfaceConfig
+
+
+class WorkerGraphEmail(QObject):
+    erro = Signal(str)
+    confirma = Signal(str)
+    termino = Signal()
+
+    def __init__(
+        self,
+        inicioParcial: str,
+        terminoParcial: str,
+        yDadosUmidade: list,
+        yDadosPressao: list,
+        yDadosTempInt: list,
+        yDadosTempExt: list,
+        parent=None,
+    ) -> None:
+        super().__init__(parent)
+        try:
+            self.inicioParcial = inicioParcial
+            self.terminoParcial = terminoParcial
+            self.yDadosUmidade = yDadosUmidade
+            self.yDadosPressao = yDadosPressao
+            self.yDadosTempInt = yDadosTempInt
+            self.yDadosTempExt = yDadosTempExt
+            self.email = WorkerEmail(self.terminoParcial)
+            self.plotGrafico = PlotterGraficoPDF(
+                self.inicioParcial, self.terminoParcial
+            )
+        except Exception as e:
+            raise e
+
+    @Slot()
+    def run(self) -> None:
+        try:
+            pdfDadosUmidade = self.plotGrafico.plotadorPDF(
+                self.yDadosUmidade, 'umi', 'umi'
+            )
+            pdfDadosPressao = self.plotGrafico.plotadorPDF(
+                self.yDadosPressao, 'press', 'press'
+            )
+            pdfDadosTemperaturaInterna = self.plotGrafico.plotadorPDF(
+                self.yDadosTempInt, 'tempInt', 'temp'
+            )
+            pdfDadosTemperaturaExterna = self.plotGrafico.plotadorPDF(
+                self.yDadosTempExt, 'tempExt', 'temp'
+            )
+
+            self.email.run(
+                self.inicioParcial,
+                round(mean(self.yDadosUmidade), 2),
+                round(mean(self.yDadosPressao), 2),
+                round(mean(self.yDadosTempInt), 2),
+                round(mean(self.yDadosTempExt), 2),
+                maximos(self.yDadosTempInt),
+                minimos(self.yDadosTempInt),
+                maximos(self.yDadosTempExt),
+                minimos(self.yDadosTempExt),
+                maximos(self.yDadosUmidade),
+                minimos(self.yDadosUmidade),
+                maximos(self.yDadosPressao),
+                minimos(self.yDadosPressao),
+                self.terminoParcial,
+                pdfDadosUmidade,
+                pdfDadosPressao,
+                pdfDadosTemperaturaInterna,
+                pdfDadosTemperaturaExterna
+            )
+            self.confirma.emit('Email enviado com sucesso!')
+        except Exception as e:
+            self.erro.emit(f'Email não enviado: {e.__class__.__name__}')
+        self.termino.emit()
 
 
 class WorkerEmailTesteConexao(QObject):
@@ -18,11 +93,16 @@ class WorkerEmailTesteConexao(QObject):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.pathTest = 'Templates/emailTeste.html'
+        try:
+            db = DBInterfaceConfig('Sqlite3.db')
+            self.bdRemet = ManipuladorDadosEmailRemetDest(db)
+        except Exception as e:
+            raise e
 
     def run(self) -> None:
+        msgErro = 'Não foi possivel enviar o email. Motivo:'
         try:
-            msgErro = 'Não foi possivel enviar o email. Motivo:'
-            usuario = ''.join(meu_email())
+            usuario = ''.join(self.bdRemet.meu_email())
             msg = MIMEMultipart()
             msg['from'] = usuario
             msg['to'] = usuario
@@ -37,7 +117,7 @@ class WorkerEmailTesteConexao(QObject):
                 with smtplib.SMTP(host='smtp.gmail.com', port=587) as smtp:
                     smtp.ehlo()
                     smtp.starttls()
-                    smtp.login(usuario, ''.join(minha_senha()))
+                    smtp.login(usuario, ''.join(self.bdRemet.minha_senha()))
                     smtp.send_message(msg)
                     self.msgEnvio.emit('Email enviado com sucesso.')
             except Exception as e:
@@ -52,38 +132,16 @@ class WorkerEmailTesteConexao(QObject):
         self.termino.emit()
 
 
-class WorkerEmail(QObject):
-    termino = Signal()
-    msgEnvio = Signal(str)
-
-    def __init__(self, inicio, umi, press, t1, t2, t1max,
-                 t1min, t2max, t2min, umimax, umimini,
-                 pressmax, pressmini, fim,
-                 pdfDadosUmidade,
-                 pdfDadosPressao,
-                 pdfDadosTempInt,
-                 pdfDadostempExt, parent=None) -> None:
-        super().__init__(parent)
-        self.inicio = inicio
-        self.umi = umi
-        self.press = press
-        self.t1 = t1
-        self.t2 = t2
-        self.t1max = t1max
-        self.t1min = t1min
-        self.t2max = t2max
-        self.t2min = t2min
-        self.umimax = umimax
-        self.umimini = umimini
-        self.pressmax = pressmax
-        self.pressmini = pressmini
-        self.fim = fim
-        self.pdfDadosUmidade = pdfDadosUmidade
-        self.pdfDadosPressao = pdfDadosPressao
-        self.pdfDadosTempInt = pdfDadosTempInt
-        self.pdfDadostempExt = pdfDadostempExt
+class WorkerEmail:
+    def __init__(self, dataTermino: str) -> None:
         self.pathTemplateHtml = 'Templates/template.html'
-        self.servicosArquivosPDF = PlotterGraficoPDF(self.inicio)
+        self.dtTermino = dataTermino
+        try:
+            db = DBInterfaceConfig('Sqlite3.db')
+            self.bdRemet = ManipuladorDadosEmailRemetDest(db)
+            self.bdDest = ManipuladorEmailDestinatario(db)
+        except Exception as e:
+            raise e
 
     def anexadorPdf(self, buffer: BytesIO, msg) -> MIMEApplication:
         anexo = MIMEApplication(buffer.getvalue(), _subtype='pdf')
@@ -106,35 +164,44 @@ class WorkerEmail(QObject):
             )
         return corpo_msg
 
-    @Slot()
-    def run(self) -> None:
+    def run(
+        self,
+        inicio, umi, press, t1, t2, t1max,
+        t1min, t2max, t2min, umimax, umimini,
+        pressmax, pressmini, fim,
+        pdfDadosUmidade,
+        pdfDadosPressao,
+        pdfDadosTempInt,
+        pdfDadostempExt,
+    ) -> None:
         msgSubject = 'Monitor Estação Metereologica ©BrainStorm Tecnologia'
         try:
+            usuario: str = ''.join(self.bdRemet.meu_email())
             msg = MIMEMultipart()
-            msg['from'] = ''.join(meu_email())
-            msg['to'] = ','.join(my_recipients())
-            msg['subject'] = f'{msgSubject} {dataInstantanea()}'
+            msg['from'] = usuario
+            msg['to'] = ','.join(self.bdDest.my_recipients())
+            msg['subject'] = f'{msgSubject} {self.dtTermino}'
             corpo = MIMEText(
                 self.renderizadorHtml(
-                    self.umi, self.press, self.t1, self.t2,
-                    self.t1max, self.t1min, self.t2max, self.t2min,
-                    self.umimax, self.umimini, self.pressmax, self.pressmini,
-                    self.inicio, self.fim, dataInstantanea()
+                    umi, press, t1, t2,
+                    t1max, t1min, t2max, t2min,
+                    umimax, umimini, pressmax, pressmini,
+                    inicio, fim, self.dtTermino
                 ), 'html'
             )
             msg.attach(corpo)
-            msg.attach(self.anexadorPdf(self.pdfDadosUmidade, msg))
-            msg.attach(self.anexadorPdf(self.pdfDadosPressao, msg))
-            msg.attach(self.anexadorPdf(self.pdfDadosTempInt, msg))
-            msg.attach(self.anexadorPdf(self.pdfDadostempExt, msg))
+            msg.attach(self.anexadorPdf(pdfDadosUmidade, msg))
+            msg.attach(self.anexadorPdf(pdfDadosPressao, msg))
+            msg.attach(self.anexadorPdf(pdfDadosTempInt, msg))
+            msg.attach(self.anexadorPdf(pdfDadostempExt, msg))
 
             with smtplib.SMTP(host='smtp.gmail.com', port=587) as smtp:
                 smtp.ehlo()
                 smtp.starttls()
-                smtp.login(''.join(meu_email()), ''.join(minha_senha()))
+                smtp.login(
+                    usuario,
+                    ''.join(self.bdRemet.minha_senha())
+                )
                 smtp.send_message(msg)
-                self.msgEnvio.emit('Email enviado com sucesso.')
         except Exception as e:
-            self.msgEnvio.emit('Não foi possivel enviar o email.')
-            self.msgEnvio.emit(f'Motivo: {e.__class__.__name__}: {e}')
-        self.termino.emit()
+            raise e
