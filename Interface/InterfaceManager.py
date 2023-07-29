@@ -176,20 +176,17 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             self.estacaoThread.finished.connect(
                 lambda: self.btnInciarEstacao.setEnabled(True)
             )
-            self.portaArduino.setEnabled(False)
-            self.tempoGraficos.setEnabled(False)
+            self.desativarBotoesInicio()
         except Exception as e:
-            self.mostradorDisplayInfo(f'{e.__class__.__name__}: {e}')
             self.retornarBotoesInicio()
+            self.mostradorDisplayInfo(f'{e.__class__.__name__}: {e}')
             return
 
     def pararWorker(self) -> None:
         self.estacaoWorker.parar()
         self.estacaoThread.quit()
         self.estacaoThread.wait()
-        self.btnPararEstacao.setEnabled(False)
-        self.portaArduino.setEnabled(True)
-        self.tempoGraficos.setEnabled(True)
+        self.retornarBotoesInicio()
 
     def executarEmail(
         self,
