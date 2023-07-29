@@ -2,7 +2,7 @@ import io
 from datetime import datetime
 import matplotlib.backends.backend_pdf
 from dateutil.relativedelta import relativedelta
-from GlobalFunctions.funcoesGlobais import maximos, minimos
+from GlobalFunctions.GlobalFunctions import maximos, minimos
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('QtAgg')
