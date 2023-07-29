@@ -97,6 +97,9 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
     def retornarBotoesInicio(self) -> None:
         self.btnInciarEstacao.setEnabled(True)
         self.btnPararEstacao.setEnabled(False)
+        self.escolherBD.setEnabled(True)
+        self.portaArduino.setEnabled(True)
+        self.tempoGraficos.setEnabled(True)
 
     def executarMainEstacao(self) -> None:
         self.btnInciarEstacao.setEnabled(False)
