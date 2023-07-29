@@ -269,8 +269,7 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
                 self.statusOperacoes.setText('Entre com o e-mail e senha ! ')
                 return None
             else:
-                self.adicionarEmailRemetente(emailRemetente)
-                self.adicionarSenhaRemetente(senhaRemetente)
+                self.gravarRemetenteBD(emailRemetente, senhaRemetente)
                 self.emailUsuario.clear()
                 self.senhaUsuario.clear()
                 self.manipuladorRemetenteSenha()
