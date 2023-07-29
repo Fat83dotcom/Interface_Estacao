@@ -220,22 +220,6 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             self.mostradorDisplayInfo(f'{e.__class__.__name__}: {e}')
             return
 
-    def defineArquivoEmail(self, dadoUsuario: str) -> None:
-        with open('.EMAIL_USER_DATA.txt', 'w') as file:
-            file.write(dadoUsuario)
-
-    def defineArquivoSenha(self, dadoUsuario: str) -> None:
-        with open('.PASSWORD_USER_DATA.txt', 'w') as file:
-            file.write(dadoUsuario)
-
-    def defineArquivoDestinatarios(self, dadoUsuario: str) -> None:
-        with open('.RECIPIENTS_USER_DATA.txt', 'a') as file:
-            file.write(f'{dadoUsuario}\n')
-
-    def apagadorArquivo(self, caminhoArquivo: str) -> None:
-        with open(caminhoArquivo, 'w') as file:
-            file.write('')
-
     def manipuladorRemetenteSenha(self) -> None:
         try:
             if len(meu_email()) == 1 and len(minha_senha()) == 1:
