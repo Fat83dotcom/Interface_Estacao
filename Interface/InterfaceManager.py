@@ -276,18 +276,6 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         except Exception as e:
             self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
 
-    def adicionarEmailRemetente(self, email: str) -> None:
-        try:
-            self.defineArquivoEmail(email)
-        except Exception as e:
-            self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
-
-    def adicionarSenhaRemetente(self, senha: str) -> None:
-        try:
-            self.defineArquivoSenha(senha)
-        except Exception as e:
-            self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
-
     def manipuladorDestinatarios(self) -> None:
         try:
             emailDestinatarios = my_recipients()
