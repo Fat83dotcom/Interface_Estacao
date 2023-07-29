@@ -222,9 +222,11 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
 
     def manipuladorRemetenteSenha(self) -> None:
         try:
-            if len(meu_email()) == 1 and len(minha_senha()) == 1:
-                email = ''.join(meu_email())
-                senha = ''.join(minha_senha())
+            emailRemet: list = self.bdRemet.meu_email()
+            senhaRemet: list = self.bdRemet.minha_senha()
+            if len(emailRemet) == 1 and len(senhaRemet) == 1:
+                email = ''.join(emailRemet)
+                senha = ''.join(senhaRemet)
                 senhaOculta = "".join(
                     [caractere.replace(caractere, "*") for caractere in senha]
                 )
