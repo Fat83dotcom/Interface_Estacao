@@ -1,9 +1,9 @@
 from serial import Serial
-import sqlite3
 from Interface.mainInterface import Ui_MainWindow
 from DataGetter.DataGetter import WorkerEstacao, ConexaoUSB
-from GlobalFunctions.manipuladoresArquivos import my_recipients
-from GlobalFunctions.manipuladoresArquivos import meu_email, minha_senha
+from GlobalFunctions.UserEmailHandler import ManipuladorDadosEmailRemetDest
+from GlobalFunctions.UserEmailHandler import ManipuladorEmailDestinatario
+from GlobalFunctions.UserEmailHandler import DBInterfaceConfig
 from EMailManager.EmailManager import WorkerEmailTesteConexao, WorkerGraphEmail
 from PySide2.QtCore import QThread
 from PySide2.QtGui import QStandardItemModel, QStandardItem
