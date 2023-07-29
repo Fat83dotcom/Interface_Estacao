@@ -240,6 +240,26 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
         except Exception as e:
             self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
 
+    def gravarRemetenteBD(self, emailRemet: str, senhaRement: str) -> None:
+        try:
+            sql = 'DELETE FROM email_remetente'
+            self.bd.executeSQL(sql)
+            sql = '''
+        INSERT INTO email_remetente (email_remetente, senha) VALUES (?, ?)'''
+            dados: tuple = (emailRemet, senhaRement)
+            self.bd.executeSQL(sql, dados)
+        except Exception as e:
+            self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
+
+    def gravarDestinatarioBD(self, emailDest: str) -> None:
+        try:
+            sql = '''
+        INSERT INTO email_destinatario (email_destinatario) VALUES (?)'''
+            dados: tuple = (emailDest, )
+            self.bd.executeSQL(sql, dados)
+        except Exception as e:
+            self.statusOperacoes.setText(f'{e.__class__.__name__}: {e}')
+
     def adicionarEmailRemetenteSenha(self) -> None:
         try:
             self.statusOperacoes.setText('')
