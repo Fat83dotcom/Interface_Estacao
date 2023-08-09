@@ -313,7 +313,9 @@ class DataModel(LogErrorsMixin, ABC):
         raise NotImplementedError('Implemente o metodo em uma subclasse'
                                   ' relativa a tabela trabalhada.')
 
-    def execCreateTable(self, tableName: str) -> None:
+    def execCreateTable(
+        self, *args, tableName: str, schema='public'
+    ) -> None:
         '''
             Implementa uma estrutura para criar tabelas.
             Retorna -> None
@@ -324,7 +326,7 @@ class DataModel(LogErrorsMixin, ABC):
     def execUpdateTable(
         self,
         table: str,
-        collumnUpdate: str,
+        collumnUpdate: tuple,
         collumnCondicional: str,
         update: str,
         conditionalValue: str,
@@ -351,7 +353,7 @@ class DataModel(LogErrorsMixin, ABC):
         collCodiction=None,
         condiction=None,
         schema='public',
-        collumns='*',
+        collumns=('*', ),
         conditionLiteral=None
     ) -> list:
         '''
