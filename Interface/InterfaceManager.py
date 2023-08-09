@@ -145,6 +145,8 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
                 dadosBD=dadosBD
             )
             self.estacaoWorker.moveToThread(self.estacaoThread)
+            self.estacaoThread.started.connect(self.estacaoWorker.run)
+            self.estacaoThread.start()
             self.estacaoWorker.finalizar.connect(
                 self.estacaoThread.quit
             )
@@ -157,8 +159,6 @@ class InterfaceEstacao(QMainWindow, Ui_MainWindow):
             self.estacaoWorker.finalizar.connect(
                 portaArduino.desconectarPortaUSB
             )
-            self.estacaoThread.started.connect(self.estacaoWorker.run)
-            self.estacaoThread.start()
             self.estacaoWorker.barraProgresso.connect(
                 self.mostrardorDisplayBarraProgresso
             )
