@@ -2,6 +2,7 @@ import psycopg
 from abc import ABC
 from psycopg import sql
 from psycopg import Error
+from datetime import datetime
 from DataBaseManager.LogFiles import LogErrorsMixin
 
 
