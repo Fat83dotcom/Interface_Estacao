@@ -56,6 +56,7 @@ class WorkerEstacao(QObject):
             contadorParciais: int = next(cP)
 
             while not self.paradaPrograma:
+                tempoEmSegundos: int = self.tempoConvertido
                 yDadosUmidade: list[float] = []
                 yDadosPressao: list[float] = []
                 yDadosTempInt: list[float] = []
