@@ -434,6 +434,62 @@ class DadoHorario(DataModel):
             raise e
 
 
+class GerenciadorTabelas(DataModel):
+    def __init__(self, dB: OperationDataBase) -> None:
+        super().__init__(dB)
+
+    def execInsertTable(
+        self, *args, table: str, collumn: tuple, schema='public'
+    ) -> None:
+        try:
+            self.DBInstance.insertTable(
+                *args, table=table, collumn=collumn, schema=schema
+            )
+        except (Error, Exception) as e:
+            className = self.__class__.__name__
+            methName = self.execSelectOnTable.__name__
+            self.registerErrors(className, methName, e)
+            raise e
+
+    def execSelectOnTable(
+        self, table=None, collCodiction=None, condiction=None,
+        schema='public', collumns=('*', ), conditionLiteral=None
+    ) -> list:
+        try:
+            result: list = self.DBInstance.selectOnTable(
+                table=table, collCodiction=collCodiction,
+                condiction=condiction, schema=schema,
+                collumns=collumns, conditionLiteral=conditionLiteral
+            )
+            return result
+        except (Error, Exception) as e:
+            className = self.__class__.__name__
+            methName = self.execSelectOnTable.__name__
+            self.registerErrors(className, methName, e)
+            raise e
+
+    def getForeignKey(self) -> int:
+        '''select codigo from gerenciador_tabelas_horarias
+        order by codigo desc limit 1;
+        '''
+        try:
+            result: list = self.execSelectOnTable(
+                collumns=('codigo',),
+                table='gerenciador_tabelas_horarias',
+                conditionLiteral='ORDER BY codigo DESC LIMIT 1'
+            )
+            resultInt: int = result[0][0]
+            return resultInt
+        except (Error, Exception) as e:
+            className = self.__class__.__name__
+            methName = self.execSelectOnTable.__name__
+            self.registerErrors(className, methName, e)
+            raise e
+
+    def nameTableGenerator(self) -> str:
+        return datetime.now().strftime('%d-%m-%Y')
+
+
 if __name__ == '__main__':
     # m = ConverterMonths()
     # print(m.getMonths('05'))
