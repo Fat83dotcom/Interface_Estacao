@@ -20,15 +20,14 @@ def dataBancoDados() -> str:
 
 def dataInstantanea() -> str:
     try:
-        data = time.strftime('%d %b %Y %H:%M:%S', time.localtime())
-        return data
+        return datetime.now().strftime('%d %b %Y %H:%M:%S')
     except (ValueError, Exception) as e:
         raise e
 
 
 def dataDoArquivo() -> str:
     try:
-        dataA = time.strftime('%b_%Y_log.csv').lower()
+        dataA = datetime.now().strftime('%b_%Y_log.csv').lower()
         return dataA
     except (ValueError, Exception) as e:
         raise e
