@@ -28,18 +28,20 @@ class WorkerEstacao(QObject):
         self, portaArduino: Serial, tempGraf: int, dadosBD: dict, parent=None
     ) -> None:
         super().__init__(parent)
-        self.mutex = QMutex()
-        self.paradaPrograma: bool = False
-        self.tempoConvertido: int = tempGraf
         self.arduino = portaArduino
+        self.tempoConvertido: int = tempGraf
         self.dadosBD = dadosBD
-        self.dB = OperationDataBase(self.dadosBD)
-        self.dDH = DadoHorario(self.dB)
-        self.executor = ThreadPoolExecutor(max_workers=10)
-
-    def porcentagem(self, totalVoltas: int, voltaAtual: int) -> int:
-        porcentagem: float = voltaAtual * 100 / totalVoltas
-        return int(porcentagem)
+        self.paradaPrograma: bool = False
+        self.mutex = QMutex()
+        self.executor = ThreadPoolExecutor(max_workers=2)
+        self.ardutils = ArduinoUtils(self.arduino)
+        self.fileUtils = FileUtils(self.saidaInfoInicio)
+        self.dbutils = DBUtils(self.dadosBD, self.executor)
+        self.interfaceutil = InterfaceUtils(
+            self.saidaData, self.saidaDadosLCD,
+            self.barraProgresso, self.mostradorTempoRestante,
+            self.saidaInfoInicio, self.finalizar
+        )
 
     @Slot()
     def parar(self) -> None:
