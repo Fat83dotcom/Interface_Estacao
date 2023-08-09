@@ -4,11 +4,18 @@ usadas em classes e métodos de classe, portanto, caso haja mudança das
 classes para outros módulos .py, é necessário importar este módulo em seus
 respectivos escopos.
 '''
-import time
+from datetime import datetime
 
 
 class DadosError(Exception):
     ...
+
+
+def dataBancoDados() -> str:
+    try:
+        return datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+    except (ValueError, Exception) as e:
+        raise e
 
 
 def dataInstantanea() -> str:
