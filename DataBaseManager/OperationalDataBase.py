@@ -295,7 +295,7 @@ class OperationDataBase(DataBase, LogErrorsMixin):
             raise e
 
 
-class DataModel(LogErrorsMixin):
+class DataModel(LogErrorsMixin, ABC):
     '''
         Implementa uma interface para receber os dados e realiza as
         transações para cada tabela do banco.
