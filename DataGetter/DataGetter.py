@@ -66,11 +66,7 @@ class WorkerEstacao(QObject):
                 contadorSegundos: int = next(cS)
 
                 if contadorParciais == 0:
-                    tempoEmSegundos = self.tempoConvertido
-                    tableName = datetime.now().strftime('%d-%m-%Y')
-                    self.executor.submit(
-                        self.createDailyTable, tableName, 'tabelas_horarias'
-                    )
+                    self.dbutils.inicializadorTabelasHorarias()
                     self.saidaInfoInicio.emit(
                         f'Inicio: --> {inicioParcial} <--'
                     )
@@ -91,7 +87,7 @@ class WorkerEstacao(QObject):
                         '2': ''
                     }
 
-                    tratamentoCarga: list = self.carregadorDados()
+                    tratamentoCarga: list = self.ardutils.carregadorDados()
                     if len(tratamentoCarga) > 4:
                         for _ in range(len(tratamentoCarga) - 4):
                             tratamentoCarga.pop()
@@ -116,27 +112,24 @@ class WorkerEstacao(QObject):
                         )
 
                     dadosCarregadosArduino['dt'] = dataInstantanea()
-                    tableName = datetime.now().strftime('%d-%m-%Y')
-                    now = datetime.now()
-
-                    if now.hour == 0 and now.minute == 0 and now.second == 0:
-                        self.createDailyTable(tableName, 'tabelas_horarias')
-
-                    self.executor.submit(
-                        self.insertDataOnBD,
-                        tableName=tableName,
-                        data=dadosCarregadosArduino
+                    self.fileUtils.registradorDadosArquivo(
+                        dadosCarregadosArduino
                     )
 
-                    self.registradorDadosArquivo(dadosCarregadosArduino)
+                    self.dbutils.verificaHorarioCriacaoTabelaHoraria()
 
-                    self.enviarDadosTempoRealParaLCD(dadosCarregadosArduino)
+                    dadosCarregadosArduino['dt'] = dataBancoDados()
+                    self.dbutils.insereBancoDados(dadosCarregadosArduino)
+
+                    self.interfaceutil.enviarDadosTempoRealParaLCD(
+                        dadosCarregadosArduino
+                    )
 
                     contadorSegundos = next(cS)
-                    self.atualizarBarraProgresso(
+                    self.interfaceutil.atualizarBarraProgresso(
                         tempoEmSegundos, contadorSegundos
                     )
-                    self.atualizarTempoRestante(
+                    self.interfaceutil.atualizarTempoRestante(
                         tempoEmSegundos, contadorSegundos
                     )
 
@@ -153,14 +146,10 @@ class WorkerEstacao(QObject):
                     yDadosPressao, yDadosTempInt, yDadosTempExt
                 )
 
-            self.saidaInfoInicio.emit('Programa Parado !!!')
-            self.barraProgresso.emit(0)
-            self.finalizar.emit()
+            self.interfaceutil.atualizarFinalizacao()
         except (ValueError, Exception) as e:
             self.saidaInfoInicio.emit(f'{e.__class__.__name__}: {e}')
-            self.saidaInfoInicio.emit('Programa Parado !!!')
-            self.barraProgresso.emit(0)
-            self.finalizar.emit()
+            self.interfaceutil.atualizarFinalizacao()
 
 
 class ConexaoUSB():
