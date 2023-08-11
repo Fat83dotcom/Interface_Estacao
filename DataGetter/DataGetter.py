@@ -79,6 +79,7 @@ class WorkerEstacao(QObject):
                     contadorSegundos < tempoEmSegundos
                 ) and not self.paradaPrograma:
                     inicioDelimitadorDeTempo: float = time.time()
+                    self.dbutils.verificaHorarioCriacaoTabelaHoraria()
                     dadosCarregadosArduino: dict = {
                         'dt': '',
                         'u': '',
@@ -115,8 +116,6 @@ class WorkerEstacao(QObject):
                     self.fileUtils.registradorDadosArquivo(
                         dadosCarregadosArduino
                     )
-
-                    self.dbutils.verificaHorarioCriacaoTabelaHoraria()
 
                     dadosCarregadosArduino['dt'] = dataBancoDados()
                     self.dbutils.insereBancoDados(dadosCarregadosArduino)
