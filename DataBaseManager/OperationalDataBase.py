@@ -161,10 +161,10 @@ class DataBasePostgreSQL(DataBase, LogErrorsMixin):
         collumn: tuple,
         table: str,
         schema: str
-    ) -> tuple | None:
+    ) -> tuple:
         try:
             values = args[0]
-            query: tuple | None = sql.SQL(
+            query: tuple = sql.SQL(
                 "INSERT INTO {table} ({collumn}) VALUES ({pHolders})"
             ).format(
                 table=sql.Identifier(schema, table),
@@ -202,8 +202,8 @@ class DataBasePostgreSQL(DataBase, LogErrorsMixin):
             self.registerErrors(className, methName, e)
             raise e
 
-    def SQLDeleteGenerator(self) -> tuple | None:
-        pass
+    def SQLDeleteGenerator(self) -> tuple:
+        return ('Não Implementado !!',)
 
     def SQLSelectGenerator(
         self,
@@ -211,11 +211,11 @@ class DataBasePostgreSQL(DataBase, LogErrorsMixin):
         collCodiction: str,
         condiction,
         schema: str,
-        collumns: str,
-        conditionLiteral=None
-    ) -> tuple | None:
+        collumns: tuple,
+        conditionLiteral: str
+    ) -> tuple:
         try:
-            if conditionLiteral is None:
+            if conditionLiteral == '':
                 if '*' in collumns:
                     query = sql.SQL(
                         """SELECT * FROM {tab}
@@ -240,14 +240,14 @@ class DataBasePostgreSQL(DataBase, LogErrorsMixin):
             else:
                 if '*' in collumns:
                     query = sql.SQL(
-                        "SELECT * FROM {tab}" + f" {conditionLiteral}"
+                        "SELECT * FROM {tab}" + f" {conditionLiteral}"  # type: ignore
                     ).format(
                         tab=sql.Identifier(schema, table)
                     ), ()
                     return query
                 else:
                     query = sql.SQL(
-                        "SELECT {col} FROM {tab}" + f" {conditionLiteral}"
+                        "SELECT {col} FROM {tab}" + f" {conditionLiteral}"  # type: ignore
                     ).format(
                         col=sql.SQL(', ').join(map(sql.Identifier, collumns)),
                         tab=sql.Identifier(schema, table),
@@ -258,41 +258,6 @@ class DataBasePostgreSQL(DataBase, LogErrorsMixin):
             methName = self.SQLUpdateGenerator.__name__
             self.registerErrors(className, methName, e)
             raise e
-
-    def updateTable(
-        self,
-        table: str,
-        collumnUpdate: str,
-        collumnCondicional: str,
-        update: str,
-        conditionalValue: str,
-        schema='public',
-    ) -> None:
-        raise NotImplementedError('Implemente o metodo em uma subclasse'
-                                  ' relativa a tabela trabalhada.')
-
-    def insertTable(
-        self, *args, table: str, collumn: tuple, schema='public'
-    ) -> None:
-        raise NotImplementedError('Implemente o metodo em uma subclasse'
-                                  ' relativa a tabela trabalhada.')
-
-    def selectOnTable(
-        self, table=None,
-        collCodiction=None,
-        condiction=None,
-        schema='public',
-        collumns='*',
-        conditionLiteral=None
-    ) -> list:
-        raise NotImplementedError('Implemente o metodo em uma subclasse'
-                                  ' relativa a tabela trabalhada.')
-
-
-class OperationDataBase(DataBase, LogErrorsMixin):
-    '''Realiza as operações com o PostgreSQL'''
-    def __init__(self, dBConfig: dict) -> None:
-        super().__init__(dBConfig)
 
     def updateTable(
         self,
@@ -335,7 +300,7 @@ class OperationDataBase(DataBase, LogErrorsMixin):
             collumn -> Nome das colunas, na ordem de inserção.
         '''
         try:
-            query = self.SQLInsertGenerator(
+            query: tuple = self.SQLInsertGenerator(
                 *args, table=table, collumn=collumn, schema=schema
             )
             self.toExecute(query)
@@ -349,12 +314,12 @@ class OperationDataBase(DataBase, LogErrorsMixin):
         pass
 
     def selectOnTable(
-        self, table=None,
-        collCodiction=None,
-        condiction=None,
+        self, table: str,
+        collCodiction: str,
+        condiction: str,
+        conditionLiteral: str,
         schema='public',
-        collumns='*',
-        conditionLiteral=None
+        collumns=('*',)
     ) -> list:
         try:
             query = self.SQLSelectGenerator(
