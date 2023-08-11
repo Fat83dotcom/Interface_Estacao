@@ -9,7 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 from PySide2.QtCore import QObject, Signal, QMutex, Slot
 from GlobalFunctions.GlobalFunctions import dataInstantanea, dataDoArquivo
 from GlobalFunctions.GlobalFunctions import dataBancoDados
-from DataBaseManager.OperationalDataBase import DadoHorario, OperationDataBase
+from DataBaseManager.OperationalDataBase import DadoHorario, DataBasePostgreSQL
 from DataBaseManager.OperationalDataBase import GerenciadorTabelas
 
 
