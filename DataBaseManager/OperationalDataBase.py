@@ -338,12 +338,12 @@ class DataBasePostgreSQL(DataBase, LogErrorsMixin):
             raise e
 
 
-class DataModel(LogErrorsMixin, ABC):
+class DataModel(ABC, LogErrorsMixin):
     '''
         Implementa uma interface para receber os dados e realiza as
         transações para cada tabela do banco.
     '''
-    def __init__(self, dB: OperationDataBase) -> None:
+    def __init__(self, dB: DataBasePostgreSQL) -> None:
         self.DBInstance = dB
 
     def execInsertTable(
@@ -392,12 +392,12 @@ class DataModel(LogErrorsMixin, ABC):
 
     def execSelectOnTable(
         self,
-        table=None,
-        collCodiction=None,
-        condiction=None,
+        table: str,
+        collCodiction: str,
+        condiction: str,
+        conditionLiteral: str,
         schema='public',
-        collumns=('*', ),
-        conditionLiteral=None
+        collumns=('*', )
     ) -> list:
         '''
             Implementa uma estrutura para criar buscar dados em tabelas.
@@ -408,7 +408,7 @@ class DataModel(LogErrorsMixin, ABC):
 
 
 class DadoHorario(DataModel):
-    def __init__(self, dB: OperationDataBase) -> None:
+    def __init__(self, dB: DataBasePostgreSQL) -> None:
         super().__init__(dB)
 
     def execCreateTable(self, *args, tableName: str, schema='public') -> None:
@@ -456,15 +456,17 @@ class DadoHorario(DataModel):
 
     def execSelectOnTable(
         self,
-        table=None,
-        collCodiction=None,
-        condiction=None,
-        schema='public',
-        collumns='*',
-        conditionLiteral=None
+        table: str,
+        collCodiction: str,
+        condiction: str,
+        conditionLiteral: str,
+        collumns=('*',),
+        schema='public'
     ) -> list:
         try:
             result = self.DBInstance.selectOnTable(
+                collCodiction='',
+                condiction='',
                 table=table,
                 collumns=collumns,
                 conditionLiteral=conditionLiteral
@@ -478,7 +480,7 @@ class DadoHorario(DataModel):
 
 
 class GerenciadorTabelas(DataModel):
-    def __init__(self, dB: OperationDataBase) -> None:
+    def __init__(self, dB: DataBasePostgreSQL) -> None:
         super().__init__(dB)
 
     def execInsertTable(
@@ -534,49 +536,13 @@ class GerenciadorTabelas(DataModel):
 
 
 if __name__ == '__main__':
-    # m = ConverterMonths()
-    # print(m.getMonths('05'))
-    try:
-        bd = OperationDataBase(dbCredentials(4))
-        # bd.insertCollumn(
-        # ('J.Pereira porcalhus',), table='teste', collumn=('nome', )
-        # )
-        # bd.updateTable(
-        #     table='teste',
-        #     collumnUpdate='nome',
-        #     collumnCondicional='codigo',
-        #     update='Jãozin',
-        #     conditionalValue='6'
-        # )
-        # data = bd.toExecuteSelect(('select * from teste', ()))
-        dM = DadoHorario(bd)
-        f = dM.execSelectOnTable(
-            table='dado_diario',
-            collumns=('codigo', ),
-            conditionLiteral='order by codigo desc limit 1'
-        )
-        dM.execCreateTable(
-            tableName='15-07-2023', schema='tabelas_horarias', fk=f[0][0]
-        )
-        data = {
-            'dt': '15/07/2023 23:15:14',
-            'u': 50,
-            'p': 958,
-            '1': 26.8,
-            '2': 30.8
-        }
-        dM.execInsertTable(
-            data,
-            table='15-07-2023',
-            collumn=(
-                'data_hora', 'umidade', 'pressao', 'temp_int', 'temp_ext'
-            ), schema='tabelas_horarias'
-        )
-        # f = bd.selectOnTable(
-        #     table='dado_diario',
-        #     collumns=('codigo', ),
-        #     conditionLiteral='order by codigo desc limit 1'
-        # )
-        print(f)
-    except (Error, Exception) as e:
-        print(e)
+    banco = {
+        'db_name': 'dados_estacao',
+        'user': 'fernando',
+        'host': '192.168.0.4',
+        'port': '5432',
+        'password': '230383asD#'
+    }
+    d = DataBasePostgreSQL(banco)
+    t = GerenciadorTabelas(d)
+    print(t.getForeignKey())
