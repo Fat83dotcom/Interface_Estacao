@@ -236,7 +236,7 @@ class DBUtils:
     def __init__(self, dadosBD: dict, executor: ThreadPoolExecutor) -> None:
         self.dadosBD = dadosBD
         self.executor = executor
-        self.dB = OperationDataBase(self.dadosBD)
+        self.dB = DataBasePostgreSQL(self.dadosBD)
         self.dDH = DadoHorario(self.dB)
         self.dGT = GerenciadorTabelas(self.dB)
 
