@@ -1,7 +1,6 @@
 import psycopg
-from abc import ABC
-from psycopg import sql
-from psycopg import Error
+from abc import ABC, abstractmethod
+from psycopg import sql, Error
 from datetime import datetime
 from DataBaseManager.LogFiles import LogErrorsMixin
 
