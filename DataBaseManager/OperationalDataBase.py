@@ -27,21 +27,13 @@ class DataBase(ABC):
 
     @abstractmethod
     def SQLInsertGenerator(
-        self, *args,
-        collumn: tuple,
-        table: str,
-        schema: str
+        self, *args, collumn: tuple, table: str, schema: str
     ) -> tuple | None: pass
 
     @abstractmethod
     def SQLUpdateGenerator(
-            self, *args,
-            collumnUpdate: str,
-            collumnCondicional: str,
-            table: str,
-            schema: str,
-            update: str,
-            conditionalValue: str
+            self, *args, collumnUpdate: str, collumnCondicional: str,
+            table: str, schema: str, update: str, conditionalValue: str
             ) -> tuple: pass
 
     @abstractmethod
@@ -49,24 +41,14 @@ class DataBase(ABC):
 
     @abstractmethod
     def SQLSelectGenerator(
-        self,
-        table: str,
-        collCodiction: str,
-        condiction,
-        schema: str,
-        collumns: tuple,
-        conditionLiteral: str
+        self, table: str, collCodiction: str, condiction: str,
+        schema: str, collumns: tuple, conditionLiteral: str
     ) -> tuple: pass
 
     @abstractmethod
     def updateTable(
-        self,
-        table: str,
-        collumnUpdate: str,
-        collumnCondicional: str,
-        update: str,
-        conditionalValue: str,
-        schema='public',
+        self, table: str, collumnUpdate: str, collumnCondicional: str,
+        update: str, conditionalValue: str, schema='public',
     ) -> None: pass
 
     @abstractmethod
@@ -76,12 +58,8 @@ class DataBase(ABC):
 
     @abstractmethod
     def selectOnTable(
-        self, table: str,
-        collCodiction: str,
-        condiction: str,
-        conditionLiteral: str,
-        schema='public',
-        collumns=('*',)
+        self, table: str, collCodiction: str, condiction: str,
+        conditionLiteral: str, schema='public', collumns=('*',)
     ) -> list: pass
 
 
@@ -101,10 +79,8 @@ class DataBasePostgreSQL(DataBase, LogErrorsMixin):
         '''
         try:
             with psycopg.connect(
-                host=self.host,
-                dbname=self.dbname,
-                user=self.user,
-                port=self.port,
+                host=self.host, dbname=self.dbname,
+                user=self.user, port=self.port,
                 password=self.password
             ) as con:
                 with con.cursor() as cursor:
@@ -123,11 +99,8 @@ class DataBasePostgreSQL(DataBase, LogErrorsMixin):
         '''
         try:
             with psycopg.connect(
-                host=self.host,
-                dbname=self.dbname,
-                user=self.user,
-                port=self.port,
-                password=self.password
+                host=self.host, dbname=self.dbname, user=self.user,
+                port=self.port, password=self.password
             ) as con:
                 with con.cursor() as cursor:
                     sQL, data = query
@@ -157,10 +130,7 @@ class DataBasePostgreSQL(DataBase, LogErrorsMixin):
             raise e
 
     def SQLInsertGenerator(
-        self, *args,
-        collumn: tuple,
-        table: str,
-        schema: str
+        self, *args, collumn: tuple, table: str, schema: str
     ) -> tuple:
         try:
             values = args[0]
@@ -179,13 +149,8 @@ class DataBasePostgreSQL(DataBase, LogErrorsMixin):
             raise e
 
     def SQLUpdateGenerator(
-            self, *args,
-            collumnUpdate: str,
-            collumnCondicional: str,
-            table: str,
-            schema: str,
-            update: str,
-            conditionalValue: str
+            self, *args, collumnUpdate: str, collumnCondicional: str,
+            table: str, schema: str, update: str, conditionalValue: str
             ):
         try:
             query = sql.SQL(
@@ -206,13 +171,8 @@ class DataBasePostgreSQL(DataBase, LogErrorsMixin):
         return ('Não Implementado !!',)
 
     def SQLSelectGenerator(
-        self,
-        table: str,
-        collCodiction: str,
-        condiction,
-        schema: str,
-        collumns: tuple,
-        conditionLiteral: str
+        self, table: str, collCodiction: str, condiction: str,
+        schema: str, collumns: tuple, conditionLiteral: str
     ) -> tuple:
         try:
             if conditionLiteral == '':
@@ -260,13 +220,9 @@ class DataBasePostgreSQL(DataBase, LogErrorsMixin):
             raise e
 
     def updateTable(
-        self,
-        table: str,
-        collumnUpdate: str,
-        collumnCondicional: str,
-        update: str,
-        conditionalValue: str,
-        schema='public',
+        self, table: str, collumnUpdate: str,
+        collumnCondicional: str, update: str,
+        conditionalValue: str, schema='public',
     ) -> None:
         '''
             Atualiza colunas.
@@ -276,11 +232,9 @@ class DataBasePostgreSQL(DataBase, LogErrorsMixin):
         '''
         try:
             query = self.SQLUpdateGenerator(
-                table=table,
-                collumnUpdate=collumnUpdate,
+                table=table, collumnUpdate=collumnUpdate,
                 collumnCondicional=collumnCondicional,
-                schema=schema,
-                update=update,
+                schema=schema, update=update,
                 conditionalValue=conditionalValue
             )
             self.toExecute(query)
@@ -314,21 +268,14 @@ class DataBasePostgreSQL(DataBase, LogErrorsMixin):
         pass
 
     def selectOnTable(
-        self, table: str,
-        collCodiction: str,
-        condiction: str,
-        conditionLiteral: str,
-        schema='public',
-        collumns=('*',)
+        self, table: str, collCodiction: str, condiction: str,
+        conditionLiteral: str, schema='public', collumns=('*',)
     ) -> list:
         try:
             query = self.SQLSelectGenerator(
-                table=table,
-                collCodiction=collCodiction,
-                condiction=condiction,
-                schema=schema,
-                collumns=collumns,
-                conditionLiteral=conditionLiteral
+                table=table, collCodiction=collCodiction,
+                condiction=condiction, schema=schema,
+                collumns=collumns, conditionLiteral=conditionLiteral
             )
             return self.toExecuteSelect(query)
         except (Error, Exception) as e:
@@ -367,13 +314,8 @@ class DataModel(ABC, LogErrorsMixin):
                                   ' relativa a tabela trabalhada.')
 
     def execUpdateTable(
-        self,
-        table: str,
-        collumnUpdate: tuple,
-        collumnCondicional: str,
-        update: str,
-        conditionalValue: str,
-        schema='public',
+        self, table: str, collumnUpdate: tuple, collumnCondicional: str,
+        update: str, conditionalValue: str, schema='public',
     ) -> None:
         '''
             Implementa uma estrutura para atualizar tabelas.
@@ -391,13 +333,8 @@ class DataModel(ABC, LogErrorsMixin):
                                   ' relativa a tabela trabalhada.')
 
     def execSelectOnTable(
-        self,
-        table: str,
-        collCodiction: str,
-        condiction: str,
-        conditionLiteral: str,
-        schema='public',
-        collumns=('*', )
+        self, table: str, collCodiction: str, condiction: str,
+        conditionLiteral: str, schema='public', collumns=('*', )
     ) -> list:
         '''
             Implementa uma estrutura para criar buscar dados em tabelas.
@@ -443,10 +380,7 @@ class DadoHorario(DataModel):
                 args[0]['2']
             )
             self.DBInstance.insertTable(
-                data,
-                table=table,
-                collumn=collumn,
-                schema=schema
+                data, table=table, collumn=collumn, schema=schema
             )
         except (Error, Exception) as e:
             className = self.__class__.__name__
@@ -455,21 +389,13 @@ class DadoHorario(DataModel):
             raise e
 
     def execSelectOnTable(
-        self,
-        table: str,
-        collCodiction: str,
-        condiction: str,
-        conditionLiteral: str,
-        collumns=('*',),
-        schema='public'
+        self, table: str, collCodiction: str, condiction: str,
+        conditionLiteral: str, collumns=('*',), schema='public'
     ) -> list:
         try:
             result = self.DBInstance.selectOnTable(
-                collCodiction='',
-                condiction='',
-                table=table,
-                collumns=collumns,
-                conditionLiteral=conditionLiteral
+                collCodiction='', condiction='', table=table,
+                collumns=collumns, conditionLiteral=conditionLiteral
             )
             return result
         except (Error, Exception) as e:
@@ -497,8 +423,8 @@ class GerenciadorTabelas(DataModel):
             raise e
 
     def execSelectOnTable(
-        self, table=None, collCodiction=None, condiction=None,
-        schema='public', collumns=('*', ), conditionLiteral=None
+        self, table: str, collCodiction: str, condiction: str,
+        conditionLiteral: str, collumns=('*',), schema='public'
     ) -> list:
         try:
             result: list = self.DBInstance.selectOnTable(
@@ -519,9 +445,9 @@ class GerenciadorTabelas(DataModel):
         '''
         try:
             result: list = self.execSelectOnTable(
-                collumns=('codigo',),
-                table='gerenciador_tabelas_horarias',
-                conditionLiteral='ORDER BY codigo DESC LIMIT 1'
+                collumns=('codigo',), table='gerenciador_tabelas_horarias',
+                conditionLiteral='ORDER BY codigo DESC LIMIT 1',
+                collCodiction='', condiction=''
             )
             resultInt: int = result[0][0]
             return resultInt
