@@ -5,9 +5,88 @@ from datetime import datetime
 from DataBaseManager.LogFiles import LogErrorsMixin
 
 
-class DataBase(ABC, LogErrorsMixin):
+class DataBase(ABC):
     '''Classe abstrata que fornece os serviços básicos
-    para as operações do banco de dados'''
+    para as operações do banco de dados, permitindo a implementação de
+    diversos SGBD's.'''
+    def __init__(self, dBConfig: dict) -> None:
+        self.host: str = dBConfig['host']
+        self.port: str = dBConfig['port']
+        self.dbname: str = dBConfig['dbname']
+        self.user: str = dBConfig['user']
+        self.password: str = dBConfig['password']
+
+    @abstractmethod
+    def toExecute(self, query: tuple) -> None: pass
+
+    @abstractmethod
+    def toExecuteSelect(self, query) -> list: pass
+
+    @abstractmethod
+    def placeHolderSQLGenerator(self, values) -> str | None: pass
+
+    @abstractmethod
+    def SQLInsertGenerator(
+        self, *args,
+        collumn: tuple,
+        table: str,
+        schema: str
+    ) -> tuple | None: pass
+
+    @abstractmethod
+    def SQLUpdateGenerator(
+            self, *args,
+            collumnUpdate: str,
+            collumnCondicional: str,
+            table: str,
+            schema: str,
+            update: str,
+            conditionalValue: str
+            ) -> tuple: pass
+
+    @abstractmethod
+    def SQLDeleteGenerator(self) -> tuple: pass
+
+    @abstractmethod
+    def SQLSelectGenerator(
+        self,
+        table: str,
+        collCodiction: str,
+        condiction,
+        schema: str,
+        collumns: tuple,
+        conditionLiteral: str
+    ) -> tuple: pass
+
+    @abstractmethod
+    def updateTable(
+        self,
+        table: str,
+        collumnUpdate: str,
+        collumnCondicional: str,
+        update: str,
+        conditionalValue: str,
+        schema='public',
+    ) -> None: pass
+
+    @abstractmethod
+    def insertTable(
+        self, *args, table: str, collumn: tuple, schema='public'
+    ) -> None: pass
+
+    @abstractmethod
+    def selectOnTable(
+        self, table: str,
+        collCodiction: str,
+        condiction: str,
+        conditionLiteral: str,
+        schema='public',
+        collumns=('*',)
+    ) -> list: pass
+
+
+class DataBasePostgreSQL(DataBase, LogErrorsMixin):
+    '''Realiza as operações com o PostgreSQL'''
     def __init__(self, dBConfig: dict) -> None:
         self.host: str = dBConfig['host']
         self.port: str = dBConfig['port']
