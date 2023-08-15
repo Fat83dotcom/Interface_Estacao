@@ -239,9 +239,6 @@ class DataBasePostgreSQL(DataBase, LogErrorsMixin):
             )
             self.toExecute(query)
         except (Error, Exception) as e:
-            className = self.__class__.__name__
-            methName = self.updateTable.__name__
-            self.registerErrors(className, methName, e)
             raise e
 
     def insertTable(
@@ -259,9 +256,6 @@ class DataBasePostgreSQL(DataBase, LogErrorsMixin):
             )
             self.toExecute(query)
         except (Error, Exception) as e:
-            className = self.__class__.__name__
-            methName = self.insertTable.__name__
-            self.registerErrors(className, methName, e)
             raise e
 
     def deleteOnTable(self) -> None:
@@ -279,9 +273,6 @@ class DataBasePostgreSQL(DataBase, LogErrorsMixin):
             )
             return self.toExecuteSelect(query)
         except (Error, Exception) as e:
-            className = self.__class__.__name__
-            methName = self.SQLSelectGenerator.__name__
-            self.registerErrors(className, methName, e)
             raise e
 
 
@@ -363,9 +354,6 @@ class DadoHorario(DataModel):
             REFERENCES gerenciador_tabelas_horarias (codigo))""", ()
             self.DBInstance.toExecute(query)
         except (Error, Exception) as e:
-            className = self.__class__.__name__
-            methName = self.execCreateTable.__name__
-            self.registerErrors(className, methName, e)
             raise e
 
     def execInsertTable(
@@ -383,9 +371,6 @@ class DadoHorario(DataModel):
                 data, table=table, collumn=collumn, schema=schema
             )
         except (Error, Exception) as e:
-            className = self.__class__.__name__
-            methName = self.execSelectOnTable.__name__
-            self.registerErrors(className, methName, e)
             raise e
 
     def execSelectOnTable(
@@ -399,9 +384,6 @@ class DadoHorario(DataModel):
             )
             return result
         except (Error, Exception) as e:
-            className = self.__class__.__name__
-            methName = self.execSelectOnTable.__name__
-            self.registerErrors(className, methName, e)
             raise e
 
 
@@ -417,9 +399,6 @@ class GerenciadorTabelas(DataModel):
                 *args, table=table, collumn=collumn, schema=schema
             )
         except (Error, Exception) as e:
-            className = self.__class__.__name__
-            methName = self.execSelectOnTable.__name__
-            self.registerErrors(className, methName, e)
             raise e
 
     def execSelectOnTable(
@@ -434,27 +413,21 @@ class GerenciadorTabelas(DataModel):
             )
             return result
         except (Error, Exception) as e:
-            className = self.__class__.__name__
-            methName = self.execSelectOnTable.__name__
-            self.registerErrors(className, methName, e)
             raise e
 
-    def getForeignKey(self) -> int:
+    def getForeignKey(self, date: str) -> int:
         '''select codigo from gerenciador_tabelas_horarias
         order by codigo desc limit 1;
         '''
         try:
             result: list = self.execSelectOnTable(
                 collumns=('codigo',), table='gerenciador_tabelas_horarias',
-                conditionLiteral='ORDER BY codigo DESC LIMIT 1',
+                conditionLiteral=f"WHERE data_tabela='{date}'",
                 collCodiction='', condiction=''
             )
             resultInt: int = result[0][0]
             return resultInt
         except (Error, Exception) as e:
-            className = self.__class__.__name__
-            methName = self.execSelectOnTable.__name__
-            self.registerErrors(className, methName, e)
             raise e
 
     def nameTableGenerator(self) -> str:
