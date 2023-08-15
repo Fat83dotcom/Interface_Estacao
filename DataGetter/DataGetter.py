@@ -248,9 +248,8 @@ class DBUtils:
                 table='gerenciador_tabelas_horarias',
                 collumn=('data_tabela', )
             )
-            fKey: int = self.dGT.getForeignKey()
-            self.executor.submit(
-                self.dDH.execCreateTable,
+            fKey: int = self.dGT.getForeignKey(tableName)
+            self.dDH.execCreateTable(
                 fKey, tableName=tableName, schema='tabelas_horarias'
             )
         except Exception:
