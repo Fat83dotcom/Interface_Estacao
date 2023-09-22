@@ -5,7 +5,6 @@ from time import sleep
 from serial import Serial
 from itertools import count
 from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor
 from PySide2.QtCore import QObject, Signal, QMutex, Slot
 from GlobalFunctions.GlobalFunctions import dataInstantanea, dataDoArquivo
 from GlobalFunctions.GlobalFunctions import dataBancoDados
@@ -33,10 +32,9 @@ class WorkerEstacao(QObject):
         self.dadosBD = dadosBD
         self.paradaPrograma: bool = False
         self.mutex = QMutex()
-        self.executor = ThreadPoolExecutor(max_workers=2)
         self.ardutils = ArduinoUtils(self.arduino)
         self.fileUtils = FileUtils(self.saidaInfoInicio)
-        self.dbutils = DBUtils(self.dadosBD, self.executor)
+        self.dbutils = DBUtils(self.dadosBD)
         self.interfaceutil = InterfaceUtils(
             self.saidaData, self.saidaDadosLCD,
             self.barraProgresso, self.mostradorTempoRestante,
@@ -233,9 +231,8 @@ class FileUtils:
 
 
 class DBUtils:
-    def __init__(self, dadosBD: dict, executor: ThreadPoolExecutor) -> None:
+    def __init__(self, dadosBD: dict) -> None:
         self.dadosBD = dadosBD
-        self.executor = executor
         self.dB = DataBasePostgreSQL(self.dadosBD)
         self.dDH = DadoHorario(self.dB)
         self.dGT = GerenciadorTabelas(self.dB)
@@ -262,8 +259,7 @@ class DBUtils:
 
     def insereBancoDados(self, dadosCarregadosArduino: dict) -> None:
         tableName = self.dGT.nameTableGenerator()
-        self.executor.submit(
-            self.dDH.execInsertTable,
+        self.dDH.execInsertTable(
             dadosCarregadosArduino,
             table=tableName,
             collumn=(
